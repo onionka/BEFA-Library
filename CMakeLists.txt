@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
 project(Binary_File_Parser)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-include_directories("/usr/include")
-set(SOURCE_FILES main.cpp)
-add_executable(Binary_File_Parser ${SOURCE_FILES})
-TARGET_LINK_LIBRARIES(Binary_File_Parser bfd)
+
+add_subdirectory(bfp)
+add_subdirectory(test)
