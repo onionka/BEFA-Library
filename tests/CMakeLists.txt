@@ -7,3 +7,4 @@ add_executable(Binary_File_Parser
 			   ../bfp/bfp.hpp
 			   ../bfp/bfd.h)
 TARGET_LINK_LIBRARIES(Binary_File_Parser bfp)
+add_test(first Binary_File_Parser Binary_File_Parser)
