@@ -1,6 +1,8 @@
-//
-// Created by onionka on 19/06/15.
-//
+/**
+ * @file sample.cpp
+ * @author Miroslav Cibulka
+ * @brief This is plugin for testing purposes
+ */
 
 #include "sample.h"
 #include <iostream>

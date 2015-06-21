@@ -1,10 +1,10 @@
 /** Binary File Parser
  * @file bfp.cpp
  * @author Miroslav Cibulka
- * @brief TODO
+ * @brief Module where Binary File Descriptor is abstracted
  */
 
-#include "bfp.hpp"
+#include <bfp.hpp>
 
 namespace BFP {
     BFD *BFD::get_unique_instance() {

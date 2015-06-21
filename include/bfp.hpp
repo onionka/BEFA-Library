@@ -1,7 +1,8 @@
 /** Binary File Parser
  * @file bfp.hpp
  * @author Miroslav Cibulka
- * @brief TODO
+ * @brief Main header for BFP
+ *        TODO: Description
  */
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
@@ -9,7 +10,7 @@
 
 #include <string.h>
 #include <bfd.h>
-#include "exception.hpp"
+#include <bfp/exception.hpp>
 
 namespace BFP {
 

@@ -1,11 +1,21 @@
-//
-// Created by onionka on 19/06/15.
-//
+/**
+ * @file sample.h
+ * @author Miroslav Cibulka
+ * @brief This is plugin for testing purposes
+ */
 
 #ifndef _PLUGIN_H
 #define _PLUGIN_H
 
-#include "plugin_manager.hpp"
+#include <bfp/plugin_manager.hpp>
+
+const char *list_of_plugins[] = {
+        "Sample", NULL
+};
+
+extern "C" const char **plugins() {
+    return list_of_plugins;
+}
 
 class Sample : VComponent {
 public:
@@ -19,7 +29,7 @@ public:
 private:
     const char *version = "0.0.1";
 
-    const char *name = "Sample Plugin";
+    const char *name = "Sample_Plugin";
 };
 
 extern "C" Sample *creator_Sample() {

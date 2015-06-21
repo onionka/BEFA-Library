@@ -1,6 +1,8 @@
-//
-// Created by onionka on 18/06/15.
-//
+/**
+ * @file exception.hpp
+ * @author Miroslav Cibulka
+ * @brief Exception system for Binary File Parser
+ */
 
 #ifndef BINARY_FILE_PARSER_EXCEPTION_HPP
 #define BINARY_FILE_PARSER_EXCEPTION_HPP
@@ -30,9 +32,18 @@ namespace BFP {
         /** May be thrown on loading plugin */
         class LoadingPlugin;
 
+        /** May be thrown on loading plugin file */
+        class PluginsArrNotExists;
+
         /** May be thrown on creating instance of plugin class */
         class CreatingPluginInstance;
 
+        /** May be thrown on creating instance of plugin class */
+        class PluginsArrNotExists;
+
+        /** Constructs Exception with backtrace, last called method and message
+         * @brief Translates various errors to strings
+         */
         Exception(const char *_msg, ::std::string LastCall = "Unknown") {
             void *buffer[200];
             int n;
@@ -131,6 +142,7 @@ namespace BFP {
             free(strings);
         }
 
+        /** Returns message about error */
         virtual const char *what() const throw() {
             return msg.c_str();
         }
@@ -165,6 +177,13 @@ namespace BFP {
     public:
         CreatingPluginInstance(::std::string LastCall) :
                 Exception("Exception occurred on creating instance of plugin class",
+                          LastCall) { }
+    };
+
+    class Exception::PluginsArrNotExists : public Exception {
+    public:
+        PluginsArrNotExists(::std::string LastCall) :
+                Exception("Plugin's array was not found in plugin!",
                           LastCall) { }
     };
 }
