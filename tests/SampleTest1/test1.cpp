@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string.h>
-#include "../bfp/bfp.hpp"
+#include <bfp.hpp>
 
 
 int main(int args, const char **argv) {
@@ -10,12 +10,12 @@ int main(int args, const char **argv) {
             fd->Open(*(argv + 1), NULL);
         } else {
             ::std::cout << *argv << " <FILE_NAME>" << ::std::endl;
-            return EXIT_SUCCESS;
+            return EXIT_FAILURE;
         }
     } catch (::BFP::Exception &ex) {
         ::std::cerr << ex.what();
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE;
     }
     delete fd;
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }

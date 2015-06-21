@@ -8,6 +8,8 @@
 #include <iostream>
 #include <execinfo.h>
 #include <bfd.h>
+#include <dlfcn.h>
+#include <cstring>
 
 #define RAISE(ex) throw ex(std::string(__FILE__) + ":" + ::std::to_string(__LINE__) + ":" + __FUNCTION__ + "()")
 
@@ -25,6 +27,12 @@ namespace BFP {
         /** May be thrown on opening file */
         class Opening;
 
+        /** May be thrown on loading plugin */
+        class LoadingPlugin;
+
+        /** May be thrown on creating instance of plugin class */
+        class CreatingPluginInstance;
+
         Exception(const char *_msg, ::std::string LastCall = "Unknown") {
             void *buffer[200];
             int n;
@@ -34,7 +42,13 @@ namespace BFP {
             msg += "\n\nDescription:\n\t";
             switch (bfd_get_error()) {
                 case bfd_error_type::bfd_error_no_error:
-                    msg += "Not a BFD error";
+                    char *error;
+                    if (errno)
+                        msg += ::std::string("System error: ") + strerror(errno);
+                    else if ((error = dlerror()) != NULL)
+                        msg += ::std::string("Dynamic linking error: ") + error;
+                    else
+                        msg += "Not a BFD/System/DL error";
                     break;
                 case bfd_error_type::bfd_error_system_call:
                     msg += ::std::string("System call: ") + strerror(errno);
@@ -136,6 +150,21 @@ namespace BFP {
     public:
         Opening(::std::string LastCall) :
                 Exception("Exception occurred on opening file descriptor",
+                          LastCall) { }
+    };
+
+    class Exception::LoadingPlugin : public Exception {
+    public:
+        LoadingPlugin(::std::string LastCall) :
+                Exception("Exception occurred on opening dynamically linked plugin",
+                          LastCall) { }
+    };
+
+
+    class Exception::CreatingPluginInstance : public Exception {
+    public:
+        CreatingPluginInstance(::std::string LastCall) :
+                Exception("Exception occurred on creating instance of plugin class",
                           LastCall) { }
     };
 }
