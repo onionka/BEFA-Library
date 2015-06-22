@@ -31,6 +31,13 @@ namespace BFP {
     private:
         bfd *fd;
     };
+
+    class VSection {
+    public:
+        virtual const char *type() const = 0;
+
+        virtual const char *getName() const = 0;
+    };
 }
 
 #endif //BINARY_FILE_PARSER_BFP_HPP

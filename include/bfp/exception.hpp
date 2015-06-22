@@ -118,11 +118,17 @@ namespace BFP {
                 case bfd_error_type::bfd_error_wrong_object_format:
                     msg += "Wrong object format";
                     break;
-                case bfd_error_type::bfd_error_missing_dso:
-                    msg += "Missing DSO";
-                    break;
+///////////////////////////////////////////////////////////////////////
+//           This is missing in Ubuntu 12.4
+//              case bfd_error_type::bfd_error_missing_dso:
+//                  msg += "Missing DSO";
+//                  break;
+///////////////////////////////////////////////////////////////////////
                 case bfd_error_type::bfd_error_on_input:
                     msg += "Input error";
+                    break;
+                default:
+                    msg += "Undefined BFD error";
                     break;
             }
             msg += "\n";
