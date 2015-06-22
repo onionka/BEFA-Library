@@ -6,13 +6,11 @@
 
 #include <iostream>
 #include <bfp/plugin_manager.hpp>
-#include <bfp.hpp>
-#include <vector>
 
 /**
  * @brief Factory for making plugin from Sample shared library
  */
-class SamplePluginFactory : public VFactory {
+class SamplePluginFactory : public ::BFP::VFactory {
 public:
     /** Init sample plugin factory
      * @brief This should load shared library and load creator function
@@ -21,11 +19,11 @@ public:
     SamplePluginFactory() {
         handle = dlopen(getLibName().c_str(), RTLD_LAZY);
         if (handle == NULL)
-            RAISE(::BFP::Exception::LoadingPlugin);
+            RAISE(::BFP::Exception::Plugins::LoadingPlugin);
 
         const char **_plugins = reinterpret_cast<const char **>(dlsym(handle, "plugins"));
         if (_plugins == NULL)
-            RAISE(::BFP::Exception::PluginsArrNotExists);
+            RAISE(::BFP::Exception::Plugins::PluginsArrNotExists);
         for (; *_plugins != NULL; ++_plugins)
             plugins.push_back(::std::string(*_plugins));
     }
@@ -33,11 +31,11 @@ public:
     /** Creates instance of plugin
      * @return Instance of plugin class
      */
-    virtual VComponent *create(::std::string _plug) {
-        creator = reinterpret_cast<VComponent *(*)()>(
+    virtual ::BFP::VComponent *create(::std::string _plug) {
+        creator = reinterpret_cast<::BFP::VComponent *(*)()>(
                 dlsym(handle, (::std::string("creator_") + _plug).c_str()));
         if (creator == NULL)
-            RAISE(::BFP::Exception::CreatingPluginInstance);
+            RAISE(::BFP::Exception::Plugins::CreatingPluginInstance);
         return creator();
     }
 
@@ -58,22 +56,36 @@ public:
 private:
     void *handle;
 
-    VComponent *(*creator)();
+    ::BFP::VComponent *(*creator)();
 
     ::std::vector<::std::string> plugins;
 
-    const ::std::string shared_library = "../plugin/libsample.so";
+    const ::std::string shared_library = "libsample.so";
 };
 
-int main() {
+/** Example of section - will be expanded in future ... */
+class Section : public ::BFP::VSection {
+    virtual const char *type() const {
+        return "Sample type";
+    }
+
+    virtual const char *getName() const {
+        return "Sample Section name";
+    }
+};
+
+int main(int argc, char **argv) {
     try {
-        VFactory *PluginFactory = new SamplePluginFactory();
-        VComponent *Sample = PluginFactory->create("Sample");
-        ::std::cout << "Plugin: " <<
-                Sample->getName() << "-" << Sample->getVersion() <<
-                " was loaded!" << ::std::endl;
-    } catch (::BFP::Exception &ex) {
+        auto _factory = new SamplePluginFactory();
+        ::BFP::Stage *PluginStage = new ::BFP::Stage(_factory);
+        auto _section = new Section();
+        PluginStage->deployPlugins(_section);
+        delete PluginStage;
+        delete _section;
+        delete _factory;
+    } catch (::std::exception &ex) {
         ::std::cerr << ex.what();
+        return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
 }

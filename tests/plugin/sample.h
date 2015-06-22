@@ -9,17 +9,15 @@
 
 #include <bfp/plugin_manager.hpp>
 
-const char *list_of_plugins[] = {
+const char *plugins[] = {
         "Sample", NULL
 };
 
-extern "C" const char **plugins() {
-    return list_of_plugins;
-}
-
-class Sample : VComponent {
+class Sample : ::BFP::VComponent {
 public:
     Sample();
+
+    virtual void deploy(::BFP::VSection *arg);
 
     virtual const char *getVersion() const;
 

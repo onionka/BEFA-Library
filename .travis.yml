@@ -14,4 +14,4 @@ install:
 
 before_script: if [ ! -d "build" ]; then mkdir build; fi;
 
-script: pushd build && cmake .. && make && make test && popd
+script: pushd build && cmake .. && make && make test ARGS="-V" && popd

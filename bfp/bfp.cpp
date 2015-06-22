@@ -17,12 +17,12 @@ namespace BFP {
 
     void BFD::Open(const char *_file_name, const char *_target) {
         if ((fd = bfd_openr(_file_name, _target)) == NULL)
-            RAISE(::BFP::Exception::Opening);
+            RAISE(::BFP::Exception::BFD::Opening);
     }
 
     BFD::~BFD() {
         if (!bfd_close(fd)) {
-            RAISE(::BFP::Exception::Closing);
+            RAISE(::BFP::Exception::BFD::Closing);
         }
     }
 

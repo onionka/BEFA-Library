@@ -10,7 +10,7 @@
 
 #include <string.h>
 #include <bfd.h>
-#include <bfp/exception.hpp>
+#include <bfp/exception.h>
 
 namespace BFP {
 

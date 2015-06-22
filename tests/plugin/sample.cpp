@@ -19,6 +19,10 @@ const char *Sample::getName() const {
     return name;
 }
 
+void Sample::deploy(::BFP::VSection *arg) {
+    ::std::cout << "Plugin was deployed from section: " << arg->getName() << std::endl;
+}
+
 Sample::~Sample() {
     ::std::cout << "Unloading Sample plugin" << ::std::endl;
 }
