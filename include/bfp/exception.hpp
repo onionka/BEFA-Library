@@ -9,9 +9,9 @@
 
 #include <iostream>
 #include <execinfo.h>
-#include <bfd.h>
 #include <dlfcn.h>
 #include <cstring>
+#include <bfd.h>
 
 /** Use THIS instead of throw */
 #define RAISE(ex) throw ex(std::string(__FILE__) + ":" + ::std::to_string(__LINE__) + ":" + __FUNCTION__ + "()")

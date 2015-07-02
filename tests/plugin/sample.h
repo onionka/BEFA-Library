@@ -7,7 +7,7 @@
 #ifndef _PLUGIN_H
 #define _PLUGIN_H
 
-#include <bfp/plugin_manager.hpp>
+#include <bfp.hpp>
 
 const char *plugins[] = {
         "Sample", NULL

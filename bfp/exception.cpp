@@ -4,7 +4,7 @@
  * @brief Exception system for Binary File Parser
  */
 
-#include <bfp/exception.h>
+#include <bfp.hpp>
 
 #define EX_HEADER(msg, call, ex_msg) {                 \
     msg += "Last called function:\n\t" + LastCall;      \

@@ -6,9 +6,10 @@ set(SOURCE_FILES
 
 add_library(bfp
             ${SOURCE_FILES}
-            ${PROJECT_SOURCE_DIR}/include/bfp/exception.h
-            ${PROJECT_SOURCE_DIR}/include/bfp/plugin_manager.hpp
-            ${PROJECT_SOURCE_DIR}/include/bfp.hpp
+            ../include/bfp.hpp
+            ../include/bfp/exception.hpp
+            ../include/bfp/plugin_manager.hpp
+            ../include/bfp/bfp.hpp
             ${BFD_INCLUDE_DIR}/bfd.h)
 TARGET_LINK_LIBRARIES(bfp bfd ${Boost_LIBRARIES})
 INSTALL(TARGETS bfp

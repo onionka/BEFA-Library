@@ -9,8 +9,8 @@
 
 #include <dlfcn.h>
 #include <vector>
-#include <bfp.hpp>
 #include <algorithm>
+#include <map>
 
 namespace BFP {
     /** Component from which plugins are derived */
@@ -25,6 +25,7 @@ namespace BFP {
         /** Name of plugin */
         virtual const char *getName() const = 0;
 
+        virtual ~VComponent() { }
         /// TODO: Other info?
     };
 
@@ -42,6 +43,61 @@ namespace BFP {
 
         /** Virtual destructor for destructing derived objects */
         virtual ~VFactory() { }
+    };
+
+    class PluginFactory : public VFactory {
+    public:
+        /**
+         * @brief Creates Plugin factory from library
+         * @param lib is name of shared library
+         */
+        PluginFactory(::std::string lib) :
+                shared_library(lib)
+        {
+            handle = dlopen(shared_library.c_str(), RTLD_LAZY);
+            if (handle == NULL)
+                RAISE(::BFP::Exception::Plugins::LoadingPlugin);
+
+            const char **_plugins = reinterpret_cast<const char **>(
+                    dlsym(handle, "plugins"));
+            if (_plugins == NULL)
+                RAISE(::BFP::Exception::Plugins::PluginsArrNotExists);
+            for (; *_plugins != NULL; ++_plugins)
+                plugins.push_back(::std::string(*_plugins));
+        }
+
+        /**
+         * @brief Creates instance of plugin
+         * @return Instance of plugin class
+         */
+        virtual VComponent *create(::std::string _plug) {
+            if (creators.find(_plug) == creators.end())
+                creators[_plug] = reinterpret_cast<::BFP::VComponent *(*)()>(
+                        dlsym(handle, (::std::string("creator_") + _plug).c_str()));
+            if (creators[_plug] == NULL)
+                RAISE(::BFP::Exception::Plugins::CreatingPluginInstance);
+            return creators[_plug]();
+        }
+
+        /** @return List of plugins in file */
+        virtual const ::std::vector<::std::string> getPlugins() const {
+            return plugins;
+        }
+
+        /** @return shared library name */
+        virtual const ::std::string getLibName() const {
+            return shared_library;
+        }
+
+        /** @brief Closes library handle */
+        ~PluginFactory() {
+            dlclose(handle);
+        }
+    private:
+        void *handle;
+        ::std::map<::std::string, ::BFP::VComponent *(*)()> creators;
+        ::std::vector<::std::string> plugins;
+        ::std::string shared_library;
     };
 
     /** Represent stage of analysis */
@@ -74,6 +130,7 @@ namespace BFP {
             return StageLibs;
         }
 
+        /** Deletes all plugins */
         ~Stage() {
             for(auto plugin: Plugins)
                 delete plugin;
@@ -91,7 +148,7 @@ namespace BFP {
         /** Creates vector of stages loaded from path
          * @param path to the shared libraries
          */
-        PluginManager(::std::string path) {
+        PluginManager(::std::string /*path*/) {
 
         }
 

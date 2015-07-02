@@ -8,8 +8,6 @@
 #include <iostream>
 #include <string.h>
 #include <bfp.hpp>
-#include <bfp/exception.h>
-
 
 int main(int args, const char **argv) {
     auto fd = ::BFP::BFD::get_unique_instance();
