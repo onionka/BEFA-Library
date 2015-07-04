@@ -1,4 +1,5 @@
 ######################################################################
+set(CMAKE_VERBOSE_MAKEFILE on)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g")
 ######################################################################
 set(VALGRIND valgrind --leak-check=full -v --show-reachable=yes)
@@ -22,3 +23,9 @@ add_test(ExampleTest ${VALGRIND} ./test1)
 add_test(ExampleTestFail ${VALGRIND} ./test2)
 add_test(PluginTest ${VALGRIND} ./plugin_test)
 ######################################################################
+add_executable(functional
+               Functional/main.h
+               Functional/main.cpp)
+TARGET_LINK_LIBRARIES(functional bfp)
+######################################################################
+SETUP_TARGET_FOR_COVERAGE(coverage functional coverage)

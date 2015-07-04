@@ -7,11 +7,26 @@ before_install:
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get install -qq gcc-4.9 g++-4.9
-  - sudo apt-get install binutils-dev libboost-all-dev aptitude valgrind
+  - sudo apt-get install -qq gcc-5 g++-5
+  - sudo apt-get install binutils-dev libboost-all-dev aptitude valgrind lcov
+  - sudo pip install cpp-coveralls
+  - gem install coveralls-lcov
   - aptitude search boost
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 90
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
 
-before_script: if [ ! -d "build" ]; then mkdir build; fi;
+before_script:
+  - if [ ! -d "build" ]; then mkdir build; fi;
 
-script: pushd build && cmake .. && make && make test ARGS="-V" && popd
+script:
+  - pushd build
+  - cmake -DCMAKE_BUILD_TYPE=Coverage ..
+  - make
+  - make test ARGS="-V"
+  - popd
+
+after_success:
+  - pushd build
+  - make coverage
+  - lcov --remove coverage.info 'tests/*' '/usr/*' --output-file coverage.info
+  - lcov --list coverage.info
+  - coveralls-lcov --repo-token vwEQvJdRYMfhwVBNfhpjiYY8bKzHgTXNy build/coverage.info

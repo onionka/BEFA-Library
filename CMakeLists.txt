@@ -24,5 +24,6 @@ add_subdirectory(include)
 add_subdirectory(bfp)
 
 enable_testing()
-
+set(CMAKE_BUILD_TYPE "Coverage")
+include(CMAKE_INCLUDES/CodeCoverage.cmake)
 add_subdirectory(tests)
