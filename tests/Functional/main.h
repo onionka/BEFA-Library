@@ -8,9 +8,9 @@
 #include <iostream>
 #include <bfp.hpp>
 
-#define GREEN           "\e[0;31m"
-#define RED             "\e[0;32m"
-#define NORMAL     "\e[0m"
+#define GREEN           "\e[0;32m"
+#define RED             "\e[0;31m"
+#define NORMAL          "\e[0m"
 
 #define DEFINE_TEST_SUIT(name)              \
     ::std::function<int()> name[] =
@@ -48,7 +48,7 @@ DEFINE_TEST_SUIT(functional_suite) {
         return 0;
     }),
     DEFINE_TEST(sample2, {
-        return 0;
+        return 1;
     })
 };
 #endif //BINARYFILEPARSER_MAIN_H

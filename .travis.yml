@@ -7,27 +7,13 @@ before_install:
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get install -qq gcc-5 g++-5 cdbs cmake libboost-dev libboost-thread-dev libboost-filesystem-dev libmsgpack-dev binutils-dev libboost-all-dev aptitude valgrind
-  - sudo pip install cpp-coveralls
-  - wget http://ftp.de.debian.org/debian/pool/main/l/lcov/lcov_1.11.orig.tar.gz
-  - tar xf lcov_1.11.orig.tar.gz
-  - sudo make -C lcov-1.11/ install
-  - gem install coveralls-lcov
-  - aptitude search boost
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
-  - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-5 90
+  - sudo bash ./travis/install.sh
 
 before_script:
   - if [ ! -d "build" ]; then mkdir build; fi;
 
 script:
-  - pushd build
-  - cmake -DCMAKE_BUILD_TYPE=Coverage ..
-  - make
-  - make test ARGS="-V"
-  - popd
+  - sudo bash ./travis/script.sh
 
 after_success:
-  - pushd build
-  - make coverage
-  - coveralls-lcov --repo-token vwEQvJdRYMfhwVBNfhpjiYY8bKzHgTXNy coverage.info
+  - sudo bash ./travis/post_script.sh
