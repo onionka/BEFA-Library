@@ -73,6 +73,12 @@ namespace BFP {
         /** May be thrown on creating instance of plugin class */
         class PluginsArrNotExists;
 
+        /** May be thrown on creating instance of PluginManager */
+        class FileIsNotADir;
+
+        /** May be thrown on iterating Plugins directory */
+        class StageDirExpected;
+
         /**
          * @param ex_msg is message from thrower
          * @param LastCall is name of last called method inserted by macro RAISE
@@ -113,5 +119,16 @@ namespace BFP {
     public:
         PluginsArrNotExists(::std::string LastCall);
     };
+
+    class Exception::Plugins::FileIsNotADir : public Exception::Plugins {
+    public:
+        FileIsNotADir(::std::string LastCall);
+    };
+
+    class Exception::Plugins::StageDirExpected : public Exception::Plugins {
+    public:
+        StageDirExpected(::std::string LastCall);
+    };
+
 }
 #endif //BINARY_FILE_PARSER_EXCEPTION_HPP

@@ -7,9 +7,9 @@
 #include <bfp.hpp>
 
 #define EX_HEADER(msg, call, ex_msg) {                 \
-    msg += "Last called function:\n\t" + LastCall;      \
-    msg += ::std::string("\n\nBrief:\n\t") + ex_msg;   \
-    msg += "\n\nDescription:\n\t";                      \
+    msg += "Last called function:\n\t" + LastCall      \
+        +  ::std::string("\n\nBrief:\n\t") + ex_msg    \
+        +  "\n\nDescription:\n\t";                     \
 }
 
 
@@ -36,8 +36,9 @@
     return msg;
 }
 
-BFP::Exception::BFD::BFD(const char *ex_msg,
-                                 ::std::string LastCall) {
+BFP::Exception::BFD::BFD(
+        const char *ex_msg,
+        ::std::string LastCall) {
     EX_HEADER(msg, LastCall, ex_msg);
     switch (bfd_get_error()) {
         case bfd_error_type::bfd_error_no_error:
@@ -132,8 +133,9 @@ BFP::Exception::BFD::Opening::Opening(
             "BFD occurred on opening file descriptor",
             LastCall) { }
 
-BFP::Exception::Plugins::Plugins(const char *ex_msg,
-                                   ::std::string LastCall) {
+BFP::Exception::Plugins::Plugins(
+        const char *ex_msg,
+        ::std::string LastCall) {
     EX_HEADER(msg, LastCall, ex_msg);
     char *error;
     if ((error = dlerror()) != NULL)
@@ -159,3 +161,15 @@ BFP::Exception::Plugins::PluginsArrNotExists::PluginsArrNotExists(
         : Plugins(
             "Plugin's array was not found in plugin!",
             LastCall) { }
+
+BFP::Exception::Plugins::FileIsNotADir::FileIsNotADir(
+    ::std::string LastCall)
+        : Plugins(
+            "Path provided to Plugin Manager is not a directory (should be directory with plugins)",
+            LastCall) { }
+
+BFP::Exception::Plugins::StageDirExpected::StageDirExpected(
+    ::std::string LastCall)
+        : Plugins(
+            "In plugin directory are stage directories expected",
+            LastCall){ }

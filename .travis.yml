@@ -30,6 +30,4 @@ script:
 after_success:
   - pushd build
   - make coverage
-  - lcov --remove coverage.info 'tests/*' '/usr/*' --output-file coverage.info
-  - lcov --list coverage.info
   - coveralls-lcov --repo-token vwEQvJdRYMfhwVBNfhpjiYY8bKzHgTXNy coverage.info
