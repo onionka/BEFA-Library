@@ -3,7 +3,7 @@ project(BinaryFileParser)
 
 #################################################################
 # Finding BOOST components #
-find_package(Boost COMPONENTS filesystem system REQUIRED)
+find_package(Boost 1.50.0 REQUIRED COMPONENTS filesystem system)
 
 # Finding BFD libraries and headers #
 find_path(BFD_INCLUDE_DIR bfd.h REQUIRED)
