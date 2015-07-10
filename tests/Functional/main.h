@@ -48,7 +48,7 @@ DEFINE_TEST_SUIT(functional_suite) {
         return 0;
     }),
     DEFINE_TEST(sample2, {
-        return 1;
+        return 0;
     })
 };
 #endif //BINARYFILEPARSER_MAIN_H

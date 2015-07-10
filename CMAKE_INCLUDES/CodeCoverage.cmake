@@ -144,7 +144,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
 	ADD_CUSTOM_COMMAND(TARGET ${_targetname} POST_BUILD
 		# Capturing lcov counters and generating report
 		COMMAND ${LCOV_PATH} --directory . --capture --output-file ${_outputname}.info
-		COMMAND ${LCOV_PATH} --remove coverage.info 'tests/*' '/usr/*' --output-file ${_outputname}.info
+		COMMAND ${LCOV_PATH} --remove coverage.info 'tests/*' '/usr/*'  '*/exception.hpp' '*/exception.cpp' --output-file ${_outputname}.info
 		COMMAND ${LCOV_PATH} --list ${_outputname}.info
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		COMMENT "Processing code coverage counters and generating report."
