@@ -1,10 +1,10 @@
 /**
- * @file sample.cpp
+ * @file main.cpp
  * @author Miroslav Cibulka
  * @brief This is plugin for testing purposes
  */
 
-#include "sample.h"
+#include "main.h"
 #include <iostream>
 
 Sample::Sample() {
@@ -17,6 +17,10 @@ const char *Sample::getVersion() const {
 
 const char *Sample::getName() const {
     return name;
+}
+
+void Sample::deploy(::BFP::VSection *arg) {
+    ::std::cout << "Plugin was deployed from section: " << arg->getName() << std::endl;
 }
 
 Sample::~Sample() {

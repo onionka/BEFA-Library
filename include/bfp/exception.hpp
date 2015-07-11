@@ -9,26 +9,58 @@
 
 #include <iostream>
 #include <execinfo.h>
-#include <bfd.h>
 #include <dlfcn.h>
 #include <cstring>
+#include <bfd.h>
 
+/** Use THIS instead of throw */
 #define RAISE(ex) throw ex(std::string(__FILE__) + ":" + ::std::to_string(__LINE__) + ":" + __FUNCTION__ + "()")
 
 namespace BFP {
 
-    /** Exceptions system for BFD
-     * @brief This is virtual class for BFD exceptions with function backtrack
+    /** ::BFP::Exception
+     * @brief Base class for all BFP exceptions (for exception isolation from system or similar)
      */
-    class Exception : ::std::exception {
+    class Exception : public ::std::exception {
     public:
+        /** Exceptions system for BFD
+         * @brief Basel class for BFD exceptions with function backtrack
+         */
+        class BFD;
 
+        /** Exception system for Plugins
+         * @brief Base class for plugin exceptions with function backtrack
+         */
+        class Plugins;
+
+    protected:
+        /** Returns function backtrace */
+        ::std::string get_backtrace();
+    };
+
+    class Exception::BFD : public Exception {
+    public:
         /** May be thrown on closing file */
         class Closing;
 
         /** May be thrown on opening file */
         class Opening;
 
+        /**
+         * @param ex_msg is message from thrower
+         * @param LastCall is name of last called method inserted by macro RAISE
+         */
+        BFD(const char *ex_msg, ::std::string LastCall = "Unknown");
+
+        const virtual char *what() const throw() {
+            return msg.c_str();
+        }
+    private:
+        ::std::string msg;
+    };
+
+    class Exception::Plugins  : public Exception {
+    public:
         /** May be thrown on loading plugin */
         class LoadingPlugin;
 
@@ -41,115 +73,19 @@ namespace BFP {
         /** May be thrown on creating instance of plugin class */
         class PluginsArrNotExists;
 
-        /** Constructs Exception with backtrace, last called method and message
-         * @brief Translates various errors to strings
+        /** May be thrown on creating instance of PluginManager */
+        class FileIsNotADir;
+
+        /** May be thrown on iterating Plugins directory */
+        class StageDirExpected;
+
+        /**
+         * @param ex_msg is message from thrower
+         * @param LastCall is name of last called method inserted by macro RAISE
          */
-        Exception(const char *_msg, ::std::string LastCall = "Unknown") {
-            void *buffer[200];
-            int n;
-            char **strings;
-            msg += "Last called function:\n\t" + LastCall;
-            msg += ::std::string("\n\nBrief:\n\t") + _msg;
-            msg += "\n\nDescription:\n\t";
-            switch (bfd_get_error()) {
-                case bfd_error_type::bfd_error_no_error:
-                    char *error;
-                    if (errno)
-                        msg += ::std::string("System error: ") + strerror(errno);
-                    else if ((error = dlerror()) != NULL)
-                        msg += ::std::string("Dynamic linking error: ") + error;
-                    else
-                        msg += "Not a BFD/System/DL error";
-                    break;
-                case bfd_error_type::bfd_error_system_call:
-                    msg += ::std::string("System call: ") + strerror(errno);
-                    break;
-                case bfd_error_type::bfd_error_invalid_target:
-                    msg += "Invalid target";
-                    break;
-                case bfd_error_type::bfd_error_wrong_format:
-                    msg += "Wrong format";
-                    break;
-                case bfd_error_type::bfd_error_invalid_operation:
-                    msg += "Invalid operation";
-                    break;
-                case bfd_error_type::bfd_error_no_memory:
-                    msg += "No memory";
-                    break;
-                case bfd_error_type::bfd_error_no_symbols:
-                    msg += "No symbols";
-                    break;
-                case bfd_error_type::bfd_error_no_armap:
-                    msg += "No armap";
-                    break;
-                case bfd_error_type::bfd_error_no_more_archived_files:
-                    msg += "No more archived files";
-                    break;
-                case bfd_error_type::bfd_error_malformed_archive:
-                    msg += "Malformed archive";
-                    break;
-                case bfd_error_type::bfd_error_file_not_recognized:
-                    msg += "File not recognized";
-                    break;
-                case bfd_error_type::bfd_error_file_ambiguously_recognized:
-                    msg += "File ambiguously recognized";
-                    break;
-                case bfd_error_type::bfd_error_no_contents:
-                    msg += "No contents";
-                    break;
-                case bfd_error_type::bfd_error_nonrepresentable_section:
-                    msg += "Nonrepresentable section";
-                    break;
-                case bfd_error_type::bfd_error_no_debug_section:
-                    msg += "No debug section";
-                    break;
-                case bfd_error_type::bfd_error_bad_value:
-                    msg += "Bad value";
-                    break;
-                case bfd_error_type::bfd_error_file_truncated:
-                    msg += "File truncated";
-                    break;
-                case bfd_error_type::bfd_error_file_too_big:
-                    msg += "File is too big";
-                    break;
-                case bfd_error_type::bfd_error_invalid_error_code:
-                    msg += "Invalid error code";
-                    break;
-                case bfd_error_type::bfd_error_wrong_object_format:
-                    msg += "Wrong object format";
-                    break;
-///////////////////////////////////////////////////////////////////////
-//           This is missing in Ubuntu 12.4
-//              case bfd_error_type::bfd_error_missing_dso:
-//                  msg += "Missing DSO";
-//                  break;
-///////////////////////////////////////////////////////////////////////
-                case bfd_error_type::bfd_error_on_input:
-                    msg += "Input error";
-                    break;
-                default:
-                    msg += "Undefined BFD error";
-                    break;
-            }
-            msg += "\n";
-            n = backtrace(buffer, 200);
-            strings = backtrace_symbols(buffer, n);
-            if (strings == NULL) {
-                msg += "Error on backtracking\n";
-                return;
-            } else {
-                msg += ::std::string("\nFunctions backtrace:\n");
-            }
+        Plugins(const char *ex_msg, ::std::string LastCall = "Unknown");
 
-            for (int j = n - 1; j >= 0; j--)
-                msg += ::std::string("\t") + std::to_string(n - j) + ": " +
-                       ::std::string(strings[j]) + "\n";
-
-            free(strings);
-        }
-
-        /** Returns message about error */
-        virtual const char *what() const throw() {
+        const char virtual *what() const throw() {
             return msg.c_str();
         }
 
@@ -157,40 +93,42 @@ namespace BFP {
         ::std::string msg;
     };
 
-    class Exception::Closing : public Exception {
+    class Exception::BFD::Closing : public Exception::BFD {
     public:
-        Closing(::std::string LastCall) :
-                Exception("Exception occurred on closing file descriptor",
-                          LastCall) { }
+        Closing(::std::string LastCall);
     };
 
-    class Exception::Opening : public Exception {
+    class Exception::BFD::Opening : public Exception::BFD {
     public:
-        Opening(::std::string LastCall) :
-                Exception("Exception occurred on opening file descriptor",
-                          LastCall) { }
-    };
-
-    class Exception::LoadingPlugin : public Exception {
-    public:
-        LoadingPlugin(::std::string LastCall) :
-                Exception("Exception occurred on opening dynamically linked plugin",
-                          LastCall) { }
+        Opening(::std::string LastCall);
     };
 
 
-    class Exception::CreatingPluginInstance : public Exception {
+    class Exception::Plugins::LoadingPlugin : public Exception::Plugins {
     public:
-        CreatingPluginInstance(::std::string LastCall) :
-                Exception("Exception occurred on creating instance of plugin class",
-                          LastCall) { }
+        LoadingPlugin(::std::string LastCall);
     };
 
-    class Exception::PluginsArrNotExists : public Exception {
+
+    class Exception::Plugins::CreatingPluginInstance : public Exception::Plugins {
     public:
-        PluginsArrNotExists(::std::string LastCall) :
-                Exception("Plugin's array was not found in plugin!",
-                          LastCall) { }
+        CreatingPluginInstance(::std::string LastCall);
     };
+
+    class Exception::Plugins::PluginsArrNotExists : public Exception::Plugins {
+    public:
+        PluginsArrNotExists(::std::string LastCall);
+    };
+
+    class Exception::Plugins::FileIsNotADir : public Exception::Plugins {
+    public:
+        FileIsNotADir(::std::string LastCall);
+    };
+
+    class Exception::Plugins::StageDirExpected : public Exception::Plugins {
+    public:
+        StageDirExpected(::std::string LastCall);
+    };
+
 }
 #endif //BINARY_FILE_PARSER_EXCEPTION_HPP

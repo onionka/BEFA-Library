@@ -7,11 +7,34 @@ before_install:
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get install -qq gcc-4.9 g++-4.9
-  - sudo apt-get install binutils-dev libboost-all-dev aptitude
-  - aptitude search boost
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 90
+  - sudo apt-get install -qq gcc-5 g++-5 cdbs cmake libmsgpack-dev binutils-dev aptitude valgrind ruby1.9.1 ruby1.9.1-dev rubygems1.9.1 irb1.9.1 ri1.9.1 libopenssl-ruby1.9.1 libssl-dev zlib1g-dev rdoc1.9.1 build-essential
+  - wget -O boost_1_58_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.tar.gz/download
+  - tar xzf boost_1_58_0.tar.gz
+  - pushd boost_1_58_0
+  - sudo ./bootstrap.sh --with-libraries=system,filesystem --prefix=/usr/local
+  - sudo ./b2 install -d0
+  - sudo sh -c 'echo "/usr/local/lib" /etc/ld.so.conf.d/local.conf'
+  - sudo ldconfig
+  - popd
+  - sudo aptitude search boost
+  - sudo pip install cpp-coveralls
+  - wget http://ftp.de.debian.org/debian/pool/main/l/lcov/lcov_1.11.orig.tar.gz
+  - tar xf lcov_1.11.orig.tar.gz
+  - sudo make -C lcov-1.11/ install
+  - gem install coveralls-lcov
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
+  - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-5 90
+  - sudo update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby1.9.1 400 --slave /usr/share/man/man1/ruby.1.gz ruby.1.gz /usr/share/man/man1/ruby1.9.1.1.gz --slave /usr/bin/ri ri /usr/bin/ri1.9.1 --slave /usr/bin/irb irb /usr/bin/irb1.9.1 --slave /usr/bin/rdoc rdoc /usr/bin/rdoc1.9.1
 
-before_script: if [ ! -d "build" ]; then mkdir build; fi;
+before_script:
+  - if [ ! -d "build" ]; then mkdir build; fi;
 
-script: pushd build && cmake .. && make && make test && popd
+script:
+  - cmake -DCMAKE_BUILD_TYPE=Coverage
+  - make
+  - make test ARGS="-V"
+  - make coverage
+  - sudo make install
+
+after_success:
+  - coveralls-lcov --repo-token=${COVERALLS_TOKEN} coverage.info

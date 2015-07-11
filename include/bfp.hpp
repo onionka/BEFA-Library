@@ -10,34 +10,8 @@
 
 #include <string.h>
 #include <bfd.h>
+#include <bfp/bfp.hpp>
 #include <bfp/exception.hpp>
-
-namespace BFP {
-
-    /** Singleton of Binary File Descriptor
-     * @brief This represents BFD class
-     */
-    class BFD {
-    public:
-        static BFD *get_unique_instance();
-
-        void Open(const char *_file_name, const char *_target);
-
-        ~BFD();
-
-    private:
-        BFD();
-
-    private:
-        bfd *fd;
-    };
-
-    class VSection {
-    public:
-        virtual const char *type() const = 0;
-
-        virtual const char *getName() const = 0;
-    };
-}
+#include <bfp/plugin_manager.hpp>
 
 #endif //BINARY_FILE_PARSER_BFP_HPP
