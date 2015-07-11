@@ -18,15 +18,23 @@ namespace BFP {
     void BFD::Open(const char *_file_name, const char *_target) {
         if ((fd = bfd_openr(_file_name, _target)) == NULL)
             RAISE(::BFP::Exception::BFD::Opening);
+        else
+            open = true;
     }
 
-    BFD::~BFD() {
-        if (!bfd_close(fd)) {
+    void BFD::Close() {
+        if (open && fd != NULL && !bfd_close(fd)) {
             RAISE(::BFP::Exception::BFD::Closing);
         }
     }
 
-    BFD::BFD() {
+    BFD::~BFD() {
+        BFD::Close();
+    }
+
+    BFD::BFD() :
+            open {false}
+    {
         bfd_init();
     }
 }

@@ -17,6 +17,8 @@ namespace BFP {
 
         void Open(const char *_file_name, const char *_target);
 
+        void Close();
+
         ~BFD();
 
     private:
@@ -24,6 +26,7 @@ namespace BFP {
 
     private:
         bfd *fd;
+        bool open;
     };
 
     class VSection {

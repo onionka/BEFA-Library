@@ -1,10 +1,10 @@
 /**
- * @file sample.cpp
+ * @file main.cpp
  * @author Miroslav Cibulka
  * @brief This is plugin for testing purposes
  */
 
-#include "sample.h"
+#include "main.h"
 #include <iostream>
 
 Sample::Sample() {

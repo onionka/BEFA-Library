@@ -1,5 +1,5 @@
 /**
- * @file sample.h
+ * @file main.h
  * @author Miroslav Cibulka
  * @brief This is plugin for testing purposes
  */
