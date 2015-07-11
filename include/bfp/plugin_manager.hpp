@@ -58,12 +58,12 @@ namespace BFP {
         {
             handle = dlopen(shared_library.c_str(), RTLD_LAZY);
             if (handle == NULL)
-                RAISE(::BFP::Exception::Plugins::LoadingPlugin);
+                BFP_ASSERT();
 
             const char **_plugins = reinterpret_cast<const char **>(
                     dlsym(handle, "plugins"));
             if (_plugins == NULL)
-                RAISE(::BFP::Exception::Plugins::PluginsArrNotExists);
+                BFP_ASSERT();
             for (; *_plugins != NULL; ++_plugins)
                 plugins.push_back(::std::string(*_plugins));
         }
@@ -77,7 +77,7 @@ namespace BFP {
                 creators[_plug] = reinterpret_cast<::BFP::VComponent *(*)()>(
                         dlsym(handle, (::std::string("creator_") + _plug).c_str()));
             if (creators[_plug] == NULL)
-                RAISE(::BFP::Exception::Plugins::CreatingPluginInstance);
+                BFP_ASSERT();
             return creators[_plug]();
         }
 

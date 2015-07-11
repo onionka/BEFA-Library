@@ -16,7 +16,7 @@ DEFINE_TEST_SUIT(functional_suite) {
                     __bfd->Open(*argv, "elf64-x86-64");
                     __bfd->Close();
                     return 0;
-                } catch (::BFP::Exception &ex) {
+                } catch (::BFP::base_exception &ex) {
                     ::std::cerr << ex.what();
                     return 1;
                 }
@@ -26,7 +26,7 @@ DEFINE_TEST_SUIT(functional_suite) {
                 try {
                     __bfd->Open("Not Existing Binary", "elf64-x86-64");
                     return 1;
-                } catch (::BFP::Exception &ex) {
+                } catch (::BFP::base_exception &ex) {
                     return 0;
                 }
         }),
@@ -35,7 +35,7 @@ DEFINE_TEST_SUIT(functional_suite) {
                 try {
                     __bfd->Close();
                     return 0;
-                } catch (::BFP::Exception &ex) {
+                } catch (::BFP::base_exception &ex) {
                     ::std::cerr << ex.what();
                     return 1;
                 }
@@ -45,7 +45,7 @@ DEFINE_TEST_SUIT(functional_suite) {
                 try {
                     delete __bfd;
                     return 0;
-                } catch (::BFP::Exception &ex) {
+                } catch (::BFP::base_exception &ex) {
                     ::std::cerr << ex.what();
                     return 1;
                 }

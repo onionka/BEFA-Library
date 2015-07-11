@@ -7,13 +7,11 @@
 #include <bfp.hpp>
 
 #define EX_HEADER(msg, call, ex_msg) {                 \
-    msg += "Last called function:\n\t" + LastCall      \
-        +  ::std::string("\n\nBrief:\n\t") + ex_msg    \
-        +  "\n\nDescription:\n\t";                     \
+    msg += "Last called function:\n\t" + call          \
+        +  ::std::string("\n\nBrief:\n\t") + ex_msg;   \
 }
 
-
-::std::string BFP::Exception::get_backtrace() {
+::std::string BFP::base_exception::get_backtrace() {
     void *buffer[200];
     int n;
     char **strings;
@@ -36,140 +34,166 @@
     return msg;
 }
 
-BFP::Exception::BFD::BFD(
+::BFP::Exception::BFD::BFD(
         const char *ex_msg,
         ::std::string LastCall) {
     EX_HEADER(msg, LastCall, ex_msg);
-    switch (bfd_get_error()) {
-        case bfd_error_type::bfd_error_no_error:
-            if (errno)
-                msg += ::std::string("System error: ") +
-                       strerror(errno);
-            else
-                msg += "Internal Error";
-            break;
-        case bfd_error_type::bfd_error_system_call:
-            msg += ::std::string("System call: ") + strerror(errno);
-            break;
-        case bfd_error_type::bfd_error_invalid_target:
-            msg += "Invalid target";
-            break;
-        case bfd_error_type::bfd_error_wrong_format:
-            msg += "Wrong format";
-            break;
-        case bfd_error_type::bfd_error_invalid_operation:
-            msg += "Invalid operation";
-            break;
-        case bfd_error_type::bfd_error_no_memory:
-            msg += "No memory";
-            break;
-        case bfd_error_type::bfd_error_no_symbols:
-            msg += "No symbols";
-            break;
-        case bfd_error_type::bfd_error_no_armap:
-            msg += "No armap";
-            break;
-        case bfd_error_type::bfd_error_no_more_archived_files:
-            msg += "No more archived files";
-            break;
-        case bfd_error_type::bfd_error_malformed_archive:
-            msg += "Malformed archive";
-            break;
-        case bfd_error_type::bfd_error_file_not_recognized:
-            msg += "File not recognized";
-            break;
-        case bfd_error_type::bfd_error_file_ambiguously_recognized:
-            msg += "File ambiguously recognized";
-            break;
-        case bfd_error_type::bfd_error_no_contents:
-            msg += "No contents";
-            break;
-        case bfd_error_type::bfd_error_nonrepresentable_section:
-            msg += "Nonrepresentable section";
-            break;
-        case bfd_error_type::bfd_error_no_debug_section:
-            msg += "No debug section";
-            break;
-        case bfd_error_type::bfd_error_bad_value:
-            msg += "Bad value";
-            break;
-        case bfd_error_type::bfd_error_file_truncated:
-            msg += "File truncated";
-            break;
-        case bfd_error_type::bfd_error_file_too_big:
-            msg += "File is too big";
-            break;
-        case bfd_error_type::bfd_error_invalid_error_code:
-            msg += "Invalid error code";
-            break;
-        case bfd_error_type::bfd_error_wrong_object_format:
-            msg += "Wrong object format";
-            break;
-///////////////////////////////////////////////////////////////////////
-//           This is missing in Ubuntu 12.4
-//              case bfd_error_type::bfd_error_missing_dso:
-//                  msg += "Missing DSO";
-//                  break;
-///////////////////////////////////////////////////////////////////////
-        case bfd_error_type::bfd_error_on_input:
-            msg += "Input error";
-            break;
-        default:
-            msg += "Undefined BFD error";
-            break;
-    }
     msg += "\n" + get_backtrace();
 }
 
-BFP::Exception::BFD::Closing::Closing(
+::BFP::Exception::BFD::NoError::NoError(
     ::std::string LastCall)
         : BFD(
-            "BFD occurred on closing file descriptor",
+             "Internal Error",
             LastCall) { }
 
-BFP::Exception::BFD::Opening::Opening(
+::BFP::Exception::BFD::SystemCall::SystemCall(
     ::std::string LastCall)
         : BFD(
-            "BFD occurred on opening file descriptor",
+            strerror(errno),
             LastCall) { }
 
-BFP::Exception::Plugins::Plugins(
+::BFP::Exception::BFD::InvalidTarget::InvalidTarget(
+    ::std::string LastCall)
+        : BFD(
+            "Invalid target",
+            LastCall) { }
+
+::BFP::Exception::BFD::WrongFormat::WrongFormat(
+    ::std::string LastCall)
+        : BFD(
+            "Wrong format",
+            LastCall) { }
+
+::BFP::Exception::BFD::InvalidOperation::InvalidOperation(
+    ::std::string LastCall)
+        : BFD(
+            "Invalid operation",
+            LastCall) { }
+
+::BFP::Exception::BFD::NoMemory::NoMemory(
+    ::std::string LastCall)
+        : BFD(
+            "Invalid operation",
+            LastCall) { }
+
+::BFP::Exception::BFD::NoSymbols::NoSymbols(
+    ::std::string LastCall)
+        : BFD(
+            "Invalid operation",
+            LastCall) { }
+
+::BFP::Exception::BFD::NoArmap::NoArmap(
+    ::std::string LastCall)
+        : BFD(
+            "No memory",
+            LastCall) { }
+
+::BFP::Exception::BFD::NoMoreArchivedFiles::NoMoreArchivedFiles(
+    ::std::string LastCall)
+        : BFD(
+            "No symbols",
+            LastCall) { }
+
+::BFP::Exception::BFD::MalformedArchive::MalformedArchive(
+    ::std::string LastCall)
+        : BFD(
+            "No armap",
+            LastCall) { }
+
+::BFP::Exception::BFD::FileNotRecognized::FileNotRecognized(
+    ::std::string LastCall)
+        : BFD(
+            "No more archived files",
+            LastCall) { }
+
+::BFP::Exception::BFD::FileAmbiguouslyRecognized::FileAmbiguouslyRecognized(
+    ::std::string LastCall)
+        : BFD(
+            "Malformed archive",
+            LastCall) { }
+
+::BFP::Exception::BFD::NoContents::NoContents(
+    ::std::string LastCall)
+        : BFD(
+            "File not recognized",
+            LastCall) { }
+
+::BFP::Exception::BFD::NonrepresentableSection::NonrepresentableSection(
+    ::std::string LastCall)
+        : BFD(
+            "File ambiguously recognized",
+            LastCall) { }
+
+::BFP::Exception::BFD::NoDebugSection::NoDebugSection(
+    ::std::string LastCall)
+        : BFD(
+            "No contents",
+            LastCall) { }
+
+::BFP::Exception::BFD::BadValue::BadValue(
+    ::std::string LastCall)
+        : BFD(
+            "Nonrepresentable section",
+            LastCall) { }
+
+::BFP::Exception::BFD::FileTruncated::FileTruncated(
+    ::std::string LastCall)
+        : BFD(
+            "No debug section",
+            LastCall) { }
+
+::BFP::Exception::BFD::FileTooBig::FileTooBig(
+    ::std::string LastCall)
+        : BFD(
+            "Bad value",
+            LastCall) { }
+
+::BFP::Exception::BFD::InvalidErrorCode::InvalidErrorCode(
+    ::std::string LastCall)
+        : BFD(
+            "File truncated",
+            LastCall) { }
+
+::BFP::Exception::BFD::WrongObjectFormat::WrongObjectFormat(
+    ::std::string LastCall)
+        : BFD(
+            "File is too big",
+            LastCall) { }
+
+::BFP::Exception::BFD::MissingDso::MissingDso(
+    ::std::string LastCall)
+        : BFD(
+            "Input error",
+            LastCall) { }
+
+::BFP::Exception::BFD::OnInput::OnInput(
+    ::std::string LastCall)
+        : BFD(
+            "Undefined BFD error",
+            LastCall) { }
+
+::BFP::Exception::Plugins::Plugins(
         const char *ex_msg,
         ::std::string LastCall) {
     EX_HEADER(msg, LastCall, ex_msg);
-    char *error;
-    if ((error = dlerror()) != NULL)
-        msg += ::std::string("Dynamic linking error: ") + error;
-    else
-        msg += "Not a BFD/System/DL error";
+    msg += "\n" + get_backtrace();
 }
 
-BFP::Exception::Plugins::LoadingPlugin::LoadingPlugin(
-    ::std::string LastCall)
-        : Plugins(
-            "BFD occurred on opening dynamically linked plugin",
-            LastCall) { }
-
-BFP::Exception::Plugins::CreatingPluginInstance::CreatingPluginInstance(
-    ::std::string LastCall)
-        : Plugins(
-            "BFD occurred on creating instance of plugin class",
-            LastCall) { }
-
-BFP::Exception::Plugins::PluginsArrNotExists::PluginsArrNotExists(
-    ::std::string LastCall)
-        : Plugins(
-            "Plugin's array was not found in plugin!",
-            LastCall) { }
-
-BFP::Exception::Plugins::FileIsNotADir::FileIsNotADir(
+::BFP::Exception::Plugins::FileIsNotADir::FileIsNotADir(
     ::std::string LastCall)
         : Plugins(
             "Path provided to Plugin Manager is not a directory (should be directory with plugins)",
             LastCall) { }
 
-BFP::Exception::Plugins::StageDirExpected::StageDirExpected(
+::BFP::Exception::Plugins::StageDirExpected::StageDirExpected(
     ::std::string LastCall)
         : Plugins(
             "In plugin directory are stage directories expected",
-            LastCall){ }
+            LastCall) { }
+
+::BFP::Exception::Plugins::DLError::DLError(
+    ::std::string LastCall)
+        : Plugins(
+            "Plugin's array was not found in plugin!",
+            LastCall) { }
