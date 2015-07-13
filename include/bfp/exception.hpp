@@ -4,8 +4,8 @@
  * @brief Exception system for Binary File Parser
  */
 
-#ifndef BINARY_FILE_PARSER_EXCEPTION_HPP
-#define BINARY_FILE_PARSER_EXCEPTION_HPP
+#ifndef __BFP_EXCEPTION_HPP
+#define __BFP_EXCEPTION_HPP
 
 #include <iostream>
 #include <execinfo.h>
@@ -69,213 +69,309 @@
     }                                                                       \
 } while(0)
 
-namespace BFP {
+namespace BFP
+  {
 
-    /** ::BFP::base_exception
-     * @brief Base class for all BFP exceptions (for exception isolation from system or similar)
-     *        Use this to catch all BFP exceptions!
-     */
-    class base_exception : public ::std::exception {
-    protected:
-        /** Returns function backtrace */
-        ::std::string get_backtrace();
-    };
+      /** ::BFP::base_exception
+       * @brief Base class for all BFP exceptions (for exception isolation from system or similar)
+       *        Use this to catch all BFP exceptions!
+       */
+      class base_exception :
+          public ::std::exception
+        {
+      protected:
+          /** Returns function backtrace */
+          ::std::string get_backtrace();
+        };
 
-    namespace Exception {
-        /** Exceptions system for BFD
-         * @brief Basel class for BFD exceptions with function backtrack
-         */
-        class BFD;
-
-        /** exception system for Plugins
-         * @brief Base class for plugin exceptions with function backtrack
-         */
-        class Plugins;
-
-
-        class BFD : public ::BFP::base_exception {
-        public:
-            class NoError;
-            class SystemCall;
-            class InvalidTarget;
-            class WrongFormat;
-            class InvalidOperation;
-            class NoMemory;
-            class NoSymbols;
-            class NoArmap;
-            class NoMoreArchivedFiles;
-            class MalformedArchive;
-            class FileNotRecognized;
-            class FileAmbiguouslyRecognized;
-            class NoContents;
-            class NonrepresentableSection;
-            class NoDebugSection;
-            class BadValue;
-            class FileTruncated;
-            class FileTooBig;
-            class InvalidErrorCode;
-            class WrongObjectFormat;
-            class MissingDso;
-            class OnInput;
-
-            /**
-             * @param ex_msg is message from thrower
-             * @param LastCall is name of last called method inserted by macro RAISE
+      namespace Exception
+        {
+            /** Exceptions system for BFD
+             * @brief Basel class for BFD exceptions with function backtrack
              */
-            BFD(const char *ex_msg, ::std::string LastCall = "Unknown");
+            class BFD;
 
-            const virtual char *what() const throw() {
-                return msg.c_str();
-            }
-
-        private:
-            ::std::string msg;
-        };
-
-        class Plugins  : public ::BFP::base_exception {
-        public:
-            class DLError;
-            class FileIsNotADir;
-            class StageDirExpected;
-
-            /**
-             * @param ex_msg is message from thrower
-             * @param LastCall is name of last called method inserted by macro RAISE
+            /** exception system for Plugins
+             * @brief Base class for plugin exceptions with function backtrack
              */
-            Plugins(const char *ex_msg, ::std::string LastCall = "Unknown");
+            class Plugins;
 
-            const char virtual *what() const throw() {
-                return msg.c_str();
-            }
 
-        private:
-            ::std::string msg;
-        };
+            class BFD :
+                public ::BFP::base_exception
+              {
+            public:
+                class NoError;
 
-        class BFD::NoError : public BFD {
-        public:
-            NoError(::std::string LastCall);
-        };
+                class SystemCall;
 
-        class BFD::SystemCall : public BFD {
-        public:
-            SystemCall(::std::string LastCall);
-        };
+                class InvalidTarget;
 
-        class BFD::InvalidTarget : public BFD {
-        public:
-            InvalidTarget(::std::string LastCall);
-        };
+                class WrongFormat;
 
-        class BFD::WrongFormat : public BFD {
-        public:
-            WrongFormat(::std::string LastCall);
-        };
+                class InvalidOperation;
 
-        class BFD::InvalidOperation : public BFD {
-        public:
-            InvalidOperation(::std::string LastCall);
-        };
+                class NoMemory;
 
-        class BFD::NoMemory : public BFD {
-        public:
-            NoMemory(::std::string LastCall);
-        };
+                class NoSymbols;
 
-        class BFD::NoSymbols : public BFD {
-        public:
-            NoSymbols(::std::string LastCall);
-        };
+                class NoArmap;
 
-        class BFD::NoArmap : public BFD {
-        public:
-            NoArmap(::std::string LastCall);
-        };
+                class NoMoreArchivedFiles;
 
-        class BFD::NoMoreArchivedFiles : public BFD {
-        public:
-            NoMoreArchivedFiles(::std::string LastCall);
-        };
+                class MalformedArchive;
 
-        class BFD::MalformedArchive : public BFD {
-        public:
-            MalformedArchive(::std::string LastCall);
-        };
+                class FileNotRecognized;
 
-        class BFD::FileNotRecognized : public BFD {
-        public:
-            FileNotRecognized(::std::string LastCall);
-        };
+                class FileAmbiguouslyRecognized;
 
-        class BFD::FileAmbiguouslyRecognized : public BFD {
-        public:
-            FileAmbiguouslyRecognized(::std::string LastCall);
-        };
+                class NoContents;
 
-        class BFD::NoContents : public BFD {
-        public:
-            NoContents(::std::string LastCall);
-        };
+                class NonrepresentableSection;
 
-        class BFD::NonrepresentableSection : public BFD {
-        public:
-            NonrepresentableSection(::std::string LastCall);
-        };
+                class NoDebugSection;
 
-        class BFD::NoDebugSection : public BFD {
-        public:
-            NoDebugSection(::std::string LastCall);
-        };
+                class BadValue;
 
-        class BFD::BadValue : public BFD {
-        public:
-            BadValue(::std::string LastCall);
-        };
+                class FileTruncated;
 
-        class BFD::FileTruncated : public BFD {
-        public:
-            FileTruncated(::std::string LastCall);
-        };
+                class FileTooBig;
 
-        class BFD::FileTooBig : public BFD {
-        public:
-            FileTooBig(::std::string LastCall);
-        };
+                class InvalidErrorCode;
 
-        class BFD::InvalidErrorCode : public BFD {
-        public:
-            InvalidErrorCode(::std::string LastCall);
-        };
+                class WrongObjectFormat;
 
-        class BFD::WrongObjectFormat : public BFD {
-        public:
-            WrongObjectFormat(::std::string LastCall);
-        };
+                class MissingDso;
 
-        class BFD::MissingDso : public BFD {
-        public:
-            MissingDso(::std::string LastCall);
-        };
+                class OnInput;
 
-        class BFD::OnInput : public BFD {
-        public:
-            OnInput(::std::string LastCall);
-        };
+                class IteratorExpected;
 
-        class Plugins::DLError : public Plugins {
-        public:
-            DLError(::std::string LastCall);
-        };
+                /**
+                 * @param ex_msg is message from thrower
+                 * @param LastCall is name of last called method inserted by macro RAISE
+                 */
+                BFD(
+                    const char *ex_msg,
+                    ::std::string LastCall = "Unknown");
 
-        class Plugins::FileIsNotADir : public Plugins {
-        public:
-            FileIsNotADir(::std::string LastCall);
-        };
+                const virtual char *what() const throw()
+                  {
+                    return msg.c_str();
+                  }
 
-        class Plugins::StageDirExpected : public Plugins {
-        public:
-            StageDirExpected(::std::string LastCall);
-        };
-    }
-}
-#endif //BINARY_FILE_PARSER_EXCEPTION_HPP
+            private:
+                ::std::string msg;
+              };
+
+            class Plugins :
+                public ::BFP::base_exception
+              {
+            public:
+                class DLError;
+
+                class FileIsNotADir;
+
+                class StageDirExpected;
+
+                /**
+                 * @param ex_msg is message from thrower
+                 * @param LastCall is name of last called method inserted by macro RAISE
+                 */
+                Plugins(
+                    const char *ex_msg,
+                    ::std::string LastCall = "Unknown");
+
+                const char virtual *what() const throw()
+                  {
+                    return msg.c_str();
+                  }
+
+            private:
+                ::std::string msg;
+              };
+
+            class BFD::NoError :
+                public BFD
+              {
+            public:
+                NoError(::std::string LastCall);
+              };
+
+            class BFD::SystemCall :
+                public BFD
+              {
+            public:
+                SystemCall(::std::string LastCall);
+              };
+
+            class BFD::InvalidTarget :
+                public BFD
+              {
+            public:
+                InvalidTarget(::std::string LastCall);
+              };
+
+            class BFD::WrongFormat :
+                public BFD
+              {
+            public:
+                WrongFormat(::std::string LastCall);
+              };
+
+            class BFD::InvalidOperation :
+                public BFD
+              {
+            public:
+                InvalidOperation(::std::string LastCall);
+              };
+
+            class BFD::NoMemory :
+                public BFD
+              {
+            public:
+                NoMemory(::std::string LastCall);
+              };
+
+            class BFD::NoSymbols :
+                public BFD
+              {
+            public:
+                NoSymbols(::std::string LastCall);
+              };
+
+            class BFD::NoArmap :
+                public BFD
+              {
+            public:
+                NoArmap(::std::string LastCall);
+              };
+
+            class BFD::NoMoreArchivedFiles :
+                public BFD
+              {
+            public:
+                NoMoreArchivedFiles(::std::string LastCall);
+              };
+
+            class BFD::MalformedArchive :
+                public BFD
+              {
+            public:
+                MalformedArchive(::std::string LastCall);
+              };
+
+            class BFD::FileNotRecognized :
+                public BFD
+              {
+            public:
+                FileNotRecognized(::std::string LastCall);
+              };
+
+            class BFD::FileAmbiguouslyRecognized :
+                public BFD
+              {
+            public:
+                FileAmbiguouslyRecognized(::std::string LastCall);
+              };
+
+            class BFD::NoContents :
+                public BFD
+              {
+            public:
+                NoContents(::std::string LastCall);
+              };
+
+            class BFD::NonrepresentableSection :
+                public BFD
+              {
+            public:
+                NonrepresentableSection(::std::string LastCall);
+              };
+
+            class BFD::NoDebugSection :
+                public BFD
+              {
+            public:
+                NoDebugSection(::std::string LastCall);
+              };
+
+            class BFD::BadValue :
+                public BFD
+              {
+            public:
+                BadValue(::std::string LastCall);
+              };
+
+            class BFD::FileTruncated :
+                public BFD
+              {
+            public:
+                FileTruncated(::std::string LastCall);
+              };
+
+            class BFD::FileTooBig :
+                public BFD
+              {
+            public:
+                FileTooBig(::std::string LastCall);
+              };
+
+            class BFD::InvalidErrorCode :
+                public BFD
+              {
+            public:
+                InvalidErrorCode(::std::string LastCall);
+              };
+
+            class BFD::WrongObjectFormat :
+                public BFD
+              {
+            public:
+                WrongObjectFormat(::std::string LastCall);
+              };
+
+            class BFD::MissingDso :
+                public BFD
+              {
+            public:
+                MissingDso(::std::string LastCall);
+              };
+
+            class BFD::OnInput :
+                public BFD
+              {
+            public:
+                OnInput(::std::string LastCall);
+              };
+
+            class BFD::IteratorExpected :
+                public BFD
+              {
+            public:
+                IteratorExpected(::std::string LastCall);
+              };
+
+            class Plugins::DLError :
+                public Plugins
+              {
+            public:
+                DLError(::std::string LastCall);
+              };
+
+            class Plugins::FileIsNotADir :
+                public Plugins
+              {
+            public:
+                FileIsNotADir(::std::string LastCall);
+              };
+
+            class Plugins::StageDirExpected :
+                public Plugins
+              {
+            public:
+                StageDirExpected(::std::string LastCall);
+              };
+        }
+  }
+#endif //__BFP_EXCEPTION_HPP

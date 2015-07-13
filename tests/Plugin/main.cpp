@@ -7,22 +7,29 @@
 #include "main.h"
 #include <iostream>
 
-Sample::Sample() {
+
+Sample::Sample()
+  {
     ::std::cout << "Loading Sample plugin" << ::std::endl;
-}
+  }
 
-const char *Sample::getVersion() const {
+const char *Sample::getVersion() const
+  {
     return version;
-}
+  }
 
-const char *Sample::getName() const {
+const char *Sample::getName() const
+  {
     return name;
-}
+  }
 
-void Sample::deploy(::BFP::VSection *arg) {
-    ::std::cout << "Plugin was deployed from section: " << arg->getName() << std::endl;
-}
+void Sample::deploy()
+  {
+    ::std::cout << "Plugin was deployed: "
+                << std::endl;
+  }
 
-Sample::~Sample() {
+Sample::~Sample()
+  {
     ::std::cout << "Unloading Sample plugin" << ::std::endl;
-}
+  }
