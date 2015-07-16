@@ -36,13 +36,22 @@ DEFINE_TEST_SUIT(functional_suite) {
     }), DEFINE_TEST(Finding_DOT_text_In_Section, {
       ::BFP::File *_file = ::BFP::BFD::get_unique_instance()->openedFiles
                                                             .back();
-      auto _section = ::BFP::search(_file->begin_section(),
-                                    _file->end_section(), ".text");
+      const ::std::vector<::BFP::Section *> _section = ::BFP::search(
+          _file->begin_section(), _file->end_section(), ".text");
       assert(_section.size() == 1);
       for (auto _sec : _section)
-          if (_sec->getName() != ".text")
-            return 1;
-      assert(!_section[0]->symbols().empty());
+        if (_sec->getName() != ".text")
+          return 1;
+
+      ::BFP::apply(_section.begin(), _section.end(),
+                   [&](::BFP::Section *_section) -> void
+                     {
+                       if (_section->getName() != ".text")
+                         RAISE(::BFP::Exception::BFD::BadValue);
+                     });
+
+      assert(!_section[0]->symbols()
+                         .empty());
       return 0;
     }), DEFINE_TEST(Finding_Start_In_Symbols, {
       auto _file = ::BFP::BFD::get_unique_instance()->openedFiles
@@ -51,9 +60,10 @@ DEFINE_TEST_SUIT(functional_suite) {
                                    "_start");
       assert(_symbol.size() == 1);
       for (auto _sym : _symbol)
-          if (_sym->getName() != "_start")
-            return 1;
-      assert(_symbol[0]->sections().size() == 1);
+        if (_sym->getName() != "_start")
+          return 1;
+      assert(_symbol[0]->sections()
+                       .size() == 1);
       return 0;
     }), DEFINE_TEST(Closing_One_File_BFD, {
       auto __bfd = ::BFP::BFD::get_unique_instance();

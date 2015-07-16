@@ -100,4 +100,17 @@ namespace BFP
           free(symbol_table);
           bfd_close(_fd);
         }
+
+      const ::std::vector<const char *> BFD::getTargets(const char *_file_name)
+        {
+          ::std::vector<const char *> _ret;
+          bfd *fd;
+          for (auto _target : this->_targets)
+            if ((fd = bfd_openr(_file_name, _target)) != NULL)
+              {
+                _ret.push_back(_target);
+                bfd_close(fd);
+              }
+          return _ret;
+        }
   }

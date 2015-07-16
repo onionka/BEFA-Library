@@ -4,9 +4,15 @@
  * @brief This is module in which is described Binary File Descriptor as class
  *        and his structures with operations.
  *        @code
- *          TODO: example goes here
+ *          auto _bfd = ::BFP::BFD::get_unique_instance();
+ *          auto _file = _bfd.open("a.out", "elf64-x86-64");
+ *          for (auto _section : _file->sections())
+ *            for (auto _symbol : _section->symbols())
+ *              process_symbol_in_section(
+ *                _section, _symbol);
+ *          delete _bfd;
  *        @endcode
- *        TODO: more description
+ *        TODO: detailed description
  */
 
 #ifndef __BFP_BFP_HPP
@@ -17,6 +23,19 @@
 #include <map>                    /// ::std::map
 #include <bfp.hpp>                /// additional includes from project
 #include <boost/type_traits.hpp>  /// ::boost::is_same<type1, type2>
+#include <functional>
+
+
+#define is_iterator(__type, __value)                              \
+do {                                                              \
+  if (!::std::is_same<                                            \
+          __type,                                                 \
+          class ::std::vector<__value>::iterator>::value &&       \
+      !::std::is_same<                                            \
+          __type,                                                 \
+          class ::std::vector<__value>::const_iterator>::value)   \
+      RAISE(Exception::BFD::IteratorExpected);                    \
+} while (0)
 
 
 namespace BFP
@@ -40,10 +59,7 @@ namespace BFP
             __ite _end,
             __finder_type _val)
           {
-            if (!::std::is_same<
-                __ite,
-                class ::std::vector<__value>::iterator>::value)
-              RAISE(Exception::BFD::IteratorExpected);
+            is_iterator(__ite, __value);
             ::std::vector<__value> _ret;
             for (__ite _ite = _begin; _ite != _end; ++_ite)
               if (**_ite == _val)
@@ -70,14 +86,143 @@ namespace BFP
             __ite _end,
             __finder_type _val)
           {
+            is_iterator(__ite, __value);
             __ite _ite;
-            if (!::std::is_same<
-                __ite,
-                class ::std::vector<__value>::iterator>::value)
-              RAISE(Exception::BFD::IteratorExpected);
             for (_ite = _begin; _ite != _end; ++_ite)
               if (**_ite == _val) break;
             return _ite;
+          }
+
+
+      namespace __apply
+        {
+            template<typename T>
+              struct function_traits :
+                  public function_traits<decltype(&T::operator())>
+                {
+                };
+
+            /**
+             * @brief generates info about function statically
+             * @param ClassType is type of class in (lambda) function - deduced
+             * @param ReturnType is type of return value in (lambda) function - deduced
+             * @param Args are types of arguments in (lambda) function - deduced
+             */
+            template<
+                typename ClassType,
+                typename ReturnType,
+                typename... Args>
+              struct function_traits<ReturnType(ClassType::*)(Args...) const>
+                {
+                  enum
+                    {
+                      argc = sizeof...(Args)                   //!< @brief count of arguments
+                    };
+
+                  /** @return type of function */
+                  typedef ReturnType result_type;
+
+                  /**
+                   * @brief set of types in function arguments
+                   */
+                  template<size_t i>
+                    struct argv
+                      {
+                        /**
+                         * @brief the i-th argument is equivalent to the i-th tuple element of a tuple
+                         *        composed of those arguments.
+                         */
+                        typedef typename std::tuple_element<
+                            i,
+                            std::tuple<Args...>>::type type;
+                      };
+                };
+
+            /**
+             * @brief call function with certain, non-void, return value
+             * @param __ret is type of return value
+             */
+            template<
+                typename __ret>
+              struct call
+                {
+                  /** @see ::BFP::apply */
+                  template<
+                      class __ite,
+                      typename __func,
+                      typename __value,
+                      typename... __args>
+                    static __ret apply(
+                        __ite begin,
+                        __ite end,
+                        __func func,
+                        __args... _args)
+                      {
+                        is_iterator(__ite, __value);
+                        auto ret = func(*begin, _args...);
+                        for (auto _ite = begin + 1; _ite != end; _ite++)
+                          ret = ret + func(*_ite, _args...);
+                        return ret;
+                      }
+                };
+
+            /**
+             * @brief call function with void return value
+             * @overload
+             */
+            template<>
+              struct call<void>
+                {
+                  /** @see ::BFP::apply */
+                  template<
+                      class __ite,
+                      typename __func,
+                      typename __value,
+                      typename... __args>
+                    static void apply(
+                        __ite begin,
+                        __ite end,
+                        __func func,
+                        __args... _args)
+                      {
+                        is_iterator(__ite, __value);
+                        for (auto _ite = begin; _ite != end; _ite++)
+                          func(*_ite, _args...);
+                      }
+                };
+        }
+
+      /**
+        * @brief Apply function to range from begin to end
+        * @param begin iterator
+        * @param end iterator
+        * @param func is function with parameters
+        *        @code
+        *          func(__value _val, __args... _args);
+        *        @endcode
+        * @param _args are variadic of func arguments
+        * @param __ite class type
+        * @param __func class type
+        * @param __args Variadic arguments
+        * @param __value type of iterator
+        */
+      template<
+          class __ite,
+          typename __func,
+          typename __ret = typename __apply::function_traits<__func>::result_type,
+          typename __value = typename __ite::value_type,
+          typename... __args>
+        __ret apply(
+            __ite begin,
+            __ite end,
+            __func func,
+            __args... _args)
+          {
+            return __apply::call<__ret>::template apply<
+                __ite,
+                __func,
+                __value,
+                __args...>(begin, end, func, _args...);
           }
 
 
@@ -152,22 +297,31 @@ namespace BFP
               return ::std::string(_sym->name);
             }
 
+          /** @return all sections where this symbol is (RO) - may be empty*/
           const ::std::vector<Section *> sections()
             {
               return _sections;
             }
 
-          ::std::vector<Section *>::iterator begin_sections()
+          /**
+           * @return begin iterator of sections (RO)
+           * @see sections()
+           */
+          ::std::vector<Section *>::const_iterator begin_sections()
             {
               return _sections.begin();
             }
 
-          ::std::vector<Section *>::iterator end_sections()
+          /**
+           * @return end iterator of sections (RO)
+           * @see sections()
+           */
+          ::std::vector<Section *>::const_iterator end_sections()
             {
               return _sections.end();
             }
 
-
+          /** @return RAW value of symbol */
           symvalue getValue() const noexcept
             {
               return _sym->value;
@@ -351,7 +505,7 @@ namespace BFP
 
           /**
            * @return numbers of line
-           * TODO: findout for what
+           *         TODO: findout for what
            */
           const ::std::vector<alent> getLineNO() const noexcept
             {
@@ -377,7 +531,7 @@ namespace BFP
             }
 
           /**
-           *
+           * @return vector of appropriate symbols
            */
           const ::std::vector<Symbol *> symbols()
             {
@@ -543,45 +697,47 @@ namespace BFP
         };
 
 
-      /** Binary file descriptor class
-       * @brief has iterators and is instantiated via BFD singleton/factory
-       */
+/** Binary file descriptor class
+ * @brief has iterators and is instantiated via BFD singleton/factory
+ */
       class File
         {
       public:
-          /** Used to iterate through sections or finding specific one by name */
-          ::std::vector<Section *>::iterator begin_section()
+          /** @return Used to iterate through sections or finding specific one by name (RO) */
+          ::std::vector<Section *>::const_iterator begin_section()
             {
               return this->_sections
                          .begin();
             }
 
-          /** Used to iterate through sections or finding specific one by name */
-          ::std::vector<Section *>::iterator end_section()
+          /** @return Used to iterate through sections or finding specific one by name (RO) */
+          ::std::vector<Section *>::const_iterator end_section()
             {
               return this->_sections
                          .end();
             }
 
-          /** Iterator through all symbols in file */
-          ::std::vector<Symbol *>::iterator begin_symbol()
+          /** @return Iterator through all symbols in file (RO) */
+          ::std::vector<Symbol *>::const_iterator begin_symbol()
             {
               return this->_symbols
                          .begin();
             }
 
-          /** Iterator through all symbols in file */
-          ::std::vector<Symbol *>::iterator end_symbol()
+          /** @return Iterator through all symbols in file (RO) */
+          ::std::vector<Symbol *>::const_iterator end_symbol()
             {
               return this->_symbols
                          .end();
             }
 
+          /** @return vector of all symbols (RO) */
           const ::std::vector<Symbol *> symbols()
             {
               return this->_symbols;
             }
 
+          /** @return vector of all sections (RO) */
           const ::std::vector<Section *> sections()
             {
               return this->_sections;
@@ -632,12 +788,12 @@ namespace BFP
           asymbol **symbol_table;
         };
 
-      /** Singleton of Binary File Descriptor
-       * @brief This represents BFD class.
-       *        Instance is static so there will be only one per runtime.
-       *        <tt>get_unique_instance</tt> returns the same instance every time it is called.
-       * @example tests/TestProgram/main.cpp
-       */
+/** Singleton of Binary File Descriptor
+ * @brief This represents BFD class.
+ *        Instance is static so there will be only one per runtime.
+ *        <tt>get_unique_instance</tt> returns the same instance every time it is called.
+ * @example tests/TestProgram/main.cpp
+ */
       class BFD
         {
       public:
@@ -659,6 +815,19 @@ namespace BFP
           File *Open(
               const char *_file_name,
               const char *_target);
+
+          /**
+           * @param _file_name is name of tested file
+           * @return all targets that may be used for file
+           */
+          const ::std::vector<const char *> getTargets(
+              const char *_file_name);
+
+          /** @return all possible formats */
+          const ::std::vector<const char *> getAllTargets() const noexcept
+            {
+              return _targets;
+            }
 
           /** Closes all opened Files in vector openedFiles */
           ~BFD();
@@ -683,11 +852,21 @@ namespace BFP
 
       public:
           /** This is public so everyone may use this
-           *      Feel freely deallocate whatever file when needed but has to be
-           *      erased from this vector
+           *      Feel free to deallocate whatever file when needed but has to be
+           *      erased from this vector afterwards (SIGSEGV - double free/delete)
            */
           ::std::vector<File *> openedFiles;
+
+      private:
+          const ::std::vector<const char *> _targets = {
+              "a.out-i386-linux", "elf32-i386", "elf64-big", "elf64-little",
+              "pei-i386", "srec", "verilog", "binary", "elf32-little",
+              "elf64-k1om", "elf64-x86-64", "pei-x86-64", "symbolsrec",
+              "elf32-big", "elf32-x86-64", "elf64-l1om", "ihex", "plugin",
+              "tekhex"
+          };
         };
+
   }
 
 #endif // __BFP_BFP_HPP

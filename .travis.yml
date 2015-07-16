@@ -8,7 +8,7 @@ before_install:
 
 install:
   - sudo apt-get install -qq gcc-5 g++-5 cdbs cmake libmsgpack-dev binutils-dev aptitude valgrind ruby1.9.1 ruby1.9.1-dev rubygems1.9.1 irb1.9.1 ri1.9.1 libopenssl-ruby1.9.1 libssl-dev zlib1g-dev rdoc1.9.1 build-essential
-  - wget -O boost_1_58_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.tar.gz/download
+  - wget -O boost_1_58_0.tar.gz http://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.zip/download
   - tar xzf boost_1_58_0.tar.gz
   - pushd boost_1_58_0
   - sudo ./bootstrap.sh --with-libraries=system,filesystem --prefix=/usr/local
