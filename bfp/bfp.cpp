@@ -105,10 +105,12 @@ namespace BFP
         {
           ::std::vector<const char *> _ret;
           bfd *fd;
-          for (auto _target : this->_targets)
-            if ((fd = bfd_openr(_file_name, _target)) != NULL)
+          for (auto target = bfd_target_list();
+               *target != nullptr;
+               ++target)
+            if ((fd = bfd_openr(_file_name, *target)) != NULL)
               {
-                _ret.push_back(_target);
+                _ret.push_back(*target);
                 bfd_close(fd);
               }
           return _ret;

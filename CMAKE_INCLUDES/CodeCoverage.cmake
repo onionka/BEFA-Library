@@ -1,4 +1,8 @@
-FIND_PROGRAM(GCOV_PATH gcov)
+if ("${USE_COMPILER}" STREQUAL "clang")
+	FIND_PROGRAM(GCOV_PATH llvm-cov)
+else()
+	FIND_PROGRAM(GCOV_PATH gcov)
+endif()
 FIND_PROGRAM(LCOV_PATH lcov)
 FIND_PROGRAM(GCOVR_PATH gcovr PATHS ${CMAKE_SOURCE_DIR}/tests)
 
@@ -17,17 +21,25 @@ IF(NOT CMAKE_COMPILER_IS_GNUCXX)
 ENDIF()
 
 SET(CMAKE_CXX_FLAGS_COVERAGE
-    "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
+    "-g -O0 -fprofile-arcs -ftest-coverage"
     CACHE STRING "Flags used by the C++ compiler during coverage builds."
     FORCE)
 
 SET(CMAKE_C_FLAGS_COVERAGE
-    "-g -O0 --coverage -fprofile-arcs -ftest-coverage"
+    "-g -O0 -fprofile-arcs -ftest-coverage"
     CACHE STRING "Flags used by the C compiler during coverage builds."
     FORCE)
 
+if ("${USE_COMPILER}" STREQUAL "clang")
+	SET(CMAKE_CXX_FLAGS_COVERAGE
+		"${CMAKE_CXX_FLAGS_COVERAGE} -Xclang -coverage-cfg-checksum -Xclang -coverage-no-function-names-in-data -Xclang -coverage-version='407*'")
+	SET(CMAKE_C_FLAGS_COVERAGE
+		"${CMAKE_C_FLAGS_COVERAGE} -Xclang -coverage-cfg-checksum -Xclang -coverage-no-function-names-in-data -Xclang -coverage-version='407*'")
+endif ()
+
+
 SET(CMAKE_EXE_LINKER_FLAGS_COVERAGE
-    ""
+    "--coverage"
     CACHE STRING "Flags used for linking binaries during coverage builds."
     FORCE)
 

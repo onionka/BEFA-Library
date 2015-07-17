@@ -50,6 +50,15 @@ DEFINE_TEST_SUIT(functional_suite) {
                          RAISE(::BFP::Exception::BFD::BadValue);
                      });
 
+      auto _filtered = ::BFP::filter(_section.begin(), _section.end(),
+                                     [](::BFP::Section *_sec) -> bool
+                                       {
+                                         return _sec->getName() == ".text";
+                                       }, [](::BFP::Section *_sec) -> bool
+                                       {
+                                         return true;
+                                       });
+      assert(_filtered.size() == _section.size());
       assert(!_section[0]->symbols()
                          .empty());
       return 0;

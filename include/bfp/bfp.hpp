@@ -22,18 +22,18 @@
 #include <iterator>               /// ::std::iterator
 #include <map>                    /// ::std::map
 #include <bfp.hpp>                /// additional includes from project
-#include <boost/type_traits.hpp>  /// ::boost::is_same<type1, type2>
-#include <functional>
+#include <string>                 /// ::std::to_string, ::std::string
 
 
+/** This macro checks if __type is (const_)iterator of vector of __value */
 #define is_iterator(__type, __value)                              \
 do {                                                              \
   if (!::std::is_same<                                            \
           __type,                                                 \
-          class ::std::vector<__value>::iterator>::value &&       \
+          typename ::std::vector<__value>::iterator>::value &&    \
       !::std::is_same<                                            \
           __type,                                                 \
-          class ::std::vector<__value>::const_iterator>::value)   \
+          typename ::std::vector<__value>::const_iterator>::value)\
       RAISE(Exception::BFD::IteratorExpected);                    \
 } while (0)
 
@@ -51,7 +51,7 @@ namespace BFP
        * @return vector of found elements
        */
       template<
-          class __ite,
+          typename __ite,
           typename __finder_type,
           typename __value = typename __ite::value_type>
         const ::std::vector<__value> search(
@@ -78,7 +78,7 @@ namespace BFP
        * @return iterator on first element found
        */
       template<
-          class __ite,
+          typename __ite,
           typename __finder_type,
           typename __value = typename __ite::value_type>
         __ite find(
@@ -148,7 +148,7 @@ namespace BFP
                 {
                   /** @see ::BFP::apply */
                   template<
-                      class __ite,
+                      typename __ite,
                       typename __func,
                       typename __value,
                       typename... __args>
@@ -175,7 +175,7 @@ namespace BFP
                 {
                   /** @see ::BFP::apply */
                   template<
-                      class __ite,
+                      typename __ite,
                       typename __func,
                       typename __value,
                       typename... __args>
@@ -207,7 +207,7 @@ namespace BFP
         * @param __value type of iterator
         */
       template<
-          class __ite,
+          typename __ite,
           typename __func,
           typename __ret = typename __apply::function_traits<__func>::result_type,
           typename __value = typename __ite::value_type,
@@ -218,6 +218,7 @@ namespace BFP
             __func func,
             __args... _args)
           {
+            is_iterator(__ite, __value);
             return __apply::call<__ret>::template apply<
                 __ite,
                 __func,
@@ -225,6 +226,70 @@ namespace BFP
                 __args...>(begin, end, func, _args...);
           }
 
+      namespace __filter
+        {
+            /** @overload */
+            template<
+                typename __arg,
+                typename __func>
+              bool helper(
+                  __arg _arg,
+                  __func _func)
+                {
+                  return _func(_arg);
+                }
+
+            /**
+             * @brief Helper template function that calls all function
+             *        and returns ...
+             */
+            template<
+                typename __arg,
+                typename __func,
+                typename... __funcs>
+              bool helper(
+                  __arg _arg,
+                  __func _func,
+                  __funcs... _funcs)
+                {
+                  return _func(_arg) && helper(_arg, _funcs...);
+                }
+        }
+
+      /**
+       * @brief Filters out range between begin and end via functional conditions
+       * @code
+       *       auto _filtered = ::BFP::filter(_section.begin(), _section.end(),
+       *                             [](::BFP::Section *_sec) -> bool
+       *                               {
+       *                                 return _sec->getName() == ".text";
+       *                               },
+       *                             [](::BFP::Section *_sec) -> bool
+       *                               {
+       *                                 return true;
+       *                               });
+       * @endcode
+       * @param __ite Iterator type
+       * @param __funcs Function type - everything with operator()
+       * @param begin iterator
+       * @param end iterator
+       * @param _func are variadic functions as conditions
+       *              - has to return boolean true/false
+       */
+      template<
+          class __ite,
+          typename... __funcs>
+        ::std::vector<typename __ite::value_type> filter(
+            __ite begin,
+            __ite end,
+            __funcs... _func)
+          {
+            ::std::vector<typename __ite::value_type> ret;
+            for (auto _ite = begin; _ite != end; ++_ite)
+              if (__filter::helper(*_ite, _func...))
+                ret.push_back(*_ite);
+            return ret;
+          }
 
       class Section;
 
@@ -333,82 +398,82 @@ namespace BFP
 
           bool hasFlags() const noexcept
             {
-              return (bool) (_sym->flags == BSF_NO_FLAGS);
+              return static_cast<bool>(_sym->flags == BSF_NO_FLAGS);
             }
 
           bool isLocal() const noexcept
             {
-              return (bool) (_sym->flags & BSF_LOCAL);
+              return static_cast<bool>(_sym->flags & BSF_LOCAL);
             }
 
           bool isGlobal() const noexcept
             {
-              return (bool) (_sym->flags & BSF_GLOBAL);
+              return static_cast<bool>(_sym->flags & BSF_GLOBAL);
             }
 
           bool isExported() const noexcept
             {
-              return (bool) (_sym->flags & BSF_EXPORT);
+              return static_cast<bool>(_sym->flags & BSF_EXPORT);
             }
 
           bool isFunction() const noexcept
             {
-              return (bool) (_sym->flags & BSF_FUNCTION);
+              return static_cast<bool>(_sym->flags & BSF_FUNCTION);
             }
 
           bool isDebugging() const noexcept
             {
-              return (bool) (_sym->flags & BSF_DEBUGGING);
+              return static_cast<bool>(_sym->flags & BSF_DEBUGGING);
             }
 
           bool isWeak() const noexcept
             {
-              return (bool) (_sym->flags & BSF_WEAK);
+              return static_cast<bool>(_sym->flags & BSF_WEAK);
             }
 
           bool isSectionSymbol() const noexcept
             {
-              return (bool) (_sym->flags & BSF_SECTION_SYM);
+              return static_cast<bool>(_sym->flags & BSF_SECTION_SYM);
             }
 
           bool isOldCommon() const noexcept
             {
-              return (bool) (_sym->flags & BSF_OLD_COMMON);
+              return static_cast<bool>(_sym->flags & BSF_OLD_COMMON);
             }
 
           bool isNotAtEnd() const noexcept
             {
-              return (bool) (_sym->flags & BSF_NOT_AT_END);
+              return static_cast<bool>(_sym->flags & BSF_NOT_AT_END);
             }
 
           bool isInConstructSection() const noexcept
             {
-              return (bool) (_sym->flags & BSF_CONSTRUCTOR);
+              return static_cast<bool>(_sym->flags & BSF_CONSTRUCTOR);
             }
 
           bool isWarning() const noexcept
             {
-              return (bool) (_sym->flags & BSF_WARNING);
+              return static_cast<bool>(_sym->flags & BSF_WARNING);
             }
 
           bool isIndirect() const noexcept
             {
-              return (bool) (_sym->flags & BSF_INDIRECT);
+              return static_cast<bool>(_sym->flags & BSF_INDIRECT);
             }
 
           bool hasFileName() const noexcept
             {
-              return (bool) (_sym->flags & BSF_FILE);
+              return static_cast<bool>(_sym->flags & BSF_FILE);
             }
 
           bool isFromDLI() const noexcept
             {
-              return (bool) (_sym->flags & BSF_DYNAMIC);
+              return static_cast<bool>(_sym->flags & BSF_DYNAMIC);
             }
 
           bool hasObjectData() const noexcept
             {
-              return (bool) (_sym->flags & BSF_OBJECT);
+              return static_cast<bool>(_sym->flags & BSF_OBJECT);
             }
 
       private:
@@ -544,127 +609,127 @@ namespace BFP
 
           bool hasFlags() const noexcept
             {
-              return (bool) (_sec->flags == SEC_NO_FLAGS);
+              return static_cast<bool>(_sec->flags == SEC_NO_FLAGS);
             }
 
           bool isAllocOnLoad() const noexcept
             {
-              return (bool) (_sec->flags & SEC_ALLOC);
+              return static_cast<bool>(_sec->flags & SEC_ALLOC);
             }
 
           bool isLoadedWithFile() const noexcept
             {
-              return (bool) (_sec->flags & SEC_LOAD);
+              return static_cast<bool>(_sec->flags & SEC_LOAD);
             }
 
           bool hasRellocInfo() const noexcept
             {
-              return (bool) (_sec->flags & SEC_RELOC);
+              return static_cast<bool>(_sec->flags & SEC_RELOC);
             }
 
           bool isReadOnly() const noexcept
             {
-              return (bool) (_sec->flags & SEC_READONLY);
+              return static_cast<bool>(_sec->flags & SEC_READONLY);
             }
 
           bool hasCodeOnly() const noexcept
             {
-              return (bool) (_sec->flags & SEC_CODE);
+              return static_cast<bool>(_sec->flags & SEC_CODE);
             }
 
           bool hasDataOnly() const noexcept
             {
-              return (bool) (_sec->flags & SEC_DATA);
+              return static_cast<bool>(_sec->flags & SEC_DATA);
             }
 
           bool isInROM() const noexcept
             {
-              return (bool) (_sec->flags & SEC_ROM);
+              return static_cast<bool>(_sec->flags & SEC_ROM);
             }
 
           bool hasConstructorInfo() const noexcept
             {
-              return (bool) (_sec->flags & SEC_CONSTRUCTOR);
+              return static_cast<bool>(_sec->flags & SEC_CONSTRUCTOR);
             }
 
           bool hasContent() const noexcept
             {
-              return (bool) (_sec->flags & SEC_HAS_CONTENTS);
+              return static_cast<bool>(_sec->flags & SEC_HAS_CONTENTS);
             }
 
           bool isSuppressed() const noexcept
             {
-              return (bool) (_sec->flags & SEC_NEVER_LOAD);
+              return static_cast<bool>(_sec->flags & SEC_NEVER_LOAD);
             }
 
           bool isCOFF() const noexcept
             {
-              return (bool) (_sec->flags & SEC_COFF_SHARED_LIBRARY);
+              return static_cast<bool>(_sec->flags & SEC_COFF_SHARED_LIBRARY);
             }
 
           bool hasCommonSymbols() const noexcept
             {
-              return (bool) (_sec->flags & SEC_IS_COMMON);
+              return static_cast<bool>(_sec->flags & SEC_IS_COMMON);
             }
 
           bool isDebugOnly() const noexcept
             {
-              return (bool) (_sec->flags & SEC_DEBUGGING);
+              return static_cast<bool>(_sec->flags & SEC_DEBUGGING);
             }
 
           bool isInMemory() const noexcept
             {
-              return (bool) (_sec->flags & SEC_IN_MEMORY);
+              return static_cast<bool>(_sec->flags & SEC_IN_MEMORY);
             }
 
           bool isExcluded() const noexcept
             {
-              return (bool) (_sec->flags & SEC_EXCLUDE);
+              return static_cast<bool>(_sec->flags & SEC_EXCLUDE);
             }
 
           bool isSorted() const noexcept
             {
-              return (bool) (_sec->flags & SEC_SORT_ENTRIES);
+              return static_cast<bool>(_sec->flags & SEC_SORT_ENTRIES);
             }
 
           bool linkOnce() const noexcept
             {
-              return (bool) (_sec->flags & SEC_LINK_ONCE);
+              return static_cast<bool>(_sec->flags & SEC_LINK_ONCE);
             }
 
           bool linkDuplicates() const noexcept
             {
-              return (bool) ((_sec->flags & SEC_LINK_DUPLICATES) ==
-                             SEC_LINK_DUPLICATES);
+              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                       SEC_LINK_DUPLICATES);
             }
 
           bool discardDuplicates() const noexcept
             {
-              return (bool) ((_sec->flags & SEC_LINK_DUPLICATES) ==
-                             SEC_LINK_DUPLICATES_DISCARD);
+              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                       SEC_LINK_DUPLICATES_DISCARD);
             }
 
           bool linkOneDuplicate() const noexcept
             {
-              return (bool) ((_sec->flags & SEC_LINK_DUPLICATES) ==
-                             SEC_LINK_DUPLICATES_ONE_ONLY);
+              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                       SEC_LINK_DUPLICATES_ONE_ONLY);
             }
 
           bool linkSameSizedDuplicates() const noexcept
             {
-              return (bool) ((_sec->flags & SEC_LINK_DUPLICATES) ==
-                             SEC_LINK_DUPLICATES_SAME_SIZE);
+              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                       SEC_LINK_DUPLICATES_SAME_SIZE);
             }
 
           bool linkSameDuplicates() const noexcept
             {
-              return (bool) ((_sec->flags & SEC_LINK_DUPLICATES) ==
-                             SEC_LINK_DUPLICATES_SAME_CONTENTS);
+              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                       SEC_LINK_DUPLICATES_SAME_CONTENTS);
             }
 
           bool isCreatedByLinker() const noexcept
             {
-              return (bool) (_sec->flags & SEC_LINKER_CREATED);
+              return static_cast<bool>(_sec->flags & SEC_LINKER_CREATED);
             }
 
       private:
@@ -697,12 +762,24 @@ namespace BFP
         };
 
 
-/** Binary file descriptor class
- * @brief has iterators and is instantiated via BFD singleton/factory
- */
+      /** Binary file descriptor class
+       * @brief has iterators and is instantiated via BFD singleton/factory
+       */
       class File
         {
       public:
+          /** @return path to this file */
+          const char *get_path() const
+            {
+              return _path;
+            }
+
+          /** @return with which target is this file opened @see BFD::targets */
+          const char *get_target() const
+            {
+              return _target;
+            }
+
           /** @return Used to iterate through sections or finding specific one by name (RO) */
           ::std::vector<Section *>::const_iterator begin_section()
             {
@@ -770,6 +847,7 @@ namespace BFP
           File() = delete;
 
       private:
+          /** File descriptor */
           bfd *_fd;
 
           /** Path to executable */
@@ -788,12 +866,12 @@ namespace BFP
           asymbol **symbol_table;
         };
 
-/** Singleton of Binary File Descriptor
- * @brief This represents BFD class.
- *        Instance is static so there will be only one per runtime.
- *        <tt>get_unique_instance</tt> returns the same instance every time it is called.
- * @example tests/TestProgram/main.cpp
- */
+      /** Singleton of Binary File Descriptor
+       * @brief This represents BFD class.
+       *        Instance is static so there will be only one per runtime.
+       *        <tt>get_unique_instance</tt> returns the same instance every time it is called.
+       * @example tests/TestProgram/main.cpp
+       */
       class BFD
         {
       public:
@@ -858,7 +936,7 @@ namespace BFP
           ::std::vector<File *> openedFiles;
 
       private:
-          const ::std::vector<const char *> _targets = {
+          ::std::vector<const char *> _targets = {
               "a.out-i386-linux", "elf32-i386", "elf64-big", "elf64-little",
               "pei-i386", "srec", "verilog", "binary", "elf32-little",
               "elf64-k1om", "elf64-x86-64", "pei-x86-64", "symbolsrec",
@@ -866,7 +944,6 @@ namespace BFP
               "tekhex"
           };
         };
-
   }
 
 #endif // __BFP_BFP_HPP

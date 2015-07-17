@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 project(BinaryFileParser)
-
+if ("${USE_COMPILER}" STREQUAL "clang")
+    set(CMAKE_C_COMPILER /usr/bin/clang)
+    set(CMAKE_CXX_COMPILER /usr/bin/clang++)
+endif ()
 #################################################################
 # Finding BOOST components #
 find_package(Boost 1.50.0 REQUIRED COMPONENTS filesystem system)
