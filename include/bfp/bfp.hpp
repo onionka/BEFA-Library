@@ -25,21 +25,9 @@
 #include <string>                 /// ::std::to_string, ::std::string
 
 
-/** This macro checks if __type is (const_)iterator of vector of __value */
-#define is_iterator(__type, __value)                              \
-do {                                                              \
-  if (!::std::is_same<                                            \
-          __type,                                                 \
-          typename ::std::vector<__value>::iterator>::value &&    \
-      !::std::is_same<                                            \
-          __type,                                                 \
-          typename ::std::vector<__value>::const_iterator>::value)\
-      RAISE(Exception::BFD::IteratorExpected);                    \
-} while (0)
-
-
 namespace BFP
   {
+
       template<
           typename __T>
         __T &dereference(__T &_obj)
@@ -86,7 +74,6 @@ namespace BFP
             __ite _end,
             __finder_type _val)
           {
-            is_iterator(__ite, __value);
             ::std::vector<__value> _ret;
             for (__ite _ite = _begin; _ite != _end; ++_ite)
               if (dereference(*_ite) == _val)
@@ -113,7 +100,6 @@ namespace BFP
             __ite _end,
             __finder_type _val)
           {
-            is_iterator(__ite, __value);
             __ite _ite;
             for (_ite = _begin; _ite != _end; ++_ite)
               if (dereference(*_ite) == _val) break;
@@ -185,7 +171,6 @@ namespace BFP
                         __func func,
                         __args... _args)
                       {
-                        is_iterator(__ite, __value);
                         auto ret = func(*begin, _args...);
                         for (auto _ite = begin + 1; _ite != end; _ite++)
                           ret = ret + func(*_ite, _args...);
@@ -212,7 +197,6 @@ namespace BFP
                         __func func,
                         __args... _args)
                       {
-                        is_iterator(__ite, __value);
                         for (auto _ite = begin; _ite != end; _ite++)
                           func(*_ite, _args...);
                       }
@@ -245,7 +229,6 @@ namespace BFP
             __func func,
             __args... _args)
           {
-            is_iterator(__ite, __value);
             return __apply::call<__ret>::template apply<
                 __ite,
                 __func,

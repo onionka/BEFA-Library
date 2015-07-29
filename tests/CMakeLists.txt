@@ -24,7 +24,6 @@ set(VALGRIND valgrind --leak-check=full --show-reachable=yes)
 #add_test(PluginTestProgram ${VALGRIND} ./plugin_prog)
 ######################################################################
 add_executable(functional
-               Functional/main.h
                Functional/main.cpp)
 TARGET_LINK_LIBRARIES(functional bfp)
 ######################################################################
