@@ -23,10 +23,22 @@
 #include <map>                    /// ::std::map
 #include <bfp.hpp>                /// additional includes from project
 #include <string>                 /// ::std::to_string, ::std::string
+#include <type_traits>            /// ::std::remove_reference
 
 
 namespace BFP
   {
+      template<typename __T>
+        struct remove_references
+          {
+            typedef typename ::std::remove_reference<__T>::type type;
+          };
+
+      template<typename __T>
+        struct remove_references<__T *>
+          {
+            typedef typename ::std::remove_reference<__T>::type type;
+          };
 
       template<
           typename __T>
@@ -49,7 +61,7 @@ namespace BFP
        */
       template<
           typename __ptr>
-        __ptr &dereference(__ptr *_obj)
+        typename remove_references<__ptr>::type &dereference(__ptr *_obj)
           {
             return dereference(*_obj);
           }
@@ -945,13 +957,7 @@ namespace BFP
           ::std::vector<File *> openedFiles;
 
       private:
-          ::std::vector<::std::string> _targets = {
-              "a.out-i386-linux", "elf32-i386", "elf64-big", "elf64-little",
-              "pei-i386", "srec", "verilog", "binary", "elf32-little",
-              "elf64-k1om", "elf64-x86-64", "pei-x86-64", "symbolsrec",
-              "elf32-big", "elf32-x86-64", "elf64-l1om", "ihex", "plugin",
-              "tekhex"
-          };
+          ::std::vector<::std::string> _targets;
         };
   }
 

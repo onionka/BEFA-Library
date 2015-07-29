@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
           };
 
           BOOST_MESSAGE(
-              "searching ::std::string in ::std::vector<::std::string>");
+              "search: ::std::string in ::std::vector<::std::string>");
           auto _founded = ::BFP::search(_strs.begin(), _strs.end(),
                                         ::std::string("text"));
           BOOST_CHECK(_founded.size() == 3);
@@ -51,14 +51,14 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
             BOOST_CHECK(_text == "text");
 
           BOOST_MESSAGE(
-              "searching const char* in ::std::vector<::std::string>");
+              "search: const char* in ::std::vector<::std::string>");
           _founded = ::BFP::search(_strs.begin(), _strs.end(), "text");
           BOOST_CHECK(_founded.size() == 3);
           for (auto _text : _founded)
             BOOST_CHECK(_text == "text");
 
           BOOST_MESSAGE(
-              "searching const char* in ::std::vector<::std::string> at the end of vector");
+              "search: const char* in ::std::vector<::std::string> at the end of vector");
           _founded = ::BFP::search(_strs.begin(), _strs.end(), "text3");
           BOOST_CHECK(_founded.size() == 1);
           for (auto _text : _founded)
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
           };
 
           BOOST_MESSAGE(
-              "filtering ::std::vector<::std::string> with one lambda by reference");
+              "filter: ::std::vector<::std::string> with one lambda by reference");
           auto _founded = ::BFP::filter(_strs.begin(), _strs.end(),
                                         [](::std::string &_str) -> bool
                                           {
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
             BOOST_CHECK(_str == "text");
 
           BOOST_MESSAGE(
-              "filtering ::std::vector<::std::string> with two lambdas by reference");
+              "filter: ::std::vector<::std::string> with two lambdas by reference");
           _founded = ::BFP::filter(_strs.begin(), _strs.end(),
                                    [](::std::string &_str) -> bool
                                      {
@@ -184,15 +184,14 @@ BOOST_AUTO_TEST_SUITE(base_file)
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
 
-
-          BOOST_MESSAGE("Finding symbol __start in this executable");
+          BOOST_MESSAGE("Finding symbol '_start' in this executable");
           auto _sym = ::BFP::find(
               _file->begin_symbol(),
               _file->end_symbol(),
               "_start");
           BOOST_CHECK(_sym != _file->end_symbol());
 
-          BOOST_MESSAGE("Finding section .text in this executable");
+          BOOST_MESSAGE("Finding section '.text' in this executable");
           auto _sec = ::BFP::find(
               _file->begin_section(),
               _file->end_section(),

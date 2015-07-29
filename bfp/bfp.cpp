@@ -35,6 +35,10 @@ namespace BFP
       BFD::BFD()
         {
           bfd_init();
+          for (auto _target = bfd_target_list();
+               *_target != NULL;
+               ++_target)
+            _targets.push_back(::std::string(*_target));
         }
 
       BFD::~BFD()
@@ -106,10 +110,10 @@ namespace BFP
         {
           ::std::vector<::std::string> _ret;
           bfd *fd;
-          for (auto target = bfd_target_list(); *target != nullptr; ++target)
-            if ((fd = bfd_openr(_file_name.c_str(), *target)) != NULL)
+          for (auto target : _targets)
+            if ((fd = bfd_openr(_file_name.c_str(), target.c_str())) != NULL)
               {
-                _ret.push_back(*target);
+                _ret.push_back(target);
                 bfd_close(fd);
               }
           return _ret;
