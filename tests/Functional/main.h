@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
 
 BOOST_AUTO_TEST_SUITE(base_bfd)
 
-      BOOST_AUTO_TEST_CASE(bfd_init_test)
+      BOOST_AUTO_TEST_CASE(bfd_init)
         {
           auto _bfd = ::BFP::BFD::get_unique_instance();
           BOOST_CHECK(_bfd != nullptr);
@@ -158,6 +158,13 @@ BOOST_AUTO_TEST_SUITE(base_bfd)
                 (::std::string("Target of this file: ") + _tar).c_str());
           BOOST_CHECK(::BFP::search(_targets.begin(), _targets.end(),
                                     "elf64-x86-64").size() == 1);
+        }
+
+      BOOST_AUTO_TEST_CASE(bfd_free)
+        {
+          auto _bfd = ::BFP::BFD::get_unique_instance();
+          delete _bfd;
+          _bfd = nullptr;
         }
 
   BOOST_AUTO_TEST_SUITE_END()
