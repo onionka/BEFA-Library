@@ -6,7 +6,7 @@ if ("${USE_COMPILER}" STREQUAL "clang")
 endif ()
 #################################################################
 # Finding BOOST components #
-find_package(Boost 1.50.0 REQUIRED COMPONENTS filesystem system)
+find_package(Boost 1.50.0 REQUIRED COMPONENTS filesystem system unit_test_framework REQUIRED)
 
 # Finding BFD libraries and headers #
 find_path(BFD_INCLUDE_DIR bfd.h REQUIRED)

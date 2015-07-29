@@ -40,6 +40,33 @@ do {                                                              \
 
 namespace BFP
   {
+      template<
+          typename __T>
+        __T &dereference(__T &_obj)
+          {
+            return _obj;
+          }
+
+      template<
+          typename __T>
+        const __T &dereference(const __T &_obj)
+          {
+            return _obj;
+          }
+
+      /** Derefer pointer to object 'till only object remain
+       * @param __ptr pointer type
+       * @param _obj object/pointer to object
+       * @return reference to object
+       */
+      template<
+          typename __ptr>
+        __ptr &dereference(__ptr *_obj)
+          {
+            return dereference(*_obj);
+          }
+
+
       /** Finds elements via comparing not the same typed value,
        *      but has to have implemented operator == with __value type
        * @param __ite iterator type
@@ -62,7 +89,7 @@ namespace BFP
             is_iterator(__ite, __value);
             ::std::vector<__value> _ret;
             for (__ite _ite = _begin; _ite != _end; ++_ite)
-              if (**_ite == _val)
+              if (dereference(*_ite) == _val)
                 _ret.push_back(*_ite);
             return _ret;
           }
@@ -89,7 +116,7 @@ namespace BFP
             is_iterator(__ite, __value);
             __ite _ite;
             for (_ite = _begin; _ite != _end; ++_ite)
-              if (**_ite == _val) break;
+              if (dereference(*_ite) == _val) break;
             return _ite;
           }
 
@@ -372,7 +399,7 @@ namespace BFP
            * @return begin iterator of sections (RO)
            * @see sections()
            */
-          ::std::vector<Section *>::const_iterator begin_sections()
+          ::std::vector<Section *>::iterator begin_sections()
             {
               return _sections.begin();
             }
@@ -381,7 +408,7 @@ namespace BFP
            * @return end iterator of sections (RO)
            * @see sections()
            */
-          ::std::vector<Section *>::const_iterator end_sections()
+          ::std::vector<Section *>::iterator end_sections()
             {
               return _sections.end();
             }
@@ -761,7 +788,6 @@ namespace BFP
           ::std::vector<alent> line_numbers;
         };
 
-
       /** Binary file descriptor class
        * @brief has iterators and is instantiated via BFD singleton/factory
        */
@@ -781,28 +807,28 @@ namespace BFP
             }
 
           /** @return Used to iterate through sections or finding specific one by name (RO) */
-          ::std::vector<Section *>::const_iterator begin_section()
+          ::std::vector<Section *>::iterator begin_section()
             {
               return this->_sections
                          .begin();
             }
 
           /** @return Used to iterate through sections or finding specific one by name (RO) */
-          ::std::vector<Section *>::const_iterator end_section()
+          ::std::vector<Section *>::iterator end_section()
             {
               return this->_sections
                          .end();
             }
 
           /** @return Iterator through all symbols in file (RO) */
-          ::std::vector<Symbol *>::const_iterator begin_symbol()
+          ::std::vector<Symbol *>::iterator begin_symbol()
             {
               return this->_symbols
                          .begin();
             }
 
           /** @return Iterator through all symbols in file (RO) */
-          ::std::vector<Symbol *>::const_iterator end_symbol()
+          ::std::vector<Symbol *>::iterator end_symbol()
             {
               return this->_symbols
                          .end();
@@ -891,18 +917,18 @@ namespace BFP
            * @return instance of <tt>File</tt> that will be automaticly deallocate on deletion BFD instance
            */
           File *Open(
-              const char *_file_name,
-              const char *_target);
+              ::std::string _file_name,
+              ::std::string _target);
 
           /**
            * @param _file_name is name of tested file
            * @return all targets that may be used for file
            */
-          const ::std::vector<const char *> getTargets(
-              const char *_file_name);
+          ::std::vector<::std::string> getTargets(
+              ::std::string _file_name);
 
           /** @return all possible formats */
-          const ::std::vector<const char *> getAllTargets() const noexcept
+          ::std::vector<::std::string> getAllTargets() const noexcept
             {
               return _targets;
             }
@@ -936,7 +962,7 @@ namespace BFP
           ::std::vector<File *> openedFiles;
 
       private:
-          ::std::vector<const char *> _targets = {
+          ::std::vector<::std::string> _targets = {
               "a.out-i386-linux", "elf32-i386", "elf64-big", "elf64-little",
               "pei-i386", "srec", "verilog", "binary", "elf32-little",
               "elf64-k1om", "elf64-x86-64", "pei-x86-64", "symbolsrec",

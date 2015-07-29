@@ -25,8 +25,7 @@ set(VALGRIND valgrind --leak-check=full --show-reachable=yes)
 ######################################################################
 add_executable(functional
                Functional/main.h
-               Functional/main.cpp
-               Functional/tests.hpp)
+               Functional/main.cpp)
 TARGET_LINK_LIBRARIES(functional bfp)
 ######################################################################
 SETUP_TARGET_FOR_COVERAGE(coverage functional coverage)

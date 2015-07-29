@@ -16,18 +16,19 @@ namespace BFP
         }
 
       File *BFD::Open(
-          const char *_file_name,
-          const char *_target)
+          const ::std::string _file_name,
+          const ::std::string _target)
         {
           bfd *fd;
-          if ((fd = bfd_openr(_file_name, _target)) == NULL)
+          if ((fd = bfd_openr(_file_name.c_str(), _target.c_str())) == NULL)
             return nullptr;
           if (!bfd_check_format(fd, bfd_object))
             {
               bfd_close(fd);
               return nullptr;
             }
-          openedFiles.push_back(new File(fd, _file_name, _target));
+          openedFiles.push_back(
+              new File(fd, _file_name.c_str(), _target.c_str()));
           return openedFiles.back();
         }
 
@@ -101,14 +102,12 @@ namespace BFP
           bfd_close(_fd);
         }
 
-      const ::std::vector<const char *> BFD::getTargets(const char *_file_name)
+      ::std::vector<::std::string> BFD::getTargets(const ::std::string _file_name)
         {
-          ::std::vector<const char *> _ret;
+          ::std::vector<::std::string> _ret;
           bfd *fd;
-          for (auto target = bfd_target_list();
-               *target != nullptr;
-               ++target)
-            if ((fd = bfd_openr(_file_name, *target)) != NULL)
+          for (auto target = bfd_target_list(); *target != nullptr; ++target)
+            if ((fd = bfd_openr(_file_name.c_str(), *target)) != NULL)
               {
                 _ret.push_back(*target);
                 bfd_close(fd);
