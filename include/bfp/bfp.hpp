@@ -34,10 +34,15 @@ namespace BFP
             typedef typename ::std::remove_reference<__T>::type type;
           };
 
-      template<typename __T>
-        struct remove_references<__T *>
+        /**
+         * @brief retrieves type of object that is hidden behind n referencies
+         * @param __ptr is object/pointer
+         */
+      template<typename __ptr>
+        struct remove_references<__ptr *>
           {
-            typedef typename ::std::remove_reference<__T>::type type;
+            /** Here is hidden type behind pointer */
+            typedef typename remove_references<__ptr>::type type;
           };
 
       template<
@@ -587,7 +592,7 @@ namespace BFP
            */
           const unsigned char *getContent() const noexcept
             {
-              return this->hasContent() ? _sec->contents : nullptr;
+              return _sec->contents;
             }
 
           /**
