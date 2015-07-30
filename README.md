@@ -2,3 +2,5 @@ Binary File Parser (draft)  [![Build Status](https://travis-ci.org/cibo94/Binary
 ==========================
 
 High-level library that analyse binary file (executable) for testing purposes. Bachelor's work.
+
+![codecov.io](http://codecov.io/github/cibo94/Binary-File-Parser-Library/branch.svg?branch=master)
