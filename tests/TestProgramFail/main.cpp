@@ -9,14 +9,20 @@
 #include <string.h>
 #include <bfp.hpp>
 
-int main(int args, const char **argv) {
+
+int main(
+    int args,
+    const char **argv)
+  {
     ::BFP::BFD *fd = ::BFP::BFD::get_unique_instance();
-    try {
+    try
+      {
         fd->Open("NonExistingFile", NULL);
-    } catch (::std::exception &ex) {
+      } catch (::std::exception &ex)
+      {
         ::std::cerr << ex.what();
         return EXIT_SUCCESS;
-    }
+      }
     delete fd;
     return EXIT_FAILURE;
-}
+  }
