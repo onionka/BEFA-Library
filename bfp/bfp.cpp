@@ -35,9 +35,7 @@ namespace BFP
       BFD::BFD()
         {
           bfd_init();
-          for (auto _target = bfd_target_list();
-               *_target != NULL;
-               ++_target)
+          for (auto _target = bfd_target_list(); *_target != NULL; ++_target)
             _targets.push_back(::std::string(*_target));
         }
 
@@ -47,7 +45,10 @@ namespace BFP
             delete f;
           openedFiles.clear();
         }
+  }
 
+namespace BFP
+  {
       File::File(
           bfd *fd,
           const char *path,

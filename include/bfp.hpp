@@ -12,7 +12,6 @@
 #include <bfd.h>
 #include <bfp/exception.hpp>
 #include <bfp/bfp.hpp>
-#include <bfp/plugin_manager.hpp>
 
 
 #endif //BINARY_FILE_PARSER_BFP_HPP
