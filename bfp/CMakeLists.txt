@@ -4,12 +4,13 @@ set(SOURCE_FILES
     bfp.cpp
     exception.cpp)
 
-add_library(bfp
+add_library(bfp SHARED
             ${SOURCE_FILES}
-            ../include/bfp.hpp
-            ../include/bfp/exception.hpp
-            ../include/bfp/bfp.hpp
-            ${BFD_INCLUDE_DIR}/bfd.h)
+            ${PROJECT_SOURCE_DIR}/include/bfp.hpp
+            ${PROJECT_SOURCE_DIR}/include/bfp/exception.hpp
+            ${PROJECT_SOURCE_DIR}/include/bfp/bfp.hpp
+            ${PROJECT_SOURCE_DIR}/include/bfp/support.tpp
+            ${PROJECT_SOURCE_DIR}/include/bfp/support_helpers.tpp)
 TARGET_LINK_LIBRARIES(bfp bfd ${Boost_LIBRARIES})
 INSTALL(TARGETS bfp
         DESTINATION lib)

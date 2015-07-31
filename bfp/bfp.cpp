@@ -9,6 +9,416 @@
 
 namespace BFP
   {
+      bool Symbol::operator==(
+          const Symbol &_compare)
+        {
+          return (_compare.getValue() == getValue());
+        }
+
+      bool Symbol::operator!=(
+          const Symbol &_compare)
+        {
+          return (_compare.getValue() != getValue());
+        }
+
+      bool Symbol::operator==(
+          const symvalue *_compare)
+        {
+          return (*_compare == getValue());
+        }
+
+      bool Symbol::operator!=(
+          const symvalue *_compare)
+        {
+          return (*_compare != getValue());
+        }
+
+      bool Symbol::operator==(
+          const asymbol *_ptr)
+        {
+          return _sym == _ptr;
+        }
+
+      bool Symbol::operator!=(
+          const asymbol *_ptr)
+        {
+          return _sym != _ptr;
+        }
+
+      bool Symbol::operator==(
+          const char *_compare)
+        {
+          return (::std::string(_compare) == getName());
+        }
+
+      bool Symbol::operator!=(
+          const char *_compare)
+        {
+          return (::std::string(_compare) != getName());
+        }
+
+      const ::std::string Symbol::getName() const
+        {
+          return ::std::string(_sym->name);
+        }
+
+      const ::std::vector<Section *> Symbol::sections()
+        {
+          return _sections;
+        }
+
+      ::std::vector<Section *>::iterator Symbol::begin_sections()
+        {
+          return _sections.begin();
+        }
+
+      ::std::vector<Section *>::iterator Symbol::end_sections()
+        {
+          return _sections.end();
+        }
+
+      symvalue Symbol::getValue() const
+        {
+          return _sym->value;
+        }
+
+      bool Symbol::hasFlags() const
+        {
+          return static_cast<bool>(_sym->flags == BSF_NO_FLAGS);
+        }
+
+      bool Symbol::isLocal() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_LOCAL);
+        }
+
+      bool Symbol::isGlobal() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_GLOBAL);
+        }
+
+      bool Symbol::isExported() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_EXPORT);
+        }
+
+      bool Symbol::isFunction() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_FUNCTION);
+        }
+
+      bool Symbol::isDebugging() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_DEBUGGING);
+        }
+
+      bool Symbol::isWeak() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_WEAK);
+        }
+
+      bool Symbol::isSectionSymbol() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_SECTION_SYM);
+        }
+
+      bool Symbol::isOldCommon() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_OLD_COMMON);
+        }
+
+      bool Symbol::isNotAtEnd() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_NOT_AT_END);
+        }
+
+      bool Symbol::isInConstructSection() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_CONSTRUCTOR);
+        }
+
+      bool Symbol::isWarning() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_WARNING);
+        }
+
+      bool Symbol::isIndirect() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_INDIRECT);
+        }
+
+      bool Symbol::hasFileName() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_FILE);
+        }
+
+      bool Symbol::isFromDLI() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_DYNAMIC);
+        }
+
+      bool Symbol::hasObjectData() const
+        {
+          return static_cast<bool>(_sym->flags & BSF_OBJECT);
+        }
+
+      Symbol::Symbol(
+          asymbol *symbol)
+          :
+          _sym{symbol}
+        { }
+
+      bool Section::operator==(
+          const Section &_compare)
+        {
+          return _compare._sec == _sec;
+        }
+
+      bool Section::operator!=(
+          const Section &_compare)
+        {
+          return _compare._sec != _sec;
+        }
+
+      bool Section::operator==(
+          const asection *_ptr)
+        {
+          return _sec == _ptr;
+        }
+
+      bool Section::operator!=(
+          const asection *_ptr)
+        {
+          return _sec != _ptr;
+        }
+
+      bool Section::operator==(
+          const char *_compare)
+        {
+          return ::std::string(_compare) == this->getName();
+        }
+
+      bool Section::operator!=(
+          const char *_compare)
+        {
+          return ::std::string(_compare) != this->getName();
+        }
+
+      int Section::getIndex() const
+        {
+          return _sec->index;
+        }
+
+      const ::std::string Section::getName() const
+        {
+          return ::std::string(_sec->name);
+        }
+
+      const unsigned char *Section::getContent() const
+        {
+          return _sec->contents;
+        }
+
+      const ::std::vector<alent> Section::getLineNO() const
+        {
+          return line_numbers;
+        }
+
+      ::std::vector<Symbol *>::iterator Section::begin_symbol()
+        {
+          return this->_symbols
+                     .begin();
+        }
+
+      ::std::vector<Symbol *>::iterator Section::end_symbol()
+        {
+          return this->_symbols
+                     .end();
+        }
+
+      const ::std::vector<Symbol *> Section::symbols()
+        {
+          return this->_symbols;
+        }
+
+      bool Section::hasFlags() const
+        {
+          return static_cast<bool>(_sec->flags == SEC_NO_FLAGS);
+        }
+
+      bool Section::isAllocOnLoad() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_ALLOC);
+        }
+
+      bool Section::isLoadedWithFile() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_LOAD);
+        }
+
+      bool Section::hasRellocInfo() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_RELOC);
+        }
+
+      bool Section::isReadOnly() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_READONLY);
+        }
+
+      bool Section::hasCodeOnly() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_CODE);
+        }
+
+      bool Section::hasDataOnly() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_DATA);
+        }
+
+      bool Section::isInROM() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_ROM);
+        }
+
+      bool Section::hasConstructorInfo() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_CONSTRUCTOR);
+        }
+
+      bool Section::hasContent() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_HAS_CONTENTS);
+        }
+
+      bool Section::isSuppressed() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_NEVER_LOAD);
+        }
+
+      bool Section::isCOFF() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_COFF_SHARED_LIBRARY);
+        }
+
+      bool Section::hasCommonSymbols() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_IS_COMMON);
+        }
+
+      bool Section::isDebugOnly() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_DEBUGGING);
+        }
+
+      bool Section::isInMemory() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_IN_MEMORY);
+        }
+
+      bool Section::isExcluded() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_EXCLUDE);
+        }
+
+      bool Section::isSorted() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_SORT_ENTRIES);
+        }
+
+      bool Section::linkOnce() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_LINK_ONCE);
+        }
+
+      bool Section::linkDuplicates() const
+        {
+          return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                   SEC_LINK_DUPLICATES);
+        }
+
+      bool Section::discardDuplicates() const
+        {
+          return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                   SEC_LINK_DUPLICATES_DISCARD);
+        }
+
+      bool Section::linkOneDuplicate() const
+        {
+          return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                   SEC_LINK_DUPLICATES_ONE_ONLY);
+        }
+
+      bool Section::linkSameSizedDuplicates() const
+        {
+          return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                   SEC_LINK_DUPLICATES_SAME_SIZE);
+        }
+
+      bool Section::linkSameDuplicates() const
+        {
+          return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
+                                   SEC_LINK_DUPLICATES_SAME_CONTENTS);
+        }
+
+      bool Section::isCreatedByLinker() const
+        {
+          return static_cast<bool>(_sec->flags & SEC_LINKER_CREATED);
+        }
+
+      Section::Section(
+          asection *section)
+          :
+          _sec{section}
+        { }
+
+      const char *File::get_path() const
+        {
+          return _path;
+        }
+
+      const char *File::get_target() const
+        {
+          return _target;
+        }
+
+      ::std::vector<Section *>::iterator File::begin_section()
+        {
+          return this->_sections
+                     .begin();
+        }
+
+      ::std::vector<Section *>::iterator File::end_section()
+        {
+          return this->_sections
+                     .end();
+        }
+
+      ::std::vector<Symbol *>::iterator File::begin_symbol()
+        {
+          return this->_symbols
+                     .begin();
+        }
+
+      ::std::vector<Symbol *>::iterator File::end_symbol()
+        {
+          return this->_symbols
+                     .end();
+        }
+
+      const ::std::vector<Symbol *> File::symbols()
+        {
+          return this->_symbols;
+        }
+
+      const ::std::vector<Section *> File::sections()
+        {
+          return this->_sections;
+        }
+  }
+
+namespace BFP
+  {
       BFD *BFD::get_unique_instance()
         {
           static BFD *instance = nullptr;

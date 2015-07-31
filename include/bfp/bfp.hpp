@@ -24,41 +24,11 @@
 #include <bfp.hpp>                /// additional includes from project
 #include <string>                 /// ::std::to_string, ::std::string
 #include <type_traits>            /// ::std::remove_reference
+#include <bfp/support_helpers.tpp>/// support template functions
 
 
 namespace BFP
   {
-      template<typename __T>
-        struct remove_references
-          {
-            typedef typename ::std::remove_reference<__T>::type type;
-          };
-
-        /**
-         * @brief retrieves type of object that is hidden behind n referencies
-         * @param __ptr is object/pointer
-         */
-      template<typename __ptr>
-        struct remove_references<__ptr *>
-          {
-            /** Here is hidden type behind pointer */
-            typedef typename remove_references<__ptr>::type type;
-          };
-
-      template<
-          typename __T>
-        __T &dereference(__T &_obj)
-          {
-            return _obj;
-          }
-
-      template<
-          typename __T>
-        const __T &dereference(const __T &_obj)
-          {
-            return _obj;
-          }
-
       /** Derefer pointer to object 'till only object remain
        * @param __ptr pointer type
        * @param _obj object/pointer to object
@@ -66,10 +36,8 @@ namespace BFP
        */
       template<
           typename __ptr>
-        typename remove_references<__ptr>::type &dereference(__ptr *_obj)
-          {
-            return dereference(*_obj);
-          }
+        typename remove_references<__ptr>::type &dereference(
+            __ptr *_obj);
 
 
       /** Finds elements via comparing not the same typed value,
@@ -89,14 +57,7 @@ namespace BFP
         const ::std::vector<__value> search(
             __ite _begin,
             __ite _end,
-            __finder_type _val)
-          {
-            ::std::vector<__value> _ret;
-            for (__ite _ite = _begin; _ite != _end; ++_ite)
-              if (dereference(*_ite) == _val)
-                _ret.push_back(*_ite);
-            return _ret;
-          }
+            __finder_type _val);
 
       /** Finds element via comparing not the same typed value,
        *      but has to have implemented operator == with __value type
@@ -115,110 +76,7 @@ namespace BFP
         __ite find(
             __ite _begin,
             __ite _end,
-            __finder_type _val)
-          {
-            __ite _ite;
-            for (_ite = _begin; _ite != _end; ++_ite)
-              if (dereference(*_ite) == _val) break;
-            return _ite;
-          }
-
-
-      namespace __apply
-        {
-            template<typename T>
-              struct function_traits :
-                  public function_traits<decltype(&T::operator())>
-                {
-                };
-
-            /**
-             * @brief generates info about function statically
-             * @param ClassType is type of class in (lambda) function - deduced
-             * @param ReturnType is type of return value in (lambda) function - deduced
-             * @param Args are types of arguments in (lambda) function - deduced
-             */
-            template<
-                typename ClassType,
-                typename ReturnType,
-                typename... Args>
-              struct function_traits<ReturnType(ClassType::*)(Args...) const>
-                {
-                  enum
-                    {
-                      argc = sizeof...(Args)                   //!< @brief count of arguments
-                    };
-
-                  /** @return type of function */
-                  typedef ReturnType result_type;
-
-                  /**
-                   * @brief set of types in function arguments
-                   */
-                  template<size_t i>
-                    struct argv
-                      {
-                        /**
-                         * @brief the i-th argument is equivalent to the i-th tuple element of a tuple
-                         *        composed of those arguments.
-                         */
-                        typedef typename std::tuple_element<
-                            i,
-                            std::tuple<Args...>>::type type;
-                      };
-                };
-
-            /**
-             * @brief call function with certain, non-void, return value
-             * @param __ret is type of return value
-             */
-            template<
-                typename __ret>
-              struct call
-                {
-                  /** @see ::BFP::apply */
-                  template<
-                      typename __ite,
-                      typename __func,
-                      typename __value,
-                      typename... __args>
-                    static __ret apply(
-                        __ite begin,
-                        __ite end,
-                        __func func,
-                        __args... _args)
-                      {
-                        auto ret = func(*begin, _args...);
-                        for (auto _ite = begin + 1; _ite != end; _ite++)
-                          ret = ret + func(*_ite, _args...);
-                        return ret;
-                      }
-                };
-
-            /**
-             * @brief call function with void return value
-             * @overload
-             */
-            template<>
-              struct call<void>
-                {
-                  /** @see ::BFP::apply */
-                  template<
-                      typename __ite,
-                      typename __func,
-                      typename __value,
-                      typename... __args>
-                    static void apply(
-                        __ite begin,
-                        __ite end,
-                        __func func,
-                        __args... _args)
-                      {
-                        for (auto _ite = begin; _ite != end; _ite++)
-                          func(*_ite, _args...);
-                      }
-                };
-        }
+            __finder_type _val);
 
       /**
         * @brief Apply function to range from begin to end
@@ -244,44 +102,8 @@ namespace BFP
             __ite begin,
             __ite end,
             __func func,
-            __args... _args)
-          {
-            return __apply::call<__ret>::template apply<
-                __ite,
-                __func,
-                __value,
-                __args...>(begin, end, func, _args...);
-          }
+            __args... _args);
 
-      namespace __filter
-        {
-            /** @overload */
-            template<
-                typename __arg,
-                typename __func>
-              bool helper(
-                  __arg _arg,
-                  __func _func)
-                {
-                  return _func(_arg);
-                }
-
-            /**
-             * @brief Helper template function that calls all function
-             *        and returns ...
-             */
-            template<
-                typename __arg,
-                typename __func,
-                typename... __funcs>
-              bool helper(
-                  __arg _arg,
-                  __func _func,
-                  __funcs... _funcs)
-                {
-                  return _func(_arg) && helper(_arg, _funcs...);
-                }
-        }
 
       /**
        * @brief Filters out range between begin and end via functional conditions
@@ -309,14 +131,7 @@ namespace BFP
         ::std::vector<typename __ite::value_type> filter(
             __ite begin,
             __ite end,
-            __funcs... _func)
-          {
-            ::std::vector<typename __ite::value_type> ret;
-            for (auto _ite = begin; _ite != end; ++_ite)
-              if (__filter::helper(*_ite, _func...))
-                ret.push_back(*_ite);
-            return ret;
-          }
+            __funcs... _func);
 
       class Section;
 
@@ -325,196 +140,100 @@ namespace BFP
       class Symbol
         {
       public:
-          ~Symbol()
-            { }
-
           /////////////////////////////////////////////
           ///         Comparition operators         ///
           /////////////////////////////////////////////
 
           bool operator==(
-              const Symbol &_compare)
-            {
-              return (_compare.getValue() == getValue());
-            }
+              const Symbol &_compare);
 
           bool operator!=(
-              const Symbol &_compare)
-            {
-              return (_compare.getValue() != getValue());
-            }
+              const Symbol &_compare);
 
           bool operator==(
-              const symvalue *_compare)
-            {
-              return (*_compare == getValue());
-            }
+              const symvalue *_compare);
 
           bool operator!=(
-              const symvalue *_compare)
-            {
-              return (*_compare != getValue());
-            }
+              const symvalue *_compare);
 
           bool operator==(
-              const asymbol *_ptr)
-            {
-              return _sym == _ptr;
-            }
+              const asymbol *_ptr);
 
           bool operator!=(
-              const asymbol *_ptr)
-            {
-              return _sym != _ptr;
-            }
+              const asymbol *_ptr);
 
           bool operator==(
-              const char *_compare)
-            {
-              return (::std::string(_compare) == getName());
-            }
+              const char *_compare);
 
           bool operator!=(
-              const char *_compare)
-            {
-              return (::std::string(_compare) != getName());
-            }
+              const char *_compare);
 
           ///////////////////////////////
           ///         GETTERS         ///
           ///////////////////////////////
 
-          const ::std::string getName() const noexcept
-            {
-              return ::std::string(_sym->name);
-            }
+          const ::std::string getName() const;
 
           /** @return all sections where this symbol is (RO) - may be empty*/
-          const ::std::vector<Section *> sections()
-            {
-              return _sections;
-            }
+          const ::std::vector<Section *> sections();
 
           /**
            * @return begin iterator of sections (RO)
            * @see sections()
            */
-          ::std::vector<Section *>::iterator begin_sections()
-            {
-              return _sections.begin();
-            }
+          ::std::vector<Section *>::iterator begin_sections();
 
           /**
            * @return end iterator of sections (RO)
            * @see sections()
            */
-          ::std::vector<Section *>::iterator end_sections()
-            {
-              return _sections.end();
-            }
+          ::std::vector<Section *>::iterator end_sections();
 
           /** @return RAW value of symbol */
-          symvalue getValue() const noexcept
-            {
-              return _sym->value;
-            }
+          symvalue getValue() const;
 
           /////////////////////////////////////////////////
           ///             Symbol attributes             ///
           /////////////////////////////////////////////////
 
-          bool hasFlags() const noexcept
-            {
-              return static_cast<bool>(_sym->flags == BSF_NO_FLAGS);
-            }
+          bool hasFlags() const;
 
-          bool isLocal() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_LOCAL);
-            }
+          bool isLocal() const;
 
-          bool isGlobal() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_GLOBAL);
-            }
+          bool isGlobal() const;
 
-          bool isExported() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_EXPORT);
-            }
+          bool isExported() const;
 
-          bool isFunction() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_FUNCTION);
-            }
+          bool isFunction() const;
 
-          bool isDebugging() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_DEBUGGING);
-            }
+          bool isDebugging() const;
 
-          bool isWeak() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_WEAK);
-            }
+          bool isWeak() const;
 
-          bool isSectionSymbol() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_SECTION_SYM);
-            }
+          bool isSectionSymbol() const;
 
-          bool isOldCommon() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_OLD_COMMON);
-            }
+          bool isOldCommon() const;
 
-          bool isNotAtEnd() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_NOT_AT_END);
-            }
+          bool isNotAtEnd() const;
 
-          bool isInConstructSection() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_CONSTRUCTOR);
-            }
+          bool isInConstructSection() const;
 
-          bool isWarning() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_WARNING);
-            }
+          bool isWarning() const;
 
-          bool isIndirect() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_INDIRECT);
-            }
+          bool isIndirect() const;
 
-          bool hasFileName() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_FILE);
-            }
+          bool hasFileName() const;
 
-          bool isFromDLI() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_DYNAMIC);
-            }
+          bool isFromDLI() const;
 
-          bool hasObjectData() const noexcept
-            {
-              return static_cast<bool>(_sym->flags & BSF_OBJECT);
-            }
+          bool hasObjectData() const;
 
       private:
           /// Only File (factory method) may instantiate Symbol class
           friend class File;
 
-          /**
-           *
-           */
           Symbol(
-              asymbol *symbol)
-              :
-              _sym{symbol}
-            { }
+              asymbol *symbol);
 
       private:
           /** Appropriate Section to this symbol */
@@ -533,231 +252,114 @@ namespace BFP
           /////////////////////////////////////////////
           ///         Comparition operators         ///
           /////////////////////////////////////////////
-          bool operator==(
-              const Section &_compare)
-            {
-              return _compare._sec == _sec;
-            }
-
-          bool operator!=(
-              const Section &_compare)
-            {
-              return _compare._sec != _sec;
-            }
 
           bool operator==(
-              const asection *_ptr)
-            {
-              return _sec == _ptr;
-            }
+              const Section &_compare);
 
           bool operator!=(
-              const asection *_ptr)
-            {
-              return _sec != _ptr;
-            }
+              const Section &_compare);
 
           bool operator==(
-              const char *_compare)
-            {
-              return ::std::string(_compare) == this->getName();
-            }
+              const asection *_ptr);
 
           bool operator!=(
-              const char *_compare)
-            {
-              return ::std::string(_compare) != this->getName();
-            }
+              const asection *_ptr);
+
+          bool operator==(
+              const char *_compare);
+
+          bool operator!=(
+              const char *_compare);
 
           ///////////////////////////////
           ///         GETTERS         ///
           ///////////////////////////////
 
           /** What the section number is in the target world */
-          int getIndex() const noexcept
-            {
-              return _sec->index;
-            }
+          int getIndex() const;
 
           /**
            * @return name of section like .text, .data or .bss
            */
-          const ::std::string getName() const noexcept
-            {
-              return ::std::string(_sec->name);
-            }
+          const ::std::string getName() const;
 
           /**
            * @returns content in raw format or nullptr if doesn't have any
            */
-          const unsigned char *getContent() const noexcept
-            {
-              return _sec->contents;
-            }
+          const unsigned char *getContent() const;
 
           /**
            * @return numbers of line
            *         TODO: findout for what
            */
-          const ::std::vector<alent> getLineNO() const noexcept
-            {
-              return line_numbers;
-            }
+          const ::std::vector<alent> getLineNO() const;
 
           /**
            * @return begin iterator of symbols inside this section
            */
-          ::std::vector<Symbol *>::iterator begin_symbol()
-            {
-              return this->_symbols
-                         .begin();
-            }
+          ::std::vector<Symbol *>::iterator begin_symbol();
 
           /**
            * @return end iterator of symbols inside this section
            */
-          ::std::vector<Symbol *>::iterator end_symbol()
-            {
-              return this->_symbols
-                         .end();
-            }
+          ::std::vector<Symbol *>::iterator end_symbol();
 
           /**
            * @return vector of appropriate symbols
            */
-          const ::std::vector<Symbol *> symbols()
-            {
-              return this->_symbols;
-            }
+          const ::std::vector<Symbol *> symbols();
 
           //////////////////////////////////////////////////
           ///             Section attributes             ///
           //////////////////////////////////////////////////
 
-          bool hasFlags() const noexcept
-            {
-              return static_cast<bool>(_sec->flags == SEC_NO_FLAGS);
-            }
+          bool hasFlags() const;
 
-          bool isAllocOnLoad() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_ALLOC);
-            }
+          bool isAllocOnLoad() const;
 
-          bool isLoadedWithFile() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_LOAD);
-            }
+          bool isLoadedWithFile() const;
 
-          bool hasRellocInfo() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_RELOC);
-            }
+          bool hasRellocInfo() const;
 
-          bool isReadOnly() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_READONLY);
-            }
+          bool isReadOnly() const;
 
-          bool hasCodeOnly() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_CODE);
-            }
+          bool hasCodeOnly() const;
 
-          bool hasDataOnly() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_DATA);
-            }
+          bool hasDataOnly() const;
 
-          bool isInROM() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_ROM);
-            }
+          bool isInROM() const;
 
-          bool hasConstructorInfo() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_CONSTRUCTOR);
-            }
+          bool hasConstructorInfo() const;
 
-          bool hasContent() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_HAS_CONTENTS);
-            }
+          bool hasContent() const;
 
-          bool isSuppressed() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_NEVER_LOAD);
-            }
+          bool isSuppressed() const;
 
-          bool isCOFF() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_COFF_SHARED_LIBRARY);
-            }
+          bool isCOFF() const;
 
-          bool hasCommonSymbols() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_IS_COMMON);
-            }
+          bool hasCommonSymbols() const;
 
-          bool isDebugOnly() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_DEBUGGING);
-            }
+          bool isDebugOnly() const;
 
-          bool isInMemory() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_IN_MEMORY);
-            }
+          bool isInMemory() const;
 
-          bool isExcluded() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_EXCLUDE);
-            }
+          bool isExcluded() const;
 
-          bool isSorted() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_SORT_ENTRIES);
-            }
+          bool isSorted() const;
 
-          bool linkOnce() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_LINK_ONCE);
-            }
+          bool linkOnce() const;
 
-          bool linkDuplicates() const noexcept
-            {
-              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
-                                       SEC_LINK_DUPLICATES);
-            }
+          bool linkDuplicates() const;
 
-          bool discardDuplicates() const noexcept
-            {
-              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
-                                       SEC_LINK_DUPLICATES_DISCARD);
-            }
+          bool discardDuplicates() const;
 
-          bool linkOneDuplicate() const noexcept
-            {
-              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
-                                       SEC_LINK_DUPLICATES_ONE_ONLY);
-            }
+          bool linkOneDuplicate() const;
 
-          bool linkSameSizedDuplicates() const noexcept
-            {
-              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
-                                       SEC_LINK_DUPLICATES_SAME_SIZE);
-            }
+          bool linkSameSizedDuplicates() const;
 
-          bool linkSameDuplicates() const noexcept
-            {
-              return static_cast<bool>((_sec->flags & SEC_LINK_DUPLICATES) ==
-                                       SEC_LINK_DUPLICATES_SAME_CONTENTS);
-            }
+          bool linkSameDuplicates() const;
 
-          bool isCreatedByLinker() const noexcept
-            {
-              return static_cast<bool>(_sec->flags & SEC_LINKER_CREATED);
-            }
+          bool isCreatedByLinker() const;
 
       private:
           /// Only File may instantiate this
@@ -769,10 +371,7 @@ namespace BFP
            *          section of binary file ie. .text, .bss, .data
            */
           Section(
-              asection *section)
-              :
-              _sec{section}
-            { }
+              asection *section);
 
           /** Cannot be instantiated by primitive constructor */
           Section() = delete;
@@ -795,56 +394,28 @@ namespace BFP
         {
       public:
           /** @return path to this file */
-          const char *get_path() const
-            {
-              return _path;
-            }
+          const char *get_path() const;
 
           /** @return with which target is this file opened @see BFD::targets */
-          const char *get_target() const
-            {
-              return _target;
-            }
+          const char *get_target() const;
 
-          /** @return Used to iterate through sections or finding specific one by name (RO) */
-          ::std::vector<Section *>::iterator begin_section()
-            {
-              return this->_sections
-                         .begin();
-            }
+          /** @return Used to iterate through sections or finding specific one by name */
+          ::std::vector<Section *>::iterator begin_section();
 
-          /** @return Used to iterate through sections or finding specific one by name (RO) */
-          ::std::vector<Section *>::iterator end_section()
-            {
-              return this->_sections
-                         .end();
-            }
+          /** @return Used to iterate through sections or finding specific one by name */
+          ::std::vector<Section *>::iterator end_section();
 
-          /** @return Iterator through all symbols in file (RO) */
-          ::std::vector<Symbol *>::iterator begin_symbol()
-            {
-              return this->_symbols
-                         .begin();
-            }
+          /** @return Iterator through all symbols in file */
+          ::std::vector<Symbol *>::iterator begin_symbol();
 
-          /** @return Iterator through all symbols in file (RO) */
-          ::std::vector<Symbol *>::iterator end_symbol()
-            {
-              return this->_symbols
-                         .end();
-            }
+          /** @return Iterator through all symbols in file */
+          ::std::vector<Symbol *>::iterator end_symbol();
 
           /** @return vector of all symbols (RO) */
-          const ::std::vector<Symbol *> symbols()
-            {
-              return this->_symbols;
-            }
+          const ::std::vector<Symbol *> symbols();
 
           /** @return vector of all sections (RO) */
-          const ::std::vector<Section *> sections()
-            {
-              return this->_sections;
-            }
+          const ::std::vector<Section *> sections();
 
 
           /** Frees all sections and symbols when deleted
@@ -965,5 +536,8 @@ namespace BFP
           ::std::vector<::std::string> _targets;
         };
   }
+
+#include <bfp/support.tpp>        /// support template functions
+
 
 #endif // __BFP_BFP_HPP
