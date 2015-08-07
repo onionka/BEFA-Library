@@ -4,13 +4,36 @@
  * @brief This is module in which is described Binary File Descriptor as class
  *        and his structures with operations.
  *        @code
- *          auto _bfd = ::BFP::BFD::get_unique_instance();
- *          auto _file = _bfd.open("a.out", "elf64-x86-64");
- *          for (auto _section : _file->sections())
- *            for (auto _symbol : _section->symbols())
- *              process_symbol_in_section(
- *                _section, _symbol);
- *          delete _bfd;
+ *          #include <iostream>
+ *          #include <bfp.hpp>
+ *          
+ *          
+ *          int main(
+ *              int args,
+ *              const char **argv)
+ *            {
+ *              auto _bfd = ::BFP::BFD::get_unique_instance();
+ *              try
+ *                {
+ *                  auto file = _bfd->Open(*argv, "");
+ *                  if (file == nullptr)
+ *                    {
+ *                      BFP_ASSERT();
+ *                      return EXIT_FAILURE;
+ *                    }
+ *                  for (auto &_sec : *file)
+ *                    for (auto &_sym : _sec)
+ *                      {
+ *                        /// process symbol
+ *                      }
+ *                } catch (::BFP::base_exception &ex)
+ *                {
+ *                  ::std::cerr << ex.what();
+ *                  return EXIT_FAILURE;
+ *                }
+ *              delete _bfd;
+ *              return EXIT_SUCCESS;
+ *            }
  *        @endcode
  *        TODO: detailed description
  */
@@ -140,6 +163,22 @@ namespace BFP
       class Symbol
         {
       public:
+
+          Symbol(
+              const Symbol &_copy)
+            {
+              _section = _copy._section;
+              _sym = _copy._sym;
+            }
+
+          Symbol &operator=(
+              const Symbol &_copy)
+            {
+              _section = _copy._section;
+              _sym = _copy._sym;
+              return *this;
+            }
+
           /////////////////////////////////////////////
           ///         Comparition operators         ///
           /////////////////////////////////////////////
@@ -168,6 +207,39 @@ namespace BFP
           bool operator!=(
               const char *_compare);
 
+
+          friend bool operator==(
+              const Symbol &_this,
+              const Symbol &_compare);
+
+          friend bool operator!=(
+              const Symbol &_this,
+              const Symbol &_compare);
+
+          friend bool operator==(
+              const Symbol &_this,
+              const symvalue *_compare);
+
+          friend bool operator!=(
+              const Symbol &_this,
+              const symvalue *_compare);
+
+          friend bool operator==(
+              const Symbol &_this,
+              const asymbol *_ptr);
+
+          friend bool operator!=(
+              const Symbol &_this,
+              const asymbol *_ptr);
+
+          friend bool operator==(
+              const Symbol &_this,
+              const char *_compare);
+
+          friend bool operator!=(
+              const Symbol &_this,
+              const char *_compare);
+
           ///////////////////////////////
           ///         GETTERS         ///
           ///////////////////////////////
@@ -175,19 +247,7 @@ namespace BFP
           const ::std::string getName() const;
 
           /** @return all sections where this symbol is (RO) - may be empty*/
-          const ::std::vector<Section *> sections();
-
-          /**
-           * @return begin iterator of sections (RO)
-           * @see sections()
-           */
-          ::std::vector<Section *>::iterator begin_sections();
-
-          /**
-           * @return end iterator of sections (RO)
-           * @see sections()
-           */
-          ::std::vector<Section *>::iterator end_sections();
+          const Section &section();
 
           /** @return RAW value of symbol */
           symvalue getValue() const;
@@ -235,9 +295,12 @@ namespace BFP
           Symbol(
               asymbol *symbol);
 
+          /** Cannot be instantiated by primitive constructor */
+          Symbol() = delete;
+
       private:
           /** Appropriate Section to this symbol */
-          ::std::vector<Section *> _sections;
+          ::std::vector<Section>::iterator _section;
 
           /** BFD symbol structure */
           asymbol *_sym;
@@ -246,8 +309,22 @@ namespace BFP
       class Section
         {
       public:
-          ~Section()
-            { }
+          Section(
+              const Section &_copy)
+            {
+              _sec = _copy._sec;
+              _symbols = _copy._symbols;
+              line_numbers = _copy.line_numbers;
+            }
+
+          Section &operator=(
+              const Section &_copy)
+            {
+              _sec = _copy._sec;
+              _symbols = _copy._symbols;
+              line_numbers = _copy.line_numbers;
+              return *this;
+            }
 
           /////////////////////////////////////////////
           ///         Comparition operators         ///
@@ -269,6 +346,30 @@ namespace BFP
               const char *_compare);
 
           bool operator!=(
+              const char *_compare);
+
+          friend bool operator==(
+              const Section &_this,
+              const Section &_compare);
+
+          friend bool operator!=(
+              const Section &_this,
+              const Section &_compare);
+
+          friend bool operator==(
+              const Section &_this,
+              const asection *_ptr);
+
+          friend bool operator!=(
+              const Section &_this,
+              const asection *_ptr);
+
+          friend bool operator==(
+              const Section &_this,
+              const char *_compare);
+
+          friend bool operator!=(
+              const Section &_this,
               const char *_compare);
 
           ///////////////////////////////
@@ -294,20 +395,47 @@ namespace BFP
            */
           const ::std::vector<alent> getLineNO() const;
 
-          /**
-           * @return begin iterator of symbols inside this section
-           */
-          ::std::vector<Symbol *>::iterator begin_symbol();
 
-          /**
-           * @return end iterator of symbols inside this section
-           */
-          ::std::vector<Symbol *>::iterator end_symbol();
+          /////////////////////////////////////
+          ///       Vector operations       ///
+          /////////////////////////////////////
 
-          /**
-           * @return vector of appropriate symbols
-           */
-          const ::std::vector<Symbol *> symbols();
+          ::std::vector<Symbol>::const_iterator cbegin();
+
+          ::std::vector<Symbol>::const_iterator cend();
+
+          ::std::vector<Symbol>::const_reverse_iterator crbegin();
+
+          ::std::vector<Symbol>::const_reverse_iterator crend();
+
+          ::std::vector<Symbol>::iterator begin();
+
+          ::std::vector<Symbol>::iterator end();
+
+          ::std::vector<Symbol>::reverse_iterator rbegin();
+
+          ::std::vector<Symbol>::reverse_iterator rend();
+
+          size_t capacity();
+
+          size_t size();
+
+          size_t max_size();
+
+          Symbol operator[](
+              size_t n);
+
+          Symbol front();
+
+          Symbol back();
+
+          Symbol at(
+              size_t n);
+
+          const Symbol at(
+              size_t n) const;
+
+          bool empty();
 
           //////////////////////////////////////////////////
           ///             Section attributes             ///
@@ -365,6 +493,13 @@ namespace BFP
           /// Only File may instantiate this
           friend class File;
 
+          /** This should be constant vector so push_back is not allowed (only internal) */
+          void push_back(
+              Symbol &_sec);
+
+          /** This should be constant vector so pop_back is not allowed (only internal) */
+          void pop_back();
+
           /** This cannot be instantiated outside this class
            *    but it is done via File (factory method)
            * @param section is BFD structure that represents
@@ -381,7 +516,7 @@ namespace BFP
           asection *_sec;
 
           /** Vector of appropriate symbols */
-          ::std::vector<Symbol *> _symbols;
+          ::std::vector<Symbol> _symbols;
 
           /** Vector of line numbers - TODO: findout for what is this */
           ::std::vector<alent> line_numbers;
@@ -393,35 +528,57 @@ namespace BFP
       class File
         {
       public:
+          /** Frees all sections and symbols when deleted
+           *    By default it is done by BFD so ... don't do it
+           */
+          ~File();
+
           /** @return path to this file */
           const char *get_path() const;
 
           /** @return with which target is this file opened @see BFD::targets */
           const char *get_target() const;
 
-          /** @return Used to iterate through sections or finding specific one by name */
-          ::std::vector<Section *>::iterator begin_section();
+          /////////////////////////////////////
+          ///       Vector operations       ///
+          /////////////////////////////////////
 
-          /** @return Used to iterate through sections or finding specific one by name */
-          ::std::vector<Section *>::iterator end_section();
+          ::std::vector<Section>::const_iterator cbegin();
 
-          /** @return Iterator through all symbols in file */
-          ::std::vector<Symbol *>::iterator begin_symbol();
+          ::std::vector<Section>::const_iterator cend();
 
-          /** @return Iterator through all symbols in file */
-          ::std::vector<Symbol *>::iterator end_symbol();
+          ::std::vector<Section>::const_reverse_iterator crbegin();
 
-          /** @return vector of all symbols (RO) */
-          const ::std::vector<Symbol *> symbols();
+          ::std::vector<Section>::const_reverse_iterator crend();
 
-          /** @return vector of all sections (RO) */
-          const ::std::vector<Section *> sections();
+          ::std::vector<Section>::iterator begin();
 
+          ::std::vector<Section>::iterator end();
 
-          /** Frees all sections and symbols when deleted
-           *    By default it is done by BFD so ... don't do it
-           */
-          ~File();
+          ::std::vector<Section>::reverse_iterator rbegin();
+
+          ::std::vector<Section>::reverse_iterator rend();
+
+          size_t capacity();
+
+          size_t size();
+
+          size_t max_size();
+
+          Section operator[](
+              size_t n);
+
+          Section front();
+
+          Section back();
+
+          Section at(
+              size_t n);
+
+          const Section at(
+              size_t n) const;
+
+          bool empty();
 
       private:
           /// So BFD may create instance of this
@@ -443,6 +600,13 @@ namespace BFP
           /** Cannot be instantiated by primitive constructor */
           File() = delete;
 
+          /** This should be constant vector so push_back is not allowed (only internal) */
+          void push_back(
+              Section &_sec);
+
+          /** This should be constant vector so pop_back is not allowed (only internal) */
+          void pop_back();
+
       private:
           /** File descriptor */
           bfd *_fd;
@@ -454,12 +618,9 @@ namespace BFP
           const char *_target;
 
           /** Vector of section in file (contains also appropriate symbols) */
-          ::std::vector<Section *> _sections;
+          ::std::vector<Section> _sections;
 
-          /** Vector of symbols in file */
-          ::std::vector<Symbol *> _symbols;
-
-          /** BFD Symbol table */
+          /** File symbol table */
           asymbol **symbol_table;
         };
 
@@ -485,6 +646,7 @@ namespace BFP
            *                   that way (it gets all symbols at once).
            * @param _target is target architecture for instance 64-bit elf format is "elf64-x86-64".
            *                For list of possible targets call <tt>getTargetsList()</tt>.
+           *                If this is "" (empty), first of possible targets is chosen
            * @return instance of <tt>File</tt> that will be automaticly deallocate on deletion BFD instance
            */
           File *Open(
@@ -498,11 +660,17 @@ namespace BFP
           ::std::vector<::std::string> getTargets(
               ::std::string _file_name);
 
-          /** @return all possible formats */
-          ::std::vector<::std::string> getAllTargets() const noexcept
-            {
-              return _targets;
-            }
+          ::std::vector<::std::string> getAllTargets() const;
+
+          /**
+           * @brief Checks if target is appropriate to file
+           * @param _file_name is name of executable that we are checking
+           * @param _target is tested target
+           * @return true if _target is appropriate
+           */
+          bool checkTarget(
+              const ::std::string _file_name,
+              const ::std::string _target);
 
           /** Closes all opened Files in vector openedFiles */
           ~BFD();
@@ -532,7 +700,10 @@ namespace BFP
            */
           ::std::vector<File *> openedFiles;
 
+          ::std::vector<::std::string> errors;
+
       private:
+          /** vector of all possible targets */
           ::std::vector<::std::string> _targets;
         };
   }

@@ -25,7 +25,8 @@
       {
         msg += "Error on backtracking\n";
         return msg;
-      } else
+      }
+    else
       {
         msg += ::std::string("\nFunctions backtrace:\n");
       }
@@ -74,92 +75,92 @@
 
 ::BFP::Exception::BFD::NoMemory::NoMemory(::std::string LastCall)
     :
-    BFD("Invalid operation", LastCall)
+    BFD("NoMemory", LastCall)
   { }
 
 ::BFP::Exception::BFD::NoSymbols::NoSymbols(::std::string LastCall)
     :
-    BFD("Invalid operation", LastCall)
+    BFD("NoSymbols", LastCall)
   { }
 
 ::BFP::Exception::BFD::NoArmap::NoArmap(::std::string LastCall)
     :
-    BFD("No memory", LastCall)
+    BFD("NoArmap", LastCall)
   { }
 
 ::BFP::Exception::BFD::NoMoreArchivedFiles::NoMoreArchivedFiles(::std::string LastCall)
     :
-    BFD("No symbols", LastCall)
+    BFD("NoMoreArchivedFiles", LastCall)
   { }
 
 ::BFP::Exception::BFD::MalformedArchive::MalformedArchive(::std::string LastCall)
     :
-    BFD("No armap", LastCall)
+    BFD("MalformedArchive", LastCall)
   { }
 
 ::BFP::Exception::BFD::FileNotRecognized::FileNotRecognized(::std::string LastCall)
     :
-    BFD("No more archived files", LastCall)
+    BFD("FileNotRecognized", LastCall)
   { }
 
 ::BFP::Exception::BFD::FileAmbiguouslyRecognized::FileAmbiguouslyRecognized(::std::string LastCall)
     :
-    BFD("Malformed archive", LastCall)
+    BFD("FileAmbiguouslyRecognized", LastCall)
   { }
 
 ::BFP::Exception::BFD::NoContents::NoContents(::std::string LastCall)
     :
-    BFD("File not recognized", LastCall)
+    BFD("NoContents", LastCall)
   { }
 
 ::BFP::Exception::BFD::NonrepresentableSection::NonrepresentableSection(::std::string LastCall)
     :
-    BFD("File ambiguously recognized", LastCall)
+    BFD("NonrepresentableSection", LastCall)
   { }
 
 ::BFP::Exception::BFD::NoDebugSection::NoDebugSection(::std::string LastCall)
     :
-    BFD("No contents", LastCall)
+    BFD("NoDebugSection", LastCall)
   { }
 
 ::BFP::Exception::BFD::BadValue::BadValue(::std::string LastCall)
     :
-    BFD("Nonrepresentable section", LastCall)
+    BFD("BadValue", LastCall)
   { }
 
 ::BFP::Exception::BFD::FileTruncated::FileTruncated(::std::string LastCall)
     :
-    BFD("No debug section", LastCall)
+    BFD("FileTruncated", LastCall)
   { }
 
 ::BFP::Exception::BFD::FileTooBig::FileTooBig(::std::string LastCall)
     :
-    BFD("Bad value", LastCall)
+    BFD("FileTooBig", LastCall)
   { }
 
 ::BFP::Exception::BFD::InvalidErrorCode::InvalidErrorCode(::std::string LastCall)
     :
-    BFD("File truncated", LastCall)
+    BFD("InvalidErrorCode", LastCall)
   { }
 
 ::BFP::Exception::BFD::WrongObjectFormat::WrongObjectFormat(::std::string LastCall)
     :
-    BFD("File is too big", LastCall)
+    BFD("WrongObjectFormat", LastCall)
   { }
 
 ::BFP::Exception::BFD::MissingDso::MissingDso(::std::string LastCall)
     :
-    BFD("Input error", LastCall)
+    BFD("MissingDso", LastCall)
   { }
 
 ::BFP::Exception::BFD::OnInput::OnInput(::std::string LastCall)
     :
-    BFD("Undefined BFD error", LastCall)
+    BFD("OnInput", LastCall)
   { }
 
 ::BFP::Exception::BFD::IteratorExpected::IteratorExpected(::std::string LastCall)
     :
-    BFD("Iterator is expected!", LastCall)
+    BFD("IteratorExpected", LastCall)
   { }
 
 ::BFP::Exception::Plugins::Plugins(

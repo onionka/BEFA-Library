@@ -10,6 +10,7 @@
 #include <vector>
 #include <bfp/support_helpers.tpp>
 
+
 namespace BFP
   {
       template<
@@ -37,12 +38,12 @@ namespace BFP
           typename __ite,
           typename __finder_type,
           typename __value = typename __ite::value_type>
-        const ::std::vector <__value> search(
+        const ::std::vector<__value> search(
             __ite _begin,
             __ite _end,
             __finder_type _val)
           {
-            ::std::vector <__value> _ret;
+            ::std::vector<__value> _ret;
             for (__ite _ite = _begin; _ite != _end; ++_ite)
               if (dereference(*_ite) == _val)
                 _ret.push_back(*_ite);
@@ -116,12 +117,12 @@ namespace BFP
       template<
           class __ite,
           typename... __funcs>
-        ::std::vector <typename __ite::value_type> filter(
+        ::std::vector<typename __ite::value_type> filter(
             __ite begin,
             __ite end,
             __funcs... _func)
           {
-            ::std::vector <typename __ite::value_type> ret;
+            ::std::vector<typename __ite::value_type> ret;
             for (auto _ite = begin; _ite != end; ++_ite)
               if (__filter::helper(*_ite, _func...))
                 ret.push_back(*_ite);

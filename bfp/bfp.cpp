@@ -1,7 +1,7 @@
 /** Binary File Parser
  * @file bfp.cpp
  * @author Miroslav Cibulka
- * @brief Module where Binary File Descriptor is abstracted
+ * @brief Source where Binary File Descriptor is implemented
  */
 
 #include <bfp.hpp>
@@ -48,13 +48,69 @@ namespace BFP
       bool Symbol::operator==(
           const char *_compare)
         {
-          return (::std::string(_compare) == getName());
+          return getName() == _compare;
         }
 
       bool Symbol::operator!=(
           const char *_compare)
         {
-          return (::std::string(_compare) != getName());
+          return getName() != _compare;
+        }
+
+      bool operator==(
+          const Symbol &_this,
+          const Symbol &_compare)
+        {
+          return (_compare.getValue() == _this.getValue());
+        }
+
+      bool operator!=(
+          const Symbol &_this,
+          const Symbol &_compare)
+        {
+          return (_compare.getValue() != _this.getValue());
+        }
+
+      bool operator==(
+          const Symbol &_this,
+          const symvalue *_compare)
+        {
+          return (*_compare == _this.getValue());
+        }
+
+      bool operator!=(
+          const Symbol &_this,
+          const symvalue *_compare)
+        {
+          return (*_compare != _this.getValue());
+        }
+
+      bool operator==(
+          const Symbol &_this,
+          const asymbol *_ptr)
+        {
+          return _this._sym == _ptr;
+        }
+
+      bool operator!=(
+          const Symbol &_this,
+          const asymbol *_ptr)
+        {
+          return _this._sym != _ptr;
+        }
+
+      bool operator==(
+          const Symbol &_this,
+          const char *_compare)
+        {
+          return _this.getName() == _compare;
+        }
+
+      bool operator!=(
+          const Symbol &_this,
+          const char *_compare)
+        {
+          return _this.getName() != _compare;
         }
 
       const ::std::string Symbol::getName() const
@@ -62,19 +118,9 @@ namespace BFP
           return ::std::string(_sym->name);
         }
 
-      const ::std::vector<Section *> Symbol::sections()
+      const Section &Symbol::section()
         {
-          return _sections;
-        }
-
-      ::std::vector<Section *>::iterator Symbol::begin_sections()
-        {
-          return _sections.begin();
-        }
-
-      ::std::vector<Section *>::iterator Symbol::end_sections()
-        {
-          return _sections.end();
+          return *_section;
         }
 
       symvalue Symbol::getValue() const
@@ -168,6 +214,10 @@ namespace BFP
           _sym{symbol}
         { }
 
+  }
+
+namespace BFP
+  {
       bool Section::operator==(
           const Section &_compare)
         {
@@ -195,13 +245,55 @@ namespace BFP
       bool Section::operator==(
           const char *_compare)
         {
-          return ::std::string(_compare) == this->getName();
+          return this->getName() == _compare;
         }
 
       bool Section::operator!=(
           const char *_compare)
         {
-          return ::std::string(_compare) != this->getName();
+          return this->getName() != _compare;
+        }
+
+      bool operator==(
+          const Section &_this,
+          const asection *_ptr)
+        {
+          return _this._sec == _ptr;
+        }
+
+      bool operator!=(
+          const Section &_this,
+          const asection *_ptr)
+        {
+          return _this._sec != _ptr;
+        }
+
+      bool operator==(
+          const Section &_this,
+          const char *_compare)
+        {
+          return _this.getName() == _compare;
+        }
+
+      bool operator!=(
+          const Section &_this,
+          const char *_compare)
+        {
+          return _this.getName() != _compare;
+        }
+
+      bool operator==(
+          const Section &_this,
+          const Section &_compare)
+        {
+          return _compare._sec == _this._sec;
+        }
+
+      bool operator!=(
+          const Section &_this,
+          const Section &_compare)
+        {
+          return _compare._sec != _this._sec;
         }
 
       int Section::getIndex() const
@@ -222,23 +314,6 @@ namespace BFP
       const ::std::vector<alent> Section::getLineNO() const
         {
           return line_numbers;
-        }
-
-      ::std::vector<Symbol *>::iterator Section::begin_symbol()
-        {
-          return this->_symbols
-                     .begin();
-        }
-
-      ::std::vector<Symbol *>::iterator Section::end_symbol()
-        {
-          return this->_symbols
-                     .end();
-        }
-
-      const ::std::vector<Symbol *> Section::symbols()
-        {
-          return this->_symbols;
         }
 
       bool Section::hasFlags() const
@@ -366,6 +441,102 @@ namespace BFP
           return static_cast<bool>(_sec->flags & SEC_LINKER_CREATED);
         }
 
+
+      ::std::vector<Symbol>::const_iterator Section::cbegin()
+        {
+          return _symbols.cbegin();
+        }
+
+      ::std::vector<Symbol>::const_iterator Section::cend()
+        {
+          return _symbols.cend();
+        }
+
+      ::std::vector<Symbol>::const_reverse_iterator Section::crbegin()
+        {
+          return _symbols.crbegin();
+        }
+
+      ::std::vector<Symbol>::const_reverse_iterator Section::crend()
+        {
+          return _symbols.crend();
+        }
+
+      size_t Section::capacity()
+        {
+          return _symbols.capacity();
+        }
+
+      size_t Section::size()
+        {
+          return _symbols.size();
+        }
+
+      size_t Section::max_size()
+        {
+          return _symbols.max_size();
+        }
+
+      Symbol Section::operator[](size_t n)
+        {
+          return _symbols[n];
+        }
+
+      Symbol Section::front()
+        {
+          return _symbols.front();
+        }
+
+      Symbol Section::back()
+        {
+          return _symbols.back();
+        }
+
+      Symbol Section::at(size_t n)
+        {
+          return _symbols.at(n);
+        }
+
+      const Symbol Section::at(size_t n) const
+        {
+          return _symbols.at(n);
+        }
+
+      void Section::pop_back()
+        {
+          _symbols.pop_back();
+        }
+
+      bool Section::empty()
+        {
+          return _symbols.empty();
+        }
+
+      void Section::push_back(Symbol &_sec)
+        {
+          _symbols.push_back(_sec);
+        }
+
+      ::std::vector<Symbol>::iterator Section::begin()
+        {
+          return _symbols.begin();
+        }
+
+      ::std::vector<Symbol>::iterator Section::end()
+        {
+          return _symbols.end();
+        }
+
+      ::std::vector<Symbol>::reverse_iterator Section::rbegin()
+        {
+          return _symbols.rbegin();
+        }
+
+      ::std::vector<Symbol>::reverse_iterator Section::rend()
+        {
+          return _symbols.rend();
+        }
+
       Section::Section(
           asection *section)
           :
@@ -381,48 +552,14 @@ namespace BFP
         {
           return _target;
         }
-
-      ::std::vector<Section *>::iterator File::begin_section()
-        {
-          return this->_sections
-                     .begin();
-        }
-
-      ::std::vector<Section *>::iterator File::end_section()
-        {
-          return this->_sections
-                     .end();
-        }
-
-      ::std::vector<Symbol *>::iterator File::begin_symbol()
-        {
-          return this->_symbols
-                     .begin();
-        }
-
-      ::std::vector<Symbol *>::iterator File::end_symbol()
-        {
-          return this->_symbols
-                     .end();
-        }
-
-      const ::std::vector<Symbol *> File::symbols()
-        {
-          return this->_symbols;
-        }
-
-      const ::std::vector<Section *> File::sections()
-        {
-          return this->_sections;
-        }
   }
 
 namespace BFP
   {
       BFD *BFD::get_unique_instance()
         {
-          static BFD *instance = nullptr;
-          return instance == nullptr ? instance = new BFD() : instance;
+          static BFD *instance = new BFD();
+          return instance;
         }
 
       File *BFD::Open(
@@ -430,7 +567,15 @@ namespace BFP
           const ::std::string _target)
         {
           bfd *fd;
-          if ((fd = bfd_openr(_file_name.c_str(), _target.c_str())) == NULL)
+          ::std::string _t = _target;
+          if (_target == "")
+            _t = getTargets(_file_name)[0];
+          else if (!checkTarget(_file_name, _target))
+            {
+              bfd_set_error(bfd_error::bfd_error_invalid_target);
+              return nullptr;
+            }
+          if ((fd = bfd_openr(_file_name.c_str(), _t.c_str())) == NULL)
             return nullptr;
           if (!bfd_check_format(fd, bfd_object))
             {
@@ -445,8 +590,10 @@ namespace BFP
       BFD::BFD()
         {
           bfd_init();
-          for (auto _target = bfd_target_list(); *_target != NULL; ++_target)
+          auto _bfd_targets = bfd_target_list();
+          for (auto _target = _bfd_targets; *_target != NULL; ++_target)
             _targets.push_back(::std::string(*_target));
+          free(_bfd_targets);
         }
 
       BFD::~BFD()
@@ -454,6 +601,33 @@ namespace BFP
           for (auto f : openedFiles)
             delete f;
           openedFiles.clear();
+        }
+
+      ::std::vector<::std::string> BFD::getTargets(const ::std::string _file_name)
+        {
+          ::std::vector<::std::string> _ret;
+          for (auto target : _targets)
+            if (checkTarget(_file_name, target))
+              _ret.push_back(target);
+          return _ret;
+        }
+
+      bool BFD::checkTarget(
+          const ::std::string _file_name,
+          const ::std::string _target)
+        {
+          bfd *fd;
+          if ((fd = bfd_openr(_file_name.c_str(), _target.c_str())) != NULL)
+            {
+              bfd_close(fd);
+              return true;
+            }
+          return false;
+        }
+
+      ::std::vector<::std::string> BFD::getAllTargets() const
+        {
+          return _targets;
         }
   }
 
@@ -473,7 +647,7 @@ namespace BFP
           long i;
 
           for (asection *_sec = _fd->sections; _sec != NULL; _sec = _sec->next)
-            _sections.push_back(new Section(_sec));
+            _sections.push_back(Section(_sec));
 
           storage_needed = bfd_get_symtab_upper_bound (_fd);
 
@@ -490,43 +664,113 @@ namespace BFP
                                                             symbol_table)) < 0)
             BFP_ASSERT();
 
-          for (i = 0; i < number_of_symbols; i++)
+          for (i = 0; i < number_of_symbols; ++i)
             {
-              ::std::vector<Section *> _sec_s = ::BFP::search(begin_section(),
-                                                              end_section(),
-                                                              symbol_table[i]->section);
-              _symbols.push_back(new Symbol(symbol_table[i]));
-              for (auto _sec : _sec_s)
-                {
-                  _symbols.back()
-                          ->_sections
-                          .push_back(_sec);
-                  _sec->_symbols
-                      .push_back(_symbols.back());
-                }
+              auto _sec = find(begin(), end(), symbol_table[i]->section);
+              Symbol _sym(symbol_table[i]);
+              _sym._section = _sec;
+              _sec->push_back(_sym);
             }
         }
 
       File::~File()
         {
-          for (auto sec : _sections)
-            delete sec;
-          for (auto sym : _symbols)
-            delete sym;
-          free(symbol_table);
           bfd_close(_fd);
+          free(symbol_table);
         }
 
-      ::std::vector<::std::string> BFD::getTargets(const ::std::string _file_name)
+      ::std::vector<Section>::const_iterator File::cbegin()
         {
-          ::std::vector<::std::string> _ret;
-          bfd *fd;
-          for (auto target : _targets)
-            if ((fd = bfd_openr(_file_name.c_str(), target.c_str())) != NULL)
-              {
-                _ret.push_back(target);
-                bfd_close(fd);
-              }
-          return _ret;
+          return _sections.cbegin();
+        }
+
+      ::std::vector<Section>::const_iterator File::cend()
+        {
+          return _sections.cend();
+        }
+
+      ::std::vector<Section>::const_reverse_iterator File::crbegin()
+        {
+          return _sections.crbegin();
+        }
+
+      ::std::vector<Section>::const_reverse_iterator File::crend()
+        {
+          return _sections.crend();
+        }
+
+      size_t File::capacity()
+        {
+          return _sections.capacity();
+        }
+
+      size_t File::size()
+        {
+          return _sections.size();
+        }
+
+      size_t File::max_size()
+        {
+          return _sections.max_size();
+        }
+
+      Section File::operator[](size_t n)
+        {
+          return _sections[n];
+        }
+
+      Section File::front()
+        {
+          return _sections.front();
+        }
+
+      Section File::back()
+        {
+          return _sections.back();
+        }
+
+      Section File::at(size_t n)
+        {
+          return _sections.at(n);
+        }
+
+      const Section File::at(size_t n) const
+        {
+          return _sections.at(n);
+        }
+
+      void File::pop_back()
+        {
+          _sections.pop_back();
+        }
+
+      bool File::empty()
+        {
+          return _sections.empty();
+        }
+
+      void File::push_back(Section &_sec)
+        {
+          _sections.push_back(_sec);
+        }
+
+      ::std::vector<Section>::iterator File::begin()
+        {
+          return _sections.begin();
+        }
+
+      ::std::vector<Section>::iterator File::end()
+        {
+          return _sections.end();
+        }
+
+      ::std::vector<Section>::reverse_iterator File::rbegin()
+        {
+          return _sections.rbegin();
+        }
+
+      ::std::vector<Section>::reverse_iterator File::rend()
+        {
+          return _sections.rend();
         }
   }

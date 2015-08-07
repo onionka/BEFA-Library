@@ -40,11 +40,11 @@ namespace BFP
                 };
 
             /**
-       * @brief generates info about function statically
-       * @param ClassType is type of class in (lambda) function - deduced
-       * @param ReturnType is type of return value in (lambda) function - deduced
-       * @param Args are types of arguments in (lambda) function - deduced
-       */
+             * @brief generates info about function statically
+             * @param ClassType is type of class in (lambda) function - deduced
+             * @param ReturnType is type of return value in (lambda) function - deduced
+             * @param Args are types of arguments in (lambda) function - deduced
+             */
             template<
                 typename ClassType,
                 typename ReturnType,
@@ -71,14 +71,14 @@ namespace BFP
                    */
                         typedef typename ::std::tuple_element<
                             i,
-                            std::tuple < Args...>>::type type;
+                            std::tuple<Args...>>::type type;
                       };
                 };
 
             /**
-       * @brief call function with certain, non-void, return value
-       * @param __ret is type of return value
-       */
+             * @brief call function with certain, non-void, return value
+             * @param __ret is type of return value
+             */
             template<
                 typename __ret>
               struct call
@@ -103,9 +103,9 @@ namespace BFP
                 };
 
             /**
-       * @brief call function with void return value
-       * @overload
-       */
+             * @brief call function with void return value
+             * @overload
+             */
             template<>
               struct call<void>
                 {

@@ -6,7 +6,6 @@
  */
 
 #include <iostream>
-#include <string.h>
 #include <bfp.hpp>
 
 
@@ -17,9 +16,19 @@ int main(
     auto _bfd = ::BFP::BFD::get_unique_instance();
     try
       {
-        auto file = _bfd->Open(*argv, NULL);
-        /// do some stuff with file ...
-      } catch (::BFP::base_exception &ex)
+        auto file = _bfd->Open(*argv, "");
+        if (file == nullptr)
+          {
+            BFP_ASSERT();
+            return EXIT_FAILURE;
+          }
+        for (auto &_sec : *file)
+          for (auto &_sym : _sec)
+            {
+              /// process symbol
+            }
+      }
+    catch (::BFP::base_exception &ex)
       {
         ::std::cerr << ex.what();
         return EXIT_FAILURE;
