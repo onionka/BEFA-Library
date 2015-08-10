@@ -12,7 +12,7 @@
  *              int args,
  *              const char **argv)
  *            {
- *              auto _bfd = ::BFP::BFD::get_unique_instance();
+ *              auto _bfd = ::bfp::Parser::get_unique_instance();
  *              try
  *                {
  *                  auto file = _bfd->Open(*argv, "");
@@ -26,7 +26,7 @@
  *                      {
  *                        /// process symbol
  *                      }
- *                } catch (::BFP::base_exception &ex)
+ *                } catch (::bfp::base_exception &ex)
  *                {
  *                  ::std::cerr << ex.what();
  *                  return EXIT_FAILURE;
@@ -39,15 +39,14 @@
  */
 
 #ifndef __BFP_BFP_HPP
-#define __BFP_BFP_HPP
-
+# define __BFP_BFP_HPP
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
 
-namespace BFP
+namespace bfp
   {
       /** Singleton of Binary File Descriptor
        * @brief This represents BFD class.
@@ -55,7 +54,7 @@ namespace BFP
        *        <tt>get_unique_instance</tt> returns the same instance every time it is called.
        * @example tests/TestProgram/main.cpp
        */
-      class BFD
+      class Parser
         {
       public:
           /** Get unique instance of BFD
@@ -63,7 +62,7 @@ namespace BFP
            * @return static instance of BFD
            * @see BFD
            */
-          static BFD *get_unique_instance();
+          static Parser *get_unique_instance();
 
           /** Factory method that opens file with _file_name and _target
            * @param _file_name is name of file that will be loaded instantly.
@@ -98,25 +97,25 @@ namespace BFP
               const ::std::string _target);
 
           /** Closes all opened Files in vector openedFiles */
-          ~BFD();
+          ~Parser();
 
       private:
           /** It is forbidden to create instance anywhere but in this class only
            *    (once at the beginning)
            */
-          BFD();
+          Parser();
 
           /** Forbidden copy constructor */
-          BFD(const BFD &) = delete;
+          Parser(const Parser &) = delete;
 
           /** Forbidden move constructor */
-          BFD(BFD &&) = delete;
+          Parser(Parser &&) = delete;
 
           /** Forbidden copy assignment */
-          BFD &operator=(const BFD &) = delete;
+          Parser &operator=(const Parser &) = delete;
 
           /** Forbidden move assignment */
-          BFD &operator=(BFD &&) = delete;
+          Parser &operator=(Parser &&) = delete;
 
       public:
           /** This is public so everyone may use this

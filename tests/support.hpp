@@ -2,14 +2,14 @@
 // Created by onionka on 10/08/15.
 //
 
-#ifndef TESTS_SUPPORT_HPP
-#define TESTS_SUPPORT_HPP
+#ifndef __TESTS_SUPPORT_HPP
+# define __TESTS_SUPPORT_HPP
 
 #include <boost/test/unit_test.hpp>
 
 
 #undef BOOST_MESSAGE
-#define BOOST_MESSAGE(msg) BOOST_TEST_MESSAGE("MESSAGE: >>> " << msg)
+# define BOOST_MESSAGE(msg) BOOST_TEST_MESSAGE("MESSAGE: >>> " << msg)
 
 template<typename __vec>
   void CHECK_VECTOR(__vec &&_vec)
@@ -25,4 +25,4 @@ template<typename __vec>
     }
 
 
-#endif //TESTS_SUPPORT_HPP
+#endif //__TESTS_SUPPORT_HPP

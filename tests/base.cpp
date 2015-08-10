@@ -11,13 +11,13 @@ BOOST_AUTO_TEST_SUITE(base_bfd)
 
       BOOST_AUTO_TEST_CASE(bfd_init)
         {
-          auto _bfd = ::BFP::BFD::get_unique_instance();
+          auto _bfd = ::bfp::Parser::get_unique_instance();
           BOOST_CHECK(_bfd != nullptr);
         }
 
       BOOST_AUTO_TEST_CASE(targets)
         {
-          auto _bfd = ::BFP::BFD::get_unique_instance();
+          auto _bfd = ::bfp::Parser::get_unique_instance();
           BOOST_CHECK(_bfd != nullptr);
           auto _targets = _bfd->getTargets(
               *boost::unit_test::framework::master_test_suite().argv);
@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_SUITE(base_bfd)
           for (auto _tar : _targets)
             BOOST_MESSAGE(
                 (::std::string("Target of this file: ") + _tar).c_str());
-          BOOST_CHECK(::BFP::search(_targets.begin(), _targets.end(),
+          BOOST_CHECK(::bfp::search(_targets.begin(), _targets.end(),
                                     "elf64-x86-64").size() == 1);
           BOOST_CHECK(!_bfd->getAllTargets()
                            .empty());
@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_SUITE(base_bfd)
 
       BOOST_AUTO_TEST_CASE(open_file)
         {
-          auto _bfd = ::BFP::BFD::get_unique_instance();
+          auto _bfd = ::bfp::Parser::get_unique_instance();
           auto _file = _bfd->Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_SUITE(base_bfd)
 
       BOOST_AUTO_TEST_CASE(close_file)
         {
-          auto _bfd = ::BFP::BFD::get_unique_instance();
+          auto _bfd = ::bfp::Parser::get_unique_instance();
           auto _file = _bfd->openedFiles
                            .back();
           _bfd->openedFiles

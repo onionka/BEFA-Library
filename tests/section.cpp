@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(base_section)
 
       BOOST_AUTO_TEST_CASE(section_attr)
         {
-          auto _file = ::BFP::BFD::get_unique_instance()->Open(
+          auto _file = ::bfp::Parser::get_unique_instance()->Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
 
@@ -55,9 +55,9 @@ BOOST_AUTO_TEST_SUITE(base_section)
 
       BOOST_AUTO_TEST_CASE(dot_text_attr)
         {
-          auto _file = ::BFP::BFD::get_unique_instance()->openedFiles
+          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                         .back();
-          auto _dot_text = ::BFP::find(_file->begin(), _file->end(), ".text");
+          auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
           CHECK_VECTOR(*_dot_text);
           __BOOST_MESSAGE_DOT_TEXT((size_t) _dot_text->getContent());
           __BOOST_MESSAGE_DOT_TEXT(_dot_text->getIndex());

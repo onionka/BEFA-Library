@@ -6,7 +6,7 @@
 
 #include <bfp.hpp>
 
-namespace BFP
+namespace bfp
   {
       bool Section::operator==(
           const Section &_compare)

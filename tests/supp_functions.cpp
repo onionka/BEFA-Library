@@ -17,10 +17,10 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
           char ***c = &b;
           char ****d = &c;
 
-          BOOST_CHECK(::BFP::dereference(a) == _c);
-          BOOST_CHECK(::BFP::dereference(b) == _c);
-          BOOST_CHECK(::BFP::dereference(c) == _c);
-          BOOST_CHECK(::BFP::dereference(d) == _c);
+          BOOST_CHECK(::bfp::dereference(a) == _c);
+          BOOST_CHECK(::bfp::dereference(b) == _c);
+          BOOST_CHECK(::bfp::dereference(c) == _c);
+          BOOST_CHECK(::bfp::dereference(d) == _c);
         }
 
       BOOST_AUTO_TEST_CASE(find_in_string)
@@ -29,19 +29,19 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
 
           BOOST_MESSAGE(
               "finding ::std::string in ::std::vector<::std::string>");
-          auto _founded = ::BFP::find(_strs.begin(), _strs.end(),
+          auto _founded = ::bfp::find(_strs.begin(), _strs.end(),
                                       ::std::string("text2"));
           BOOST_CHECK(_founded != _strs.end());
           BOOST_CHECK(*_founded == "text2");
 
           BOOST_MESSAGE("finding const char* in ::std::vector<::std::string>");
-          _founded = ::BFP::find(_strs.begin(), _strs.end(), "text2");
+          _founded = ::bfp::find(_strs.begin(), _strs.end(), "text2");
           BOOST_CHECK(_founded != _strs.end());
           BOOST_CHECK(*_founded == "text2");
 
           BOOST_MESSAGE(
               "finding const char* in ::std::vector<::std::string> at the end of vector");
-          _founded = ::BFP::find(_strs.begin(), _strs.end(), "text3");
+          _founded = ::bfp::find(_strs.begin(), _strs.end(), "text3");
           BOOST_CHECK(_founded != _strs.end());
           BOOST_CHECK(*_founded == "text3");
         }
@@ -54,21 +54,21 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
 
           BOOST_MESSAGE(
               "search: ::std::string in ::std::vector<::std::string>");
-          auto _founded = ::BFP::search(_strs.begin(), _strs.end(),
+          auto _founded = ::bfp::search(_strs.begin(), _strs.end(),
                                         ::std::string("text"));
           BOOST_CHECK(_founded.size() == 3);
           for (auto _text : _founded)
             BOOST_CHECK(_text == "text");
 
           BOOST_MESSAGE("search: const char* in ::std::vector<::std::string>");
-          _founded = ::BFP::search(_strs.begin(), _strs.end(), "text");
+          _founded = ::bfp::search(_strs.begin(), _strs.end(), "text");
           BOOST_CHECK(_founded.size() == 3);
           for (auto _text : _founded)
             BOOST_CHECK(_text == "text");
 
           BOOST_MESSAGE(
               "search: const char* in ::std::vector<::std::string> at the end of vector");
-          _founded = ::BFP::search(_strs.begin(), _strs.end(), "text3");
+          _founded = ::bfp::search(_strs.begin(), _strs.end(), "text3");
           BOOST_CHECK(_founded.size() == 1);
           for (auto _text : _founded)
             BOOST_CHECK(_text == "text3");
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
 
           BOOST_MESSAGE(
               "apply: adding int at the end of each string in ::std::vector<::std::string>");
-          ::BFP::apply(_strs.begin(), _strs.end(),
+          ::bfp::apply(_strs.begin(), _strs.end(),
                        [&](::std::string &_str) -> void
                          {
                            _str += ::std::to_string(i++);
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
 
           BOOST_MESSAGE("apply: checking return code of apply function");
           i = 0;
-          int _ret = ::BFP::apply(_strs.begin(), _strs.end(), [](
+          int _ret = ::bfp::apply(_strs.begin(), _strs.end(), [](
               ::std::string &_str,
               int *_i) -> int
             {
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
 
           BOOST_MESSAGE(
               "filter: ::std::vector<::std::string> with one lambda by reference");
-          auto _founded = ::BFP::filter(_strs.begin(), _strs.end(),
+          auto _founded = ::bfp::filter(_strs.begin(), _strs.end(),
                                         [](::std::string &_str) -> bool
                                           {
                                             return _str == "text";
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
 
           BOOST_MESSAGE(
               "filter: ::std::vector<::std::string> with two lambdas by reference");
-          _founded = ::BFP::filter(_strs.begin(), _strs.end(),
+          _founded = ::bfp::filter(_strs.begin(), _strs.end(),
                                    [](::std::string &_str) -> bool
                                      {
                                        return _str[0] == 't';

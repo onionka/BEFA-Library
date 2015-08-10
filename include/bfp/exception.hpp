@@ -5,7 +5,11 @@
  */
 
 #ifndef __BFP_EXCEPTION_HPP
-#define __BFP_EXCEPTION_HPP
+# define __BFP_EXCEPTION_HPP
+
+#ifndef BINARY_FILE_PARSER_BFP_HPP
+# error "Don't include this file directly, use #include <bfp.hpp> instead"
+#endif
 
 #include <iostream>
 #include <execinfo.h>
@@ -14,67 +18,64 @@
 #include <bfd.h>
 
 
-#ifndef BINARY_FILE_PARSER_BFP_HPP
-# error "Don't include this file directly, use #include <bfp.hpp> instead"
-#endif
-
 /** Use THIS instead of throw */
-#define RAISE(ex) throw ex(std::string(__FILE__) + ":" + ::std::to_string(__LINE__) + ":" + __FUNCTION__ + "()")
+#define RAISE(ex)\
+  throw ex(std::string(__FILE__) + ":" + ::std::to_string(__LINE__) + ":" + __FUNCTION__ + "()")
 
 /** Asserts known errors and throws them */
 #define BFP_ASSERT() do {                                                   \
     char *err;                                                              \
     if ((err = dlerror()) != NULL)                                          \
-        RAISE(::BFP::Exception::Plugins::DLError);                          \
+        RAISE(::bfp::Exception::Plugins::DLError);                          \
     switch (bfd_get_error()) {                                              \
         case bfd_error_type::bfd_error_no_error:                            \
-            RAISE(::BFP::Exception::BFD::NoError);                          \
+            RAISE(::bfp::Exception::Parser::NoError);                          \
         case bfd_error_type::bfd_error_system_call:                         \
-            RAISE(::BFP::Exception::BFD::SystemCall);                       \
+            RAISE(::bfp::Exception::Parser::SystemCall);                       \
         case bfd_error_type::bfd_error_invalid_target:                      \
-            RAISE(::BFP::Exception::BFD::InvalidTarget);                    \
+            RAISE(::bfp::Exception::Parser::InvalidTarget);                    \
         case bfd_error_type::bfd_error_wrong_format:                        \
-            RAISE(::BFP::Exception::BFD::WrongFormat);                      \
+            RAISE(::bfp::Exception::Parser::WrongFormat);                      \
         case bfd_error_type::bfd_error_invalid_operation:                   \
-            RAISE(::BFP::Exception::BFD::InvalidOperation);                 \
+            RAISE(::bfp::Exception::Parser::InvalidOperation);                 \
         case bfd_error_type::bfd_error_no_memory:                           \
-            RAISE(::BFP::Exception::BFD::NoMemory);                         \
+            RAISE(::bfp::Exception::Parser::NoMemory);                         \
         case bfd_error_type::bfd_error_no_symbols:                          \
-            RAISE(::BFP::Exception::BFD::NoSymbols);                        \
+            RAISE(::bfp::Exception::Parser::NoSymbols);                        \
         case bfd_error_type::bfd_error_no_armap:                            \
-            RAISE(::BFP::Exception::BFD::NoArmap);                          \
+            RAISE(::bfp::Exception::Parser::NoArmap);                          \
         case bfd_error_type::bfd_error_no_more_archived_files:              \
-            RAISE(::BFP::Exception::BFD::NoMoreArchivedFiles);              \
+            RAISE(::bfp::Exception::Parser::NoMoreArchivedFiles);              \
         case bfd_error_type::bfd_error_malformed_archive:                   \
-            RAISE(::BFP::Exception::BFD::MalformedArchive);                 \
+            RAISE(::bfp::Exception::Parser::MalformedArchive);                 \
         case bfd_error_type::bfd_error_file_not_recognized:                 \
-            RAISE(::BFP::Exception::BFD::FileNotRecognized);                \
+            RAISE(::bfp::Exception::Parser::FileNotRecognized);                \
         case bfd_error_type::bfd_error_file_ambiguously_recognized:         \
-            RAISE(::BFP::Exception::BFD::FileAmbiguouslyRecognized);        \
+            RAISE(::bfp::Exception::Parser::FileAmbiguouslyRecognized);        \
         case bfd_error_type::bfd_error_no_contents:                         \
-            RAISE(::BFP::Exception::BFD::NoContents);                       \
+            RAISE(::bfp::Exception::Parser::NoContents);                       \
         case bfd_error_type::bfd_error_nonrepresentable_section:            \
-            RAISE(::BFP::Exception::BFD::NonrepresentableSection);          \
+            RAISE(::bfp::Exception::Parser::NonrepresentableSection);          \
         case bfd_error_type::bfd_error_no_debug_section:                    \
-            RAISE(::BFP::Exception::BFD::NoDebugSection);                   \
+            RAISE(::bfp::Exception::Parser::NoDebugSection);                   \
         case bfd_error_type::bfd_error_bad_value:                           \
-            RAISE(::BFP::Exception::BFD::BadValue);                         \
+            RAISE(::bfp::Exception::Parser::BadValue);                         \
         case bfd_error_type::bfd_error_file_truncated:                      \
-            RAISE(::BFP::Exception::BFD::FileTruncated);                    \
+            RAISE(::bfp::Exception::Parser::FileTruncated);                    \
         case bfd_error_type::bfd_error_file_too_big:                        \
-            RAISE(::BFP::Exception::BFD::FileTooBig);                       \
+            RAISE(::bfp::Exception::Parser::FileTooBig);                       \
         case bfd_error_type::bfd_error_invalid_error_code:                  \
-            RAISE(::BFP::Exception::BFD::InvalidErrorCode);                 \
+            RAISE(::bfp::Exception::Parser::InvalidErrorCode);                 \
         case bfd_error_type::bfd_error_wrong_object_format:                 \
-            RAISE(::BFP::Exception::BFD::WrongObjectFormat);                \
+            RAISE(::bfp::Exception::Parser::WrongObjectFormat);                \
         case bfd_error_type::bfd_error_on_input:                            \
-            RAISE(::BFP::Exception::BFD::OnInput);                          \
+            RAISE(::bfp::Exception::Parser::OnInput);                          \
         default:                                                            \
             break;                                                          \
     }                                                                       \
 } while(0)
 
-namespace BFP
+namespace bfp
   {
 
       /** ::BFP::base_exception
@@ -91,10 +92,10 @@ namespace BFP
 
       namespace Exception
         {
-            /** Exceptions system for BFD
-             * @brief Basel class for BFD exceptions with function backtrack
+            /** Exceptions system for Parser
+             * @brief Basel class for Parser exceptions with function backtrack
              */
-            class BFD;
+            class Parser;
 
             /** exception system for Plugins
              * @brief Base class for plugin exceptions with function backtrack
@@ -102,8 +103,8 @@ namespace BFP
             class Plugins;
 
 
-            class BFD :
-                public ::BFP::base_exception
+            class Parser :
+                public ::bfp::base_exception
               {
             public:
                 class NoError;
@@ -156,7 +157,7 @@ namespace BFP
                  * @param ex_msg is message from thrower
                  * @param LastCall is name of last called method inserted by macro RAISE
                  */
-                BFD(
+                Parser(
                     const char *ex_msg,
                     ::std::string LastCall = "Unknown");
 
@@ -170,7 +171,7 @@ namespace BFP
               };
 
             class Plugins :
-                public ::BFP::base_exception
+                public ::bfp::base_exception
               {
             public:
                 class DLError;
@@ -196,162 +197,162 @@ namespace BFP
                 ::std::string msg;
               };
 
-            class BFD::NoError :
-                public BFD
+            class Parser::NoError :
+                public Parser
               {
             public:
                 NoError(::std::string LastCall);
               };
 
-            class BFD::SystemCall :
-                public BFD
+            class Parser::SystemCall :
+                public Parser
               {
             public:
                 SystemCall(::std::string LastCall);
               };
 
-            class BFD::InvalidTarget :
-                public BFD
+            class Parser::InvalidTarget :
+                public Parser
               {
             public:
                 InvalidTarget(::std::string LastCall);
               };
 
-            class BFD::WrongFormat :
-                public BFD
+            class Parser::WrongFormat :
+                public Parser
               {
             public:
                 WrongFormat(::std::string LastCall);
               };
 
-            class BFD::InvalidOperation :
-                public BFD
+            class Parser::InvalidOperation :
+                public Parser
               {
             public:
                 InvalidOperation(::std::string LastCall);
               };
 
-            class BFD::NoMemory :
-                public BFD
+            class Parser::NoMemory :
+                public Parser
               {
             public:
                 NoMemory(::std::string LastCall);
               };
 
-            class BFD::NoSymbols :
-                public BFD
+            class Parser::NoSymbols :
+                public Parser
               {
             public:
                 NoSymbols(::std::string LastCall);
               };
 
-            class BFD::NoArmap :
-                public BFD
+            class Parser::NoArmap :
+                public Parser
               {
             public:
                 NoArmap(::std::string LastCall);
               };
 
-            class BFD::NoMoreArchivedFiles :
-                public BFD
+            class Parser::NoMoreArchivedFiles :
+                public Parser
               {
             public:
                 NoMoreArchivedFiles(::std::string LastCall);
               };
 
-            class BFD::MalformedArchive :
-                public BFD
+            class Parser::MalformedArchive :
+                public Parser
               {
             public:
                 MalformedArchive(::std::string LastCall);
               };
 
-            class BFD::FileNotRecognized :
-                public BFD
+            class Parser::FileNotRecognized :
+                public Parser
               {
             public:
                 FileNotRecognized(::std::string LastCall);
               };
 
-            class BFD::FileAmbiguouslyRecognized :
-                public BFD
+            class Parser::FileAmbiguouslyRecognized :
+                public Parser
               {
             public:
                 FileAmbiguouslyRecognized(::std::string LastCall);
               };
 
-            class BFD::NoContents :
-                public BFD
+            class Parser::NoContents :
+                public Parser
               {
             public:
                 NoContents(::std::string LastCall);
               };
 
-            class BFD::NonrepresentableSection :
-                public BFD
+            class Parser::NonrepresentableSection :
+                public Parser
               {
             public:
                 NonrepresentableSection(::std::string LastCall);
               };
 
-            class BFD::NoDebugSection :
-                public BFD
+            class Parser::NoDebugSection :
+                public Parser
               {
             public:
                 NoDebugSection(::std::string LastCall);
               };
 
-            class BFD::BadValue :
-                public BFD
+            class Parser::BadValue :
+                public Parser
               {
             public:
                 BadValue(::std::string LastCall);
               };
 
-            class BFD::FileTruncated :
-                public BFD
+            class Parser::FileTruncated :
+                public Parser
               {
             public:
                 FileTruncated(::std::string LastCall);
               };
 
-            class BFD::FileTooBig :
-                public BFD
+            class Parser::FileTooBig :
+                public Parser
               {
             public:
                 FileTooBig(::std::string LastCall);
               };
 
-            class BFD::InvalidErrorCode :
-                public BFD
+            class Parser::InvalidErrorCode :
+                public Parser
               {
             public:
                 InvalidErrorCode(::std::string LastCall);
               };
 
-            class BFD::WrongObjectFormat :
-                public BFD
+            class Parser::WrongObjectFormat :
+                public Parser
               {
             public:
                 WrongObjectFormat(::std::string LastCall);
               };
 
-            class BFD::MissingDso :
-                public BFD
+            class Parser::MissingDso :
+                public Parser
               {
             public:
                 MissingDso(::std::string LastCall);
               };
 
-            class BFD::OnInput :
-                public BFD
+            class Parser::OnInput :
+                public Parser
               {
             public:
                 OnInput(::std::string LastCall);
               };
 
-            class BFD::IteratorExpected :
-                public BFD
+            class Parser::IteratorExpected :
+                public Parser
               {
             public:
                 IteratorExpected(::std::string LastCall);

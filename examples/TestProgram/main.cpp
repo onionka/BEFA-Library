@@ -13,7 +13,7 @@ int main(
     int args,
     const char **argv)
   {
-    auto _bfd = ::BFP::BFD::get_unique_instance();
+    auto _bfd = ::bfp::Parser::get_unique_instance();
     try
       {
         auto file = _bfd->Open(*argv, "elf64-x86-64");
@@ -28,7 +28,7 @@ int main(
               /// process symbol
             }
       }
-    catch (::BFP::base_exception &ex) /// standard BFP exceptions
+    catch (::bfp::base_exception &ex) /// standard BFP exceptions
       {
         ::std::cerr << ex.what();
         return EXIT_FAILURE;

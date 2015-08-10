@@ -12,7 +12,7 @@
         +  ::std::string("\n\nBrief:\n\t") + ex_msg;   \
 }
 
-::std::string BFP::base_exception::get_backtrace()
+::std::string bfp::base_exception::get_backtrace()
   {
     void *buffer[200];
     int n;
@@ -40,7 +40,7 @@
     return msg;
   }
 
-::BFP::Exception::BFD::BFD(
+::bfp::Exception::Parser::Parser(
     const char *ex_msg,
     ::std::string LastCall)
   {
@@ -48,122 +48,122 @@
     msg += "\n" + get_backtrace();
   }
 
-::BFP::Exception::BFD::NoError::NoError(::std::string LastCall)
+::bfp::Exception::Parser::NoError::NoError(::std::string LastCall)
     :
-    BFD("Internal Error", LastCall)
+    Parser("Internal Error", LastCall)
   { }
 
-::BFP::Exception::BFD::SystemCall::SystemCall(::std::string LastCall)
+::bfp::Exception::Parser::SystemCall::SystemCall(::std::string LastCall)
     :
-    BFD(strerror(errno), LastCall)
+    Parser(strerror(errno), LastCall)
   { }
 
-::BFP::Exception::BFD::InvalidTarget::InvalidTarget(::std::string LastCall)
+::bfp::Exception::Parser::InvalidTarget::InvalidTarget(::std::string LastCall)
     :
-    BFD("Invalid target", LastCall)
+    Parser("Invalid target", LastCall)
   { }
 
-::BFP::Exception::BFD::WrongFormat::WrongFormat(::std::string LastCall)
+::bfp::Exception::Parser::WrongFormat::WrongFormat(::std::string LastCall)
     :
-    BFD("Wrong format", LastCall)
+    Parser("Wrong format", LastCall)
   { }
 
-::BFP::Exception::BFD::InvalidOperation::InvalidOperation(::std::string LastCall)
+::bfp::Exception::Parser::InvalidOperation::InvalidOperation(::std::string LastCall)
     :
-    BFD("Invalid operation", LastCall)
+    Parser("Invalid operation", LastCall)
   { }
 
-::BFP::Exception::BFD::NoMemory::NoMemory(::std::string LastCall)
+::bfp::Exception::Parser::NoMemory::NoMemory(::std::string LastCall)
     :
-    BFD("NoMemory", LastCall)
+    Parser("NoMemory", LastCall)
   { }
 
-::BFP::Exception::BFD::NoSymbols::NoSymbols(::std::string LastCall)
+::bfp::Exception::Parser::NoSymbols::NoSymbols(::std::string LastCall)
     :
-    BFD("NoSymbols", LastCall)
+    Parser("NoSymbols", LastCall)
   { }
 
-::BFP::Exception::BFD::NoArmap::NoArmap(::std::string LastCall)
+::bfp::Exception::Parser::NoArmap::NoArmap(::std::string LastCall)
     :
-    BFD("NoArmap", LastCall)
+    Parser("NoArmap", LastCall)
   { }
 
-::BFP::Exception::BFD::NoMoreArchivedFiles::NoMoreArchivedFiles(::std::string LastCall)
+::bfp::Exception::Parser::NoMoreArchivedFiles::NoMoreArchivedFiles(::std::string LastCall)
     :
-    BFD("NoMoreArchivedFiles", LastCall)
+    Parser("NoMoreArchivedFiles", LastCall)
   { }
 
-::BFP::Exception::BFD::MalformedArchive::MalformedArchive(::std::string LastCall)
+::bfp::Exception::Parser::MalformedArchive::MalformedArchive(::std::string LastCall)
     :
-    BFD("MalformedArchive", LastCall)
+    Parser("MalformedArchive", LastCall)
   { }
 
-::BFP::Exception::BFD::FileNotRecognized::FileNotRecognized(::std::string LastCall)
+::bfp::Exception::Parser::FileNotRecognized::FileNotRecognized(::std::string LastCall)
     :
-    BFD("FileNotRecognized", LastCall)
+    Parser("FileNotRecognized", LastCall)
   { }
 
-::BFP::Exception::BFD::FileAmbiguouslyRecognized::FileAmbiguouslyRecognized(::std::string LastCall)
+::bfp::Exception::Parser::FileAmbiguouslyRecognized::FileAmbiguouslyRecognized(::std::string LastCall)
     :
-    BFD("FileAmbiguouslyRecognized", LastCall)
+    Parser("FileAmbiguouslyRecognized", LastCall)
   { }
 
-::BFP::Exception::BFD::NoContents::NoContents(::std::string LastCall)
+::bfp::Exception::Parser::NoContents::NoContents(::std::string LastCall)
     :
-    BFD("NoContents", LastCall)
+    Parser("NoContents", LastCall)
   { }
 
-::BFP::Exception::BFD::NonrepresentableSection::NonrepresentableSection(::std::string LastCall)
+::bfp::Exception::Parser::NonrepresentableSection::NonrepresentableSection(::std::string LastCall)
     :
-    BFD("NonrepresentableSection", LastCall)
+    Parser("NonrepresentableSection", LastCall)
   { }
 
-::BFP::Exception::BFD::NoDebugSection::NoDebugSection(::std::string LastCall)
+::bfp::Exception::Parser::NoDebugSection::NoDebugSection(::std::string LastCall)
     :
-    BFD("NoDebugSection", LastCall)
+    Parser("NoDebugSection", LastCall)
   { }
 
-::BFP::Exception::BFD::BadValue::BadValue(::std::string LastCall)
+::bfp::Exception::Parser::BadValue::BadValue(::std::string LastCall)
     :
-    BFD("BadValue", LastCall)
+    Parser("BadValue", LastCall)
   { }
 
-::BFP::Exception::BFD::FileTruncated::FileTruncated(::std::string LastCall)
+::bfp::Exception::Parser::FileTruncated::FileTruncated(::std::string LastCall)
     :
-    BFD("FileTruncated", LastCall)
+    Parser("FileTruncated", LastCall)
   { }
 
-::BFP::Exception::BFD::FileTooBig::FileTooBig(::std::string LastCall)
+::bfp::Exception::Parser::FileTooBig::FileTooBig(::std::string LastCall)
     :
-    BFD("FileTooBig", LastCall)
+    Parser("FileTooBig", LastCall)
   { }
 
-::BFP::Exception::BFD::InvalidErrorCode::InvalidErrorCode(::std::string LastCall)
+::bfp::Exception::Parser::InvalidErrorCode::InvalidErrorCode(::std::string LastCall)
     :
-    BFD("InvalidErrorCode", LastCall)
+    Parser("InvalidErrorCode", LastCall)
   { }
 
-::BFP::Exception::BFD::WrongObjectFormat::WrongObjectFormat(::std::string LastCall)
+::bfp::Exception::Parser::WrongObjectFormat::WrongObjectFormat(::std::string LastCall)
     :
-    BFD("WrongObjectFormat", LastCall)
+    Parser("WrongObjectFormat", LastCall)
   { }
 
-::BFP::Exception::BFD::MissingDso::MissingDso(::std::string LastCall)
+::bfp::Exception::Parser::MissingDso::MissingDso(::std::string LastCall)
     :
-    BFD("MissingDso", LastCall)
+    Parser("MissingDso", LastCall)
   { }
 
-::BFP::Exception::BFD::OnInput::OnInput(::std::string LastCall)
+::bfp::Exception::Parser::OnInput::OnInput(::std::string LastCall)
     :
-    BFD("OnInput", LastCall)
+    Parser("OnInput", LastCall)
   { }
 
-::BFP::Exception::BFD::IteratorExpected::IteratorExpected(::std::string LastCall)
+::bfp::Exception::Parser::IteratorExpected::IteratorExpected(::std::string LastCall)
     :
-    BFD("IteratorExpected", LastCall)
+    Parser("IteratorExpected", LastCall)
   { }
 
-::BFP::Exception::Plugins::Plugins(
+::bfp::Exception::Plugins::Plugins(
     const char *ex_msg,
     ::std::string LastCall)
   {
@@ -171,19 +171,19 @@
     msg += "\n" + get_backtrace();
   }
 
-::BFP::Exception::Plugins::FileIsNotADir::FileIsNotADir(::std::string LastCall)
+::bfp::Exception::Plugins::FileIsNotADir::FileIsNotADir(::std::string LastCall)
     :
     Plugins(
         "Path provided to Plugin Manager is not a directory (should be directory with plugins)",
         LastCall)
   { }
 
-::BFP::Exception::Plugins::StageDirExpected::StageDirExpected(::std::string LastCall)
+::bfp::Exception::Plugins::StageDirExpected::StageDirExpected(::std::string LastCall)
     :
     Plugins("In plugin directory are stage directories expected", LastCall)
   { }
 
-::BFP::Exception::Plugins::DLError::DLError(::std::string LastCall)
+::bfp::Exception::Plugins::DLError::DLError(::std::string LastCall)
     :
     Plugins("Plugin's array was not found in plugin!", LastCall)
   { }

@@ -5,8 +5,8 @@
  *        search, find, apply, dereference
  */
 
-#ifndef BINARYFILEPARSER_SUPPORT_HPP
-#define BINARYFILEPARSER_SUPPORT_HPP
+#ifndef __BFP_SUPPORT_HPP
+# define __BFP_SUPPORT_HPP
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
@@ -16,7 +16,7 @@
 #include <bfp/support_helpers.tpp>/// support template functions
 
 
-namespace BFP
+namespace bfp
   {
       /** Derefer pointer to object 'till only object remain
        * @param __ptr pointer type
@@ -96,4 +96,4 @@ namespace BFP
 
 #include <bfp/support.tpp>        /// support template functions
 
-#endif //BINARYFILEPARSER_SUPPORT_HPP
+#endif //__BFP_SUPPORT_HPP

@@ -11,10 +11,10 @@ BOOST_AUTO_TEST_SUITE(base_file)
 
       BOOST_AUTO_TEST_CASE(file_as_vector)
         {
-          auto _file = ::BFP::BFD::get_unique_instance()->Open(
+          auto _file = ::bfp::Parser::get_unique_instance()->Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
-          ::std::vector<::BFP::Symbol> _syms;
+          ::std::vector<::bfp::Symbol> _syms;
 
           BOOST_MESSAGE("Iterating symbols through this executable");
           for (auto &_sec : *_file)
@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_SUITE(base_file)
           BOOST_CHECK(!_syms.empty());
 
           BOOST_MESSAGE("Reverse iterating symbols through this executable");
-          ::std::vector<::BFP::Symbol> _rev_syms;
+          ::std::vector<::bfp::Symbol> _rev_syms;
           for (auto _sec_ite = _file->rbegin();
                _sec_ite != _file->rend(); _sec_ite++)
             for (auto _sym_ite = _sec_ite->rbegin();
@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_SUITE(base_file)
 
       BOOST_AUTO_TEST_CASE(file_attr)
         {
-          auto _file = ::BFP::BFD::get_unique_instance()->openedFiles
+          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                         .back();
           _file->get_path();
           _file->get_target();
@@ -46,18 +46,18 @@ BOOST_AUTO_TEST_SUITE(base_file)
 
       BOOST_AUTO_TEST_CASE(finding_standards)
         {
-          auto _bfd = ::BFP::BFD::get_unique_instance();
+          auto _bfd = ::bfp::Parser::get_unique_instance();
           auto _file = _bfd->Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
 
           BOOST_MESSAGE("Finding section '.text' in this executable");
-          auto _sec_ite = ::BFP::find(_file->begin(), _file->end(), ".text");
+          auto _sec_ite = ::bfp::find(_file->begin(), _file->end(), ".text");
           BOOST_CHECK(_sec_ite != _file->end());
           auto _sec = *_sec_ite;
 
           BOOST_MESSAGE("Finding symbol '_start' in '.text'");
-          auto _sym = ::BFP::find(_sec.begin(), _sec.end(), "_start");
+          auto _sym = ::bfp::find(_sec.begin(), _sec.end(), "_start");
           BOOST_CHECK(_sym != _sec.cend());
 
           delete _bfd;

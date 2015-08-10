@@ -7,15 +7,15 @@
 #include <bfp.hpp>
 
 
-namespace BFP
+namespace bfp
   {
-      BFD *BFD::get_unique_instance()
+      Parser *Parser::get_unique_instance()
         {
-          static BFD *instance = new BFD();
+          static Parser *instance = new Parser();
           return instance;
         }
 
-      File *BFD::Open(
+      File *Parser::Open(
           const ::std::string _file_name,
           const ::std::string _target)
         {
@@ -40,7 +40,7 @@ namespace BFP
           return openedFiles.back();
         }
 
-      BFD::BFD()
+      Parser::Parser()
         {
           bfd_init();
           auto _bfd_targets = bfd_target_list();
@@ -49,14 +49,14 @@ namespace BFP
           free(_bfd_targets);
         }
 
-      BFD::~BFD()
+      Parser::~Parser()
         {
           for (auto f : openedFiles)
             delete f;
           openedFiles.clear();
         }
 
-      ::std::vector<::std::string> BFD::getTargets(const ::std::string _file_name)
+      ::std::vector<::std::string> Parser::getTargets(const ::std::string _file_name)
         {
           ::std::vector<::std::string> _ret;
           for (auto target : _targets)
@@ -65,7 +65,7 @@ namespace BFP
           return _ret;
         }
 
-      bool BFD::checkTarget(
+      bool Parser::checkTarget(
           const ::std::string _file_name,
           const ::std::string _target)
         {
@@ -78,7 +78,7 @@ namespace BFP
           return false;
         }
 
-      ::std::vector<::std::string> BFD::getAllTargets() const
+      ::std::vector<::std::string> Parser::getAllTargets() const
         {
           return _targets;
         }

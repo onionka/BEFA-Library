@@ -7,7 +7,7 @@
 #include <bfp.hpp>
 
 
-namespace BFP
+namespace bfp
   {
       File::File(
           bfd *fd,

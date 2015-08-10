@@ -5,15 +5,15 @@
  */
 
 
-#ifndef BINARYFILEPARSER_SECTION_HPP
-#define BINARYFILEPARSER_SECTION_HPP
+#ifndef __BFP_SECTION_HPP
+# define __BFP_SECTION_HPP
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
 
-namespace BFP
+namespace bfp
   {
       class Symbol;
 
@@ -248,4 +248,4 @@ namespace BFP
         };
   }
 
-#endif //BINARYFILEPARSER_SECTION_HPP
+#endif //__BFP_SECTION_HPP

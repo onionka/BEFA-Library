@@ -6,7 +6,7 @@
  */
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
-#define BINARY_FILE_PARSER_BFP_HPP
+# define BINARY_FILE_PARSER_BFP_HPP
 
 
 //#include <string.h>

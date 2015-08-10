@@ -7,7 +7,7 @@
 #include <bfp.hpp>
 
 
-namespace BFP
+namespace bfp
   {
       bool Symbol::operator==(
           const Symbol &_compare)

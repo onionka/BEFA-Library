@@ -4,15 +4,15 @@
  * @brief Symbol class
  */
 
-#ifndef BINARYFILEPARSER_SYMBOL_HPP
-# define BINARYFILEPARSER_SYMBOL_HPP
+#ifndef __BFP_SYMBOL_HPP
+# define __BFP_SYMBOL_HPP
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
 
-namespace BFP
+namespace bfp
   {
       class Symbol
         {
@@ -161,4 +161,4 @@ namespace BFP
         };
   }
 
-#endif //BINARYFILEPARSER_SYMBOL_HPP
+#endif //__BFP_SYMBOL_HPP

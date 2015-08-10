@@ -4,8 +4,8 @@
  * @brief Here is executable File class implemented
  */
 
-#ifndef BINARYFILEPARSER_FILE_HPP
-#define BINARYFILEPARSER_FILE_HPP
+#ifndef __BFP_FILE_HPP
+# define __BFP_FILE_HPP
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
@@ -17,7 +17,7 @@
 #include <string>                 /// ::std::to_string, ::std::string
 
 
-namespace BFP
+namespace bfp
   {
       /** Binary file descriptor class
        * @brief has iterators and is instantiated via BFD singleton/factory
@@ -79,7 +79,7 @@ namespace BFP
 
       private:
           /// So BFD may create instance of this
-          friend class BFD;
+          friend class Parser;
 
           /** File can't be created outside of BFD singleton/factory
            *    This is opened by BFD and closed by BFD
@@ -122,4 +122,4 @@ namespace BFP
         };
   }
 
-#endif //BINARYFILEPARSER_FILE_HPP
+#endif //__BFP_FILE_HPP

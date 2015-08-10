@@ -5,7 +5,7 @@
  */
 
 #ifndef __BFP_SUPPORT_TPP
-#define __BFP_SUPPORT_TPP
+# define __BFP_SUPPORT_TPP
 
 #include <vector>
 #include <bfp/support_helpers.tpp>
@@ -15,7 +15,7 @@
 # error "Don't include this file directly, include bfp.hpp instead"
 #endif
 
-namespace BFP
+namespace bfp
   {
       template<
           typename __T>

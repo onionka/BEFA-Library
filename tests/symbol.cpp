@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
 
       BOOST_AUTO_TEST_CASE(symbol_attr)
         {
-          auto _file = ::BFP::BFD::get_unique_instance()->Open(
+          auto _file = ::bfp::Parser::get_unique_instance()->Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
 
@@ -45,10 +45,10 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
 
       BOOST_AUTO_TEST_CASE(_start_attr)
         {
-          auto _file = ::BFP::BFD::get_unique_instance()->openedFiles
+          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                         .back();
-          auto _sec = ::BFP::find(_file->begin(), _file->end(), ".text");
-          auto _start = ::BFP::find(_sec->begin(), _sec->end(), "_start");
+          auto _sec = ::bfp::find(_file->begin(), _file->end(), ".text");
+          auto _start = ::bfp::find(_sec->begin(), _sec->end(), "_start");
           __BOOST_MESSAGE_START(_start->getName());
           __BOOST_MESSAGE_START(_start->getValue());
           __BOOST_MESSAGE_START(_start->hasFileName());
