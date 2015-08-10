@@ -22,15 +22,15 @@ namespace bfp
         }
 
       bool Symbol::operator==(
-          const symvalue *_compare)
+          const symvalue _compare)
         {
-          return (*_compare == getValue());
+          return (_compare == getValue());
         }
 
       bool Symbol::operator!=(
-          const symvalue *_compare)
+          const symvalue _compare)
         {
-          return (*_compare != getValue());
+          return (_compare != getValue());
         }
 
       bool Symbol::operator==(
@@ -73,16 +73,16 @@ namespace bfp
 
       bool operator==(
           const Symbol &_this,
-          const symvalue *_compare)
+          const symvalue _compare)
         {
-          return (*_compare == _this.getValue());
+          return (_compare == _this.getValue());
         }
 
       bool operator!=(
           const Symbol &_this,
-          const symvalue *_compare)
+          const symvalue _compare)
         {
-          return (*_compare != _this.getValue());
+          return (_compare != _this.getValue());
         }
 
       bool operator==(

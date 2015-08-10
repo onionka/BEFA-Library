@@ -44,10 +44,10 @@ namespace bfp
               const Symbol &_compare);
 
           bool operator==(
-              const symvalue *_compare);
+              const symvalue _compare);
 
           bool operator!=(
-              const symvalue *_compare);
+              const symvalue _compare);
 
           bool operator==(
               const asymbol *_ptr);
@@ -72,11 +72,11 @@ namespace bfp
 
           friend bool operator==(
               const Symbol &_this,
-              const symvalue *_compare);
+              const symvalue _compare);
 
           friend bool operator!=(
               const Symbol &_this,
-              const symvalue *_compare);
+              const symvalue _compare);
 
           friend bool operator==(
               const Symbol &_this,

@@ -89,4 +89,36 @@ BOOST_AUTO_TEST_SUITE(base_section)
           __BOOST_MESSAGE_DOT_TEXT(_dot_text->isCreatedByLinker());
         }
 
+      BOOST_AUTO_TEST_CASE(as_vector)
+        {
+          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
+                                                           .back();
+          auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
+          CHECK_VECTOR(*_dot_text);
+        }
+
+      BOOST_AUTO_TEST_CASE(operators)
+        {
+          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
+                                                           .back();
+          auto _dot_test = ::bfp::find(_file->begin(), _file->end(), ".text");
+          BOOST_CHECK(*_dot_test == *_dot_test);
+          BOOST_CHECK(*_dot_test == ".text");
+          BOOST_CHECK(!(*_dot_test == (asection *) 0));
+
+          BOOST_CHECK(!(*_dot_test != *_dot_test));
+          BOOST_CHECK(*_dot_test != "text");
+          BOOST_CHECK(*_dot_test != (asection *) 0);
+
+
+          const ::bfp::Section _sec(*_dot_test);
+          BOOST_CHECK(_sec == *_dot_test);
+          BOOST_CHECK(_sec == ".text");
+          BOOST_CHECK(!(_sec == (asection *) 0));
+
+          BOOST_CHECK(!(_sec != *_dot_test));
+          BOOST_CHECK(_sec != "text");
+          BOOST_CHECK(_sec != (asection *) 0);
+        }
+
   BOOST_AUTO_TEST_SUITE_END()

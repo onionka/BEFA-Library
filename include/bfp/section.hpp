@@ -149,9 +149,6 @@ namespace bfp
           Symbol at(
               size_t n);
 
-          const Symbol at(
-              size_t n) const;
-
           bool empty();
 
           //////////////////////////////////////////////////
@@ -213,9 +210,6 @@ namespace bfp
           /** This should be constant vector so push_back is not allowed (only internal) */
           void push_back(
               Symbol &_sec);
-
-          /** This should be constant vector so pop_back is not allowed (only internal) */
-          void pop_back();
 
           /** This cannot be instantiated outside this class
            *    but it is done via File (factory method)

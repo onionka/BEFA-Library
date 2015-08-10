@@ -72,9 +72,6 @@ namespace bfp
           Section at(
               size_t n);
 
-          const Section at(
-              size_t n) const;
-
           bool empty();
 
       private:
@@ -100,9 +97,6 @@ namespace bfp
           /** This should be constant vector so push_back is not allowed (only internal) */
           void push_back(
               Section &_sec);
-
-          /** This should be constant vector so pop_back is not allowed (only internal) */
-          void pop_back();
 
       private:
           /** File descriptor */

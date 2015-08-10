@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
       BOOST_AUTO_TEST_CASE(_start_attr)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                        .back();
+                                                           .back();
           auto _sec = ::bfp::find(_file->begin(), _file->end(), ".text");
           auto _start = ::bfp::find(_sec->begin(), _sec->end(), "_start");
           __BOOST_MESSAGE_START(_start->getName());
@@ -68,6 +68,36 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
           __BOOST_MESSAGE_START(_start->isWarning());
           __BOOST_MESSAGE_START(_start->isWeak());
           BOOST_CHECK(_start->section() == ".text");
+        }
+
+      BOOST_AUTO_TEST_CASE(operators)
+        {
+          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
+                                                           .back();
+          auto _sec = ::bfp::find(_file->begin(), _file->end(), ".text");
+          auto _start = ::bfp::find(_sec->begin(), _sec->end(), "_start");
+          BOOST_CHECK(*_start == *_start);
+          BOOST_CHECK(*_start == "_start");
+          BOOST_CHECK(*_start == _start->getValue());
+          BOOST_CHECK(!(*_start == (asymbol *) 0));
+
+          BOOST_CHECK(!(*_start != *_start));
+          BOOST_CHECK(*_start != "start");
+          BOOST_CHECK(*_start != (_start->getValue() + 1));
+          BOOST_CHECK(*_start != (asymbol *) 0);
+
+
+          const ::bfp::Symbol _sym(*_start);
+          BOOST_CHECK(_sym == *_start);
+          BOOST_CHECK(_sym == "_start");
+          BOOST_CHECK(_sym == _start->getValue());
+          BOOST_CHECK(!(_sym == (asymbol *) 0));
+
+          BOOST_CHECK(!(_sym != *_start));
+          BOOST_CHECK(_sym != "start");
+          BOOST_CHECK(_sym != (_start->getValue() + 1));
+          BOOST_CHECK(_sym != (asymbol *) 0);
+
         }
 
   BOOST_AUTO_TEST_SUITE_END()

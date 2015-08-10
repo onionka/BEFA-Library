@@ -287,16 +287,6 @@ namespace bfp
           return _symbols.at(n);
         }
 
-      const Symbol Section::at(size_t n) const
-        {
-          return _symbols.at(n);
-        }
-
-      void Section::pop_back()
-        {
-          _symbols.pop_back();
-        }
-
       bool Section::empty()
         {
           return _symbols.empty();

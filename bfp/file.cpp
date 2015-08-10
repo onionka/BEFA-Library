@@ -24,7 +24,10 @@ namespace bfp
 
           _sections.push_back(Section());
           for (asection *_sec = _fd->sections; _sec != NULL; _sec = _sec->next)
-            _sections.push_back(Section(_sec));
+            {
+              Section _s (_sec);
+              push_back(_s);
+            }
 
           storage_needed = bfd_get_symtab_upper_bound (_fd);
 
@@ -141,16 +144,6 @@ namespace bfp
       Section File::at(size_t n)
         {
           return _sections.at(n);
-        }
-
-      const Section File::at(size_t n) const
-        {
-          return _sections.at(n);
-        }
-
-      void File::pop_back()
-        {
-          _sections.pop_back();
         }
 
       bool File::empty()
