@@ -73,7 +73,7 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
 
 	ADD_CUSTOM_TARGET(${_targetname}
 		COMMAND ${LCOV_PATH} --directory . --zerocounters
-		COMMAND ${_testrunner} --log_level=all --build_info
+		COMMAND ${VALGRIND} ${CMAKE_BINARY_DIR}/tests/${_testrunner} --log_level=all --build_info
 		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		COMMENT "Cleaning up lcov and running functional tests")
 

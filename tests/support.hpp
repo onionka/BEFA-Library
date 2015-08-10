@@ -2,8 +2,8 @@
 // Created by onionka on 10/08/15.
 //
 
-#ifndef BINARYFILEPARSER_SUPPORT_HPP
-#define BINARYFILEPARSER_SUPPORT_HPP
+#ifndef TESTS_SUPPORT_HPP
+#define TESTS_SUPPORT_HPP
 
 #include <boost/test/unit_test.hpp>
 
@@ -25,4 +25,4 @@ template<typename __vec>
     }
 
 
-#endif //BINARYFILEPARSER_SUPPORT_HPP
+#endif //TESTS_SUPPORT_HPP

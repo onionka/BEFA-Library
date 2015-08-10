@@ -8,10 +8,21 @@
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 #define BINARY_FILE_PARSER_BFP_HPP
 
-#include <string.h>
+
+//#include <string.h>
+#include <vector>                 /// ::std::vector<class>
+#include <iterator>               /// ::std::iterator
+#include <map>                    /// ::std::map
+#include <string>                 /// ::std::to_string, ::std::string
+
+
 #include <bfd.h>
 #include <bfp/exception.hpp>
-#include <bfp/bfp.hpp>
+#include <bfp/support.hpp>
+#include <bfp/section.hpp>
+#include <bfp/symbol.hpp>
+#include <bfp/file.hpp>
+#include <bfp/bfd.hpp>
 
 
 #endif //BINARY_FILE_PARSER_BFP_HPP

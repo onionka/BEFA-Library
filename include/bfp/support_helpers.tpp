@@ -12,7 +12,7 @@
 #include <tuple>
 
 
-#ifndef __BFP_BFP_HPP
+#ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, include bfp.hpp instead"
 #endif
 
