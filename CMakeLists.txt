@@ -1,24 +1,25 @@
-cmake_minimum_required(VERSION 2.8)
-project(BinaryFileParser)
-if ("${USE_COMPILER}" STREQUAL "clang")
-    set(CMAKE_C_COMPILER /usr/bin/clang)
-    set(CMAKE_CXX_COMPILER /usr/bin/clang++)
-endif ()
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+PROJECT(BinaryFileParser)
+IF ("${USE_COMPILER}" STREQUAL "clang")
+    SET(CMAKE_C_COMPILER /usr/bin/clang)
+    SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
+ENDIF ()
 #################################################################
 # Finding BOOST components #
-find_package(Boost 1.50.0 REQUIRED COMPONENTS filesystem system unit_test_framework REQUIRED)
+FIND_PACKAGE(Boost 1.50.0 REQUIRED COMPONENTS filesystem system unit_test_framework REQUIRED)
 
 
 # Finding BFD libraries and headers #
-find_library(BFD_LIBRARY libbfd.a REQUIRED)
-set(BFD_LIBRARIES ${BFD_LIBRARY})
+FIND_LIBRARY(BFD_LIBRARY libbfd.a REQUIRED)
+SET(BFD_LIBRARIES ${BFD_LIBRARY})
 #################################################################
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(include)
-add_subdirectory(include)
-add_subdirectory(bfp)
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(include)
+ADD_SUBDIRECTORY(include)
+ADD_SUBDIRECTORY(bfp)
 
-enable_testing()
-set(CMAKE_BUILD_TYPE "Coverage")
-include(CMAKE_INCLUDES/CodeCoverage.cmake)
-add_subdirectory(tests)
+ENABLE_TESTING()
+SET(CMAKE_BUILD_TYPE "Coverage")
+INCLUDE(CMAKE_INCLUDES/CodeCoverage.cmake)
+ADD_SUBDIRECTORY(tests)
+ADD_SUBDIRECTORY(examples)

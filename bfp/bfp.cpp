@@ -646,6 +646,7 @@ namespace BFP
           long number_of_symbols;
           long i;
 
+          _sections.push_back(Section());
           for (asection *_sec = _fd->sections; _sec != NULL; _sec = _sec->next)
             _sections.push_back(Section(_sec));
 
@@ -666,10 +667,22 @@ namespace BFP
 
           for (i = 0; i < number_of_symbols; ++i)
             {
-              auto _sec = find(begin(), end(), symbol_table[i]->section);
-              Symbol _sym(symbol_table[i]);
-              _sym._section = _sec;
-              _sec->push_back(_sym);
+
+              auto _sec = end();
+              if (symbol_table[i]->section != nullptr)
+                _sec = find(begin(), end(), symbol_table[i]->section);
+              if (_sec == end())
+                {
+                  Symbol _sym(symbol_table[i]);
+                  _sym._section = _sections.begin();
+                  _sections.begin()->push_back(_sym);
+                }
+              else
+                {
+                  Symbol _sym(symbol_table[i]);
+                  _sym._section = _sec;
+                  _sec->push_back(_sym);
+                }
             }
         }
 
@@ -681,12 +694,22 @@ namespace BFP
 
       ::std::vector<Section>::const_iterator File::cbegin()
         {
-          return _sections.cbegin();
+          return _sections.cbegin() + 1;
         }
 
       ::std::vector<Section>::const_iterator File::cend()
         {
           return _sections.cend();
+        }
+
+      ::std::vector<Section>::iterator File::begin()
+        {
+          return _sections.begin() + 1;
+        }
+
+      ::std::vector<Section>::iterator File::end()
+        {
+          return _sections.end();
         }
 
       ::std::vector<Section>::const_reverse_iterator File::crbegin()
@@ -696,7 +719,17 @@ namespace BFP
 
       ::std::vector<Section>::const_reverse_iterator File::crend()
         {
-          return _sections.crend();
+          return _sections.crend() - 1;
+        }
+
+      ::std::vector<Section>::reverse_iterator File::rbegin()
+        {
+          return _sections.rbegin();
+        }
+
+      ::std::vector<Section>::reverse_iterator File::rend()
+        {
+          return _sections.rend() - 1;
         }
 
       size_t File::capacity()
@@ -752,25 +785,5 @@ namespace BFP
       void File::push_back(Section &_sec)
         {
           _sections.push_back(_sec);
-        }
-
-      ::std::vector<Section>::iterator File::begin()
-        {
-          return _sections.begin();
-        }
-
-      ::std::vector<Section>::iterator File::end()
-        {
-          return _sections.end();
-        }
-
-      ::std::vector<Section>::reverse_iterator File::rbegin()
-        {
-          return _sections.rbegin();
-        }
-
-      ::std::vector<Section>::reverse_iterator File::rend()
-        {
-          return _sections.rend();
         }
   }

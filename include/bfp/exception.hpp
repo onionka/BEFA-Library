@@ -13,6 +13,11 @@
 #include <cstring>
 #include <bfd.h>
 
+
+#ifndef BINARY_FILE_PARSER_BFP_HPP
+# error "Don't include this file directly, use #include <bfp.hpp> instead"
+#endif
+
 /** Use THIS instead of throw */
 #define RAISE(ex) throw ex(std::string(__FILE__) + ":" + ::std::to_string(__LINE__) + ":" + __FUNCTION__ + "()")
 

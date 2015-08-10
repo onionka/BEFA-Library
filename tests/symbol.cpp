@@ -1,0 +1,73 @@
+//
+// Created by onionka on 10/08/15.
+//
+
+#include <boost/test/unit_test.hpp>
+#include <bfp.hpp>
+#include "support.hpp"
+
+
+#define __BOOST_MESSAGE_START(msg)\
+  BOOST_MESSAGE("'_start': '" << #msg << "'='" << msg << "'")
+
+BOOST_AUTO_TEST_SUITE(base_symbol)
+
+      BOOST_AUTO_TEST_CASE(symbol_attr)
+        {
+          auto _file = ::BFP::BFD::get_unique_instance()->Open(
+              *boost::unit_test::framework::master_test_suite().argv,
+              "elf64-x86-64");
+
+          BOOST_MESSAGE("Checking symbol attributes");
+          for (auto &_sec : *_file)
+            for (auto &_sym : _sec)
+              {
+                _sym.hasFlags();
+                _sym.isLocal();
+                _sym.isGlobal();
+                _sym.isExported();
+                _sym.isFunction();
+                _sym.isDebugging();
+                _sym.isWeak();
+                _sym.isSectionSymbol();
+                _sym.isOldCommon();
+                _sym.isNotAtEnd();
+                _sym.isInConstructSection();
+                _sym.isWarning();
+                _sym.isIndirect();
+                _sym.hasFileName();
+                _sym.isFromDLI();
+                _sym.hasObjectData();
+                _sym.getName();
+                _sym.getValue();
+              }
+        }
+
+      BOOST_AUTO_TEST_CASE(_start_attr)
+        {
+          auto _file = ::BFP::BFD::get_unique_instance()->openedFiles
+                                                        .back();
+          auto _sec = ::BFP::find(_file->begin(), _file->end(), ".text");
+          auto _start = ::BFP::find(_sec->begin(), _sec->end(), "_start");
+          __BOOST_MESSAGE_START(_start->getName());
+          __BOOST_MESSAGE_START(_start->getValue());
+          __BOOST_MESSAGE_START(_start->hasFileName());
+          __BOOST_MESSAGE_START(_start->hasFlags());
+          __BOOST_MESSAGE_START(_start->hasObjectData());
+          __BOOST_MESSAGE_START(_start->isDebugging());
+          __BOOST_MESSAGE_START(_start->isExported());
+          __BOOST_MESSAGE_START(_start->isFromDLI());
+          __BOOST_MESSAGE_START(_start->isFunction());
+          __BOOST_MESSAGE_START(_start->isGlobal());
+          __BOOST_MESSAGE_START(_start->isInConstructSection());
+          __BOOST_MESSAGE_START(_start->isIndirect());
+          __BOOST_MESSAGE_START(_start->isLocal());
+          __BOOST_MESSAGE_START(_start->isNotAtEnd());
+          __BOOST_MESSAGE_START(_start->isOldCommon());
+          __BOOST_MESSAGE_START(_start->isSectionSymbol());
+          __BOOST_MESSAGE_START(_start->isWarning());
+          __BOOST_MESSAGE_START(_start->isWeak());
+          BOOST_CHECK(_start->section() == ".text");
+        }
+
+  BOOST_AUTO_TEST_SUITE_END()

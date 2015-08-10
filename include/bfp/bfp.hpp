@@ -50,6 +50,10 @@
 #include <bfp/support_helpers.tpp>/// support template functions
 
 
+#ifndef BINARY_FILE_PARSER_BFP_HPP
+# error "Don't include this file directly, use #include <bfp.hpp> instead"
+#endif
+
 namespace BFP
   {
       /** Derefer pointer to object 'till only object remain
@@ -326,6 +330,12 @@ namespace BFP
               return *this;
             }
 
+          ~Section()
+            {
+              if (notASection)
+                delete _sec;
+            }
+
           /////////////////////////////////////////////
           ///         Comparition operators         ///
           /////////////////////////////////////////////
@@ -509,9 +519,17 @@ namespace BFP
               asection *section);
 
           /** Cannot be instantiated by primitive constructor */
-          Section() = delete;
+          Section()
+              :
+              notASection{true}
+            {
+              _sec = new asection();
+              _sec->name = "not_a_section";
+            }
 
       private:
+          bool notASection = false;
+
           /** Section as BFD structure */
           asection *_sec;
 

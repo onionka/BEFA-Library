@@ -11,6 +11,10 @@
 #include <bfp/support_helpers.tpp>
 
 
+#ifndef __BFP_BFP_HPP
+# error "Don't include this file directly, include bfp.hpp instead"
+#endif
+
 namespace BFP
   {
       template<
