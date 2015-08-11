@@ -16,6 +16,17 @@ INCLUDE_DIRECTORIES(include)
 ADD_SUBDIRECTORY(include)
 ADD_SUBDIRECTORY(bfp)
 #################################################################
+FIND_FILE(DOXYGEN_HTML_CONF dox_configs/config_html.dox HINT ${PROJECT_SOURCE_DIR})
+FIND_FILE(DOXYGEN_MAN_CONF dox_configs/config_man.dox HINT ${PROJECT_SOURCE_DIR})
+FIND_PROGRAM(DOXYGEN doxygen)
+ADD_CUSTOM_TARGET(doc-html
+  COMMAND ${DOXYGEN} ${DOXYGEN_HTML_CONF}
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+ADD_CUSTOM_TARGET(doc-man
+  COMMAND ${DOXYGEN} ${DOXYGEN_MAN_CONF}
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+ADD_SUBDIRECTORY(doc)
+#################################################################
 ENABLE_TESTING()
 FIND_PROGRAM(VAL valgrind)
 SET(VALGRIND ${VAL} --leak-check=full --show-reachable=yes)

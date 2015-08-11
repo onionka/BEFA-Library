@@ -36,11 +36,6 @@ MARK_AS_ADVANCED(
     CMAKE_EXE_LINKER_FLAGS_COVERAGE
     CMAKE_SHARED_LINKER_FLAGS_COVERAGE)
 
-IF (NOT (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "Coverage"))
-  MESSAGE(WARNING "Code coverage results with an optimized (non-Debug) build may be misleading")
-ENDIF()
-
-
 # Param _targetname     The name of new the custom make target
 # Param _testrunner     The name of the target which runs the tests.
 #						MUST return ZERO always, even on errors.
