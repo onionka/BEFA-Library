@@ -4,3 +4,19 @@ Binary File Parser (draft)  [![Build Status](https://travis-ci.org/cibo94/Binary
 High-level library that analyse binary file (executable) for testing purposes. Bachelor's work.
 
 ![codecov.io](http://codecov.io/github/cibo94/Binary-File-Parser-Library/branch.svg?branch=master)
+
+BUILD
+=====
+
+To build this project you will need to install:
+  - binutils-dev
+  - cmake
+  - g++ >= 4.9
+  - boost-test >= 1.50.0
+  - lcov >= 1.11
+
+Then run following commands:
+```bash
+ $ mkdir build && pushd build && cmake .. -DCMAKE_BUILD_TYPE=Coverage && make -j4 &&\
+    make test && make coverage && sudo make install && popd
+```

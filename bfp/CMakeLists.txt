@@ -1,7 +1,7 @@
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -g -Wall -Wextra -pedantic")
 
 SET(SOURCE_FILES
-    bfd.cpp
+    parser.cpp
     exception.cpp
     symbol.cpp
     section.cpp
@@ -11,7 +11,7 @@ SET(SOURCE_FILES
 SET(HEADER_FILES
     ${PROJECT_SOURCE_DIR}/include/bfp.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/exception.hpp
-    ${PROJECT_SOURCE_DIR}/include/bfp/bfd.hpp
+    ${PROJECT_SOURCE_DIR}/include/bfp/parser.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/file.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/section.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/symbol.hpp

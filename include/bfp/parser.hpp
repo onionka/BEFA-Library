@@ -1,40 +1,8 @@
 /**
- * @file bfd.hpp
+ * @file parser.hpp
  * @author Miroslav Cibulka
  * @brief This is module in which is described Binary File Descriptor as class
  *        and his structures with operations.
- *        @code
- *          #include <iostream>
- *          #include <bfp.hpp>
- *          
- *          
- *          int main(
- *              int args,
- *              const char **argv)
- *            {
- *              auto _bfd = ::bfp::Parser::get_unique_instance();
- *              try
- *                {
- *                  auto file = _bfd->Open(*argv, "");
- *                  if (file == nullptr)
- *                    {
- *                      BFP_ASSERT();
- *                      return EXIT_FAILURE;
- *                    }
- *                  for (auto &_sec : *file)
- *                    for (auto &_sym : _sec)
- *                      {
- *                        /// process symbol
- *                      }
- *                } catch (::bfp::base_exception &ex)
- *                {
- *                  ::std::cerr << ex.what();
- *                  return EXIT_FAILURE;
- *                }
- *              delete _bfd;
- *              return EXIT_SUCCESS;
- *            }
- *        @endcode
  *        TODO: detailed description
  */
 
@@ -123,8 +91,6 @@ namespace bfp
            *      erased from this vector afterwards (SIGSEGV - double free/delete)
            */
           ::std::vector<File *> openedFiles;
-
-          ::std::vector<::std::string> errors;
 
       private:
           /** vector of all possible targets */

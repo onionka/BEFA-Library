@@ -25,7 +25,7 @@ namespace bfp
           };
 
       /**
-       * @brief retrieves type of object that is hidden behind n referencies
+       * @brief retrieves type of object that is hidden behind nth reference
        * @param __ptr is object/pointer
        */
       template<typename __ptr>

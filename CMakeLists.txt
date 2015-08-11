@@ -6,9 +6,7 @@ IF ("${USE_COMPILER}" STREQUAL "clang")
 ENDIF ()
 #################################################################
 # Finding BOOST components #
-FIND_PACKAGE(Boost 1.50.0 REQUIRED COMPONENTS filesystem system unit_test_framework REQUIRED)
-
-
+FIND_PACKAGE(Boost 1.50.0 REQUIRED COMPONENTS unit_test_framework REQUIRED)
 # Finding BFD libraries and headers #
 FIND_LIBRARY(BFD_LIBRARY libbfd.a REQUIRED)
 SET(BFD_LIBRARIES ${BFD_LIBRARY})
@@ -17,10 +15,10 @@ INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(include)
 ADD_SUBDIRECTORY(include)
 ADD_SUBDIRECTORY(bfp)
-
+#################################################################
 ENABLE_TESTING()
-SET(CMAKE_BUILD_TYPE "Coverage")
+FIND_PROGRAM(VAL valgrind)
+SET(VALGRIND ${VAL} --leak-check=full --show-reachable=yes)
 INCLUDE(CMAKE_INCLUDES/CodeCoverage.cmake)
-SET(VALGRIND valgrind --leak-check=full --show-reachable=yes)
 ADD_SUBDIRECTORY(tests)
 ADD_SUBDIRECTORY(examples)
