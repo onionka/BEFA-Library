@@ -1,4 +1,4 @@
-/** Binary File Parser
+/**
  * @file symbol.cpp
  * @author Miroslav Cibulka
  * @brief Symbol class

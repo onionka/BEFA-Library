@@ -1,4 +1,4 @@
-/** Binary File Parser
+/**
  * @file file.cpp
  * @author Miroslav Cibulka
  * @brief Here is executable File class implemented
@@ -22,11 +22,14 @@ namespace bfp
           long number_of_symbols;
           long i;
 
-          for (int i = 0; i < 4; ++i)
-            {
-              Section _s(_bfd_std_section + i);
-              push_back(_s);
-            }
+          Section _s_com(bfd_com_section_ptr);
+          Section _s_und(bfd_und_section_ptr);
+          Section _s_abs(bfd_abs_section_ptr);
+          Section _s_ind(bfd_ind_section_ptr);
+          push_back(_s_com);
+          push_back(_s_und);
+          push_back(_s_abs);
+          push_back(_s_ind);
           for (asection *_sec = _fd->sections; _sec != NULL; _sec = _sec->next)
             {
               Section _s(_sec);

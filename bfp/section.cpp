@@ -1,4 +1,4 @@
-/** Binary File Parser
+/**
  * @file section.cpp
  * @author Miroslav Cibulka
  * @brief Section class

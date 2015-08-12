@@ -1,5 +1,5 @@
-/** Binary File Parser
- * @file bfp.cpp
+/**
+ * @file parser.cpp
  * @author Miroslav Cibulka
  * @brief Source where Binary File Descriptor is implemented
  */

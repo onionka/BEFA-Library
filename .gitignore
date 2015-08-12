@@ -1,2 +1,4 @@
 build
 .idea
+doc/html
+doc/man
