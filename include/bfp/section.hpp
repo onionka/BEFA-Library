@@ -220,14 +220,7 @@ namespace bfp
               asection *section);
 
           /** Cannot be instantiated by primitive constructor */
-          Section()
-              :
-              notASection{true}
-            {
-              _sec = new asection();
-              _sec->name = "not_a_section";
-            }
-
+          Section() = delete;
       private:
           bool notASection = false;
 

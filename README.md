@@ -17,6 +17,10 @@ To build this project you will need to install:
 
 Then run following commands:
 ```bash
- $ mkdir build && pushd build && cmake .. -DCMAKE_BUILD_TYPE=Coverage && make -j4 &&\
-    make test && make coverage && sudo make install && popd
+ $ cmake .
+ $ make
+ $ make man
+ $ sudo make install
 ```
+
+In ```cmake .``` use ```-DWITH_MAN``` option to build and install manual page

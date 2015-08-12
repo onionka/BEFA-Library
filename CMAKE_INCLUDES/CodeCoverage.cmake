@@ -44,7 +44,6 @@ MARK_AS_ADVANCED(
 #                       HTML report is generated in _outputname/index.html
 FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
 
-  IF (CMAKE_BUILD_TYPE STREQUAL "Coverage")
     IF(NOT LCOV_PATH)
       MESSAGE(FATAL_ERROR "lcov not found! Aborting...")
     ENDIF()
@@ -61,8 +60,4 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
       COMMAND ${LCOV_PATH} --list ${_outputname}.info
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMENT "Processing code coverage counters and generating report.")
-  else()
-    ADD_CUSTOM_TARGET(${_targetname}
-      COMMAND ${VALGRIND} ${CMAKE_BINARY_DIR}/tests/${_testrunner} --log_level=all --build_info)
-  endif()
 ENDFUNCTION()

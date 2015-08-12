@@ -22,10 +22,14 @@ namespace bfp
           long number_of_symbols;
           long i;
 
-          _sections.push_back(Section());
+          for (int i = 0; i < 4; ++i)
+            {
+              Section _s(_bfd_std_section + i);
+              push_back(_s);
+            }
           for (asection *_sec = _fd->sections; _sec != NULL; _sec = _sec->next)
             {
-              Section _s (_sec);
+              Section _s(_sec);
               push_back(_s);
             }
 
@@ -52,9 +56,7 @@ namespace bfp
                 _sec = find(begin(), end(), symbol_table[i]->section);
               if (_sec == end())
                 {
-                  Symbol _sym(symbol_table[i]);
-                  _sym._section = _sections.begin();
-                  _sections.begin()->push_back(_sym);
+                  RAISE(Exception::Parser::WrongFormat);
                 }
               else
                 {
@@ -73,7 +75,7 @@ namespace bfp
 
       ::std::vector<Section>::const_iterator File::cbegin()
         {
-          return _sections.cbegin() + 1;
+          return _sections.cbegin();
         }
 
       ::std::vector<Section>::const_iterator File::cend()
@@ -83,7 +85,7 @@ namespace bfp
 
       ::std::vector<Section>::iterator File::begin()
         {
-          return _sections.begin() + 1;
+          return _sections.begin();
         }
 
       ::std::vector<Section>::iterator File::end()
@@ -98,7 +100,7 @@ namespace bfp
 
       ::std::vector<Section>::const_reverse_iterator File::crend()
         {
-          return _sections.crend() - 1;
+          return _sections.crend();
         }
 
       ::std::vector<Section>::reverse_iterator File::rbegin()
@@ -108,7 +110,7 @@ namespace bfp
 
       ::std::vector<Section>::reverse_iterator File::rend()
         {
-          return _sections.rend() - 1;
+          return _sections.rend();
         }
 
       size_t File::capacity()
