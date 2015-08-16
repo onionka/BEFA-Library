@@ -15,37 +15,25 @@
 
 namespace bfp
   {
+      class File;
+
       class Symbol;
 
       class Section
         {
       public:
-          Section(
-              const Section &_copy)
-            {
-              _sec = _copy._sec;
-              _symbols = _copy._symbols;
-              line_numbers = _copy.line_numbers;
-            }
+          typedef Symbol *__symbol;
+          typedef ::std::vector<__symbol> __sym_vector;
+          typedef __sym_vector::iterator __iterator;
+          typedef __sym_vector::reverse_iterator __reverse_iterator;
+          typedef __sym_vector::const_iterator __const_iterator;
+          typedef __sym_vector::const_reverse_iterator __const_reverse_iterator;
 
-          Section &operator=(
-              const Section &_copy)
-            {
-              _sec = _copy._sec;
-              _symbols = _copy._symbols;
-              line_numbers = _copy.line_numbers;
-              return *this;
-            }
+          ~Section();
 
-          ~Section()
-            {
-              if (notASection)
-                delete _sec;
-            }
-
-          /////////////////////////////////////////////
-          ///         Comparition operators         ///
-          /////////////////////////////////////////////
+          // ************************************* //
+          //         Comparition operators         //
+          // ************************************* //
 
           bool operator==(
               const Section &_compare);
@@ -89,9 +77,9 @@ namespace bfp
               const Section &_this,
               const char *_compare);
 
-          ///////////////////////////////
-          ///         GETTERS         ///
-          ///////////////////////////////
+          // *********************** //
+          //         GETTERS         //
+          // *********************** //
 
           /** What the section number is in the target world */
           int getIndex() const;
@@ -102,36 +90,55 @@ namespace bfp
           const ::std::string getName() const;
 
           /**
-           * @returns content in raw format or nullptr if doesn't have any
+           * @return binary content (lazy read)
            */
-          const unsigned char *getContent() const;
+          uint8_t *getContent();
+
+          /**
+           * @return size of binary content
+           */
+          size_t getContentSize();
+
+          /**
+           * @return address of section in memory
+           */
+          uint64_t getAddress();
+
+          /**
+           * @return farthest possible address inside this section
+           */
+          uint64_t getLastAddress();
+
+          /**
+           * @return next nearest address to the symbol in parameter
+           */
+          uint64_t getNearestAddress(Symbol *_sym);
 
           /**
            * @return numbers of line
-           *         TODO: findout for what
            */
-          const ::std::vector <alent> getLineNO() const;
+          const ::std::vector<alent> getLineNO() const;
 
 
-          /////////////////////////////////////
-          ///       Vector operations       ///
-          /////////////////////////////////////
+          // ***************************** //
+          //       Vector operations       //
+          // ***************************** //
 
-          ::std::vector<Symbol>::const_iterator cbegin();
+          __const_iterator cbegin();
 
-          ::std::vector<Symbol>::const_iterator cend();
+          __const_iterator cend();
 
-          ::std::vector<Symbol>::const_reverse_iterator crbegin();
+          __const_reverse_iterator crbegin();
 
-          ::std::vector<Symbol>::const_reverse_iterator crend();
+          __const_reverse_iterator crend();
 
-          ::std::vector<Symbol>::iterator begin();
+          __iterator begin();
 
-          ::std::vector<Symbol>::iterator end();
+          __iterator end();
 
-          ::std::vector<Symbol>::reverse_iterator rbegin();
+          __reverse_iterator rbegin();
 
-          ::std::vector<Symbol>::reverse_iterator rend();
+          __reverse_iterator rend();
 
           size_t capacity();
 
@@ -139,21 +146,21 @@ namespace bfp
 
           size_t max_size();
 
-          Symbol operator[](
+          __symbol operator[](
               size_t n);
 
-          Symbol front();
+          __symbol front();
 
-          Symbol back();
+          __symbol back();
 
-          Symbol at(
+          __symbol at(
               size_t n);
 
           bool empty();
 
-          //////////////////////////////////////////////////
-          ///             Section attributes             ///
-          //////////////////////////////////////////////////
+          // ******************************************** //
+          //              Section attributes              //
+          // ******************************************** //
 
           bool hasFlags() const;
 
@@ -207,9 +214,24 @@ namespace bfp
           /// Only File may instantiate this
           friend class File;
 
+          /** Forbidden primitive constructor */
+          Section() = delete;
+
+          /** Forbidden copy constructor */
+          Section(const Section &) = delete;
+
+          /** Forbidden move constructor */
+          Section(Section &&) = delete;
+
+          /** Forbidden copy assignment */
+          Section &operator=(const Section &) = delete;
+
+          /** Forbidden move assignment */
+          Section &operator=(Section &&) = delete;
+
           /** This should be constant vector so push_back is not allowed (only internal) */
           void push_back(
-              Symbol &_sec);
+              __symbol _sec);
 
           /** This cannot be instantiated outside this class
            *    but it is done via File (factory method)
@@ -217,21 +239,26 @@ namespace bfp
            *          section of binary file ie. .text, .bss, .data
            */
           Section(
-              asection *section);
+              asection *section,
+              File *parent);
 
-          /** Cannot be instantiated by primitive constructor */
-          Section() = delete;
       private:
-          bool notASection = false;
+          bool _not_a_section = false;
 
           /** Section as BFD structure */
           asection *_sec;
 
           /** Vector of appropriate symbols */
-          ::std::vector <Symbol> _symbols;
+          __sym_vector _symbols;
 
           /** Vector of line numbers - TODO: findout for what is this */
-          ::std::vector <alent> line_numbers;
+          ::std::vector<alent> _line_numbers;
+
+          /** Binary content of this file */
+          uint8_t *_data;
+
+          /** File where Section belongs */
+          File *_parent;
         };
   }
 

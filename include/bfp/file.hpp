@@ -12,6 +12,7 @@
 #endif
 
 #include <vector>                 /// ::std::vector<class>
+#include <dis-asm.h>
 #include <iterator>               /// ::std::iterator
 #include <map>                    /// ::std::map
 #include <string>                 /// ::std::to_string, ::std::string
@@ -24,7 +25,30 @@ namespace bfp
        */
       class File
         {
+
       public:
+          typedef Section *__section;
+          typedef ::std::vector<__section> __sec_vector;
+          typedef __sec_vector::iterator __iterator;
+          typedef __sec_vector::reverse_iterator __reverse_iterator;
+          typedef __sec_vector::const_iterator __const_iterator;
+          typedef __sec_vector::const_reverse_iterator __const_reverse_iterator;
+          typedef struct FFILE
+            {
+              const size_t base_size = 64;
+              char *buffer = (char *) "";
+              size_t pos;
+              size_t alloc;
+
+              FFILE();
+
+              /** Reallocates _buffer with desire size*/
+              void realloc(int size);
+
+              ~FFILE();
+
+            } __ffile;
+
           /** Frees all sections and symbols when deleted
            *    By default it is done by BFD so ... don't do it
            */
@@ -40,21 +64,21 @@ namespace bfp
           ///       Vector operations       ///
           /////////////////////////////////////
 
-          ::std::vector<Section>::const_iterator cbegin();
+          __const_iterator cbegin();
 
-          ::std::vector<Section>::const_iterator cend();
+          __const_iterator cend();
 
-          ::std::vector<Section>::const_reverse_iterator crbegin();
+          __const_reverse_iterator crbegin();
 
-          ::std::vector<Section>::const_reverse_iterator crend();
+          __const_reverse_iterator crend();
 
-          ::std::vector<Section>::iterator begin();
+          __iterator begin();
 
-          ::std::vector<Section>::iterator end();
+          __iterator end();
 
-          ::std::vector<Section>::reverse_iterator rbegin();
+          __reverse_iterator rbegin();
 
-          ::std::vector<Section>::reverse_iterator rend();
+          __reverse_iterator rend();
 
           size_t capacity();
 
@@ -62,14 +86,14 @@ namespace bfp
 
           size_t max_size();
 
-          Section operator[](
+          __section operator[](
               size_t n);
 
-          Section front();
+          __section front();
 
-          Section back();
+          __section back();
 
-          Section at(
+          __section at(
               size_t n);
 
           bool empty();
@@ -77,6 +101,10 @@ namespace bfp
       private:
           /// So BFD may create instance of this
           friend class Parser;
+
+          friend class Section;
+
+          friend class Symbol;
 
           /** File can't be created outside of BFD singleton/factory
            *    This is opened by BFD and closed by BFD
@@ -94,9 +122,48 @@ namespace bfp
           /** Cannot be instantiated by primitive constructor */
           File() = delete;
 
+          /** Forbidden copy constructor */
+          File(const File &) = delete;
+
+          /** Forbidden move constructor */
+          File(File &&) = delete;
+
+          /** Forbidden copy assignment */
+          File &operator=(const File &) = delete;
+
+          /** Forbidden move assignment */
+          File &operator=(File &&) = delete;
+
           /** This should be constant vector so push_back is not allowed (only internal) */
           void push_back(
-              Section &_sec);
+              __section _sec);
+
+          /**
+           * @brief Our custom fake printf that stores output from disassembler
+           * @param f our fake file
+           * @param format string
+           * @param ... formating info
+           * @return number of written bytes to f (FFILE)
+           */
+          __attribute__((format(printf, 2, 3)))
+          static int fsprintf(
+              __ffile *f,
+              const char *format,
+              ...);
+
+          /**
+           * @brief Prepares structure where disassembler will store info
+           *        This is here because things that are allocated and initialized
+           *        here are used by all symbols so they only
+           * @return pointer to that structure
+           */
+          disassemble_info *getDisassembleInfo(Symbol *_sym);
+
+          /**
+           * @brief This prepares disassembler
+           */
+          disassembler_ftype getDisassembler();
+
 
       private:
           /** File descriptor */
@@ -109,10 +176,21 @@ namespace bfp
           const char *_target;
 
           /** Vector of section in file (contains also appropriate symbols) */
-          ::std::vector<Section> _sections;
+          __sec_vector _sections;
 
           /** File symbol table */
           asymbol **symbol_table;
+
+          /** Function that disassembles binary file */
+          disassembler_ftype _dis_asm = nullptr;
+
+          /** Here will be all info about instructions */
+          disassemble_info *_dis_asm_info = nullptr;
+
+          /** Static file that stores everything that will be written to it
+           *  so we may access data later and clear it
+           */
+          static __ffile _FFILE;
         };
   }
 

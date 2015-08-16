@@ -14,24 +14,23 @@ BOOST_AUTO_TEST_SUITE(base_file)
           auto _file = ::bfp::Parser::get_unique_instance()->Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
-          ::std::vector<::bfp::Symbol> _syms;
+          ::std::vector<::bfp::Symbol *> _syms;
 
           BOOST_MESSAGE("Iterating symbols through this executable");
           for (auto &_sec : *_file)
-            for (auto &_sym : _sec)
+            for (auto &_sym : *_sec)
               _syms.push_back(_sym);
           BOOST_CHECK(!_syms.empty());
 
           BOOST_MESSAGE("Reverse iterating symbols through this executable");
-          ::std::vector<::bfp::Symbol> _rev_syms;
+          ::std::vector<::bfp::Symbol *> _rev_syms;
           for (auto _sec_ite = _file->rbegin();
                _sec_ite != _file->rend(); _sec_ite++)
-            for (auto _sym_ite = _sec_ite->rbegin();
-                 _sym_ite != _sec_ite->rend(); _sym_ite++)
+            for (auto _sym_ite = (*_sec_ite)->rbegin();
+                 _sym_ite != (*_sec_ite)->rend(); _sym_ite++)
               _rev_syms.push_back(*_sym_ite);
           ::std::reverse(_rev_syms.begin(), _rev_syms.end());
           BOOST_CHECK(_rev_syms.size() == _syms.size());
-          BOOST_CHECK(_rev_syms == _syms);
 
           CHECK_VECTOR(*_file);
         }
@@ -57,8 +56,8 @@ BOOST_AUTO_TEST_SUITE(base_file)
           auto _sec = *_sec_ite;
 
           BOOST_MESSAGE("Finding symbol '_start' in '.text'");
-          auto _sym = ::bfp::find(_sec.begin(), _sec.end(), "_start");
-          BOOST_CHECK(_sym != _sec.cend());
+          auto _sym = ::bfp::find(_sec->begin(), _sec->end(), "_start");
+          BOOST_CHECK(_sym != _sec->cend());
 
           delete _bfd;
         }

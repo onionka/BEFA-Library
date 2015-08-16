@@ -5,6 +5,8 @@
  */
 
 #include <bfp.hpp>
+#include <algorithm>
+
 
 namespace bfp
   {
@@ -96,14 +98,55 @@ namespace bfp
           return ::std::string(_sec->name);
         }
 
-      const unsigned char *Section::getContent() const
+      uint8_t *Section::getContent()
         {
-          return _sec->contents;
+          if (_data == nullptr)
+            {
+              /*we need section data to disassemble*/
+              _data = new uint8_t[getContentSize()];
+              bfd_get_section_contents(_parent->_fd, _sec, _data, 0,
+                                       getContentSize());
+            }
+          return _data;
+        }
+
+      size_t Section::getContentSize()
+        {
+          return (size_t) bfd_get_section_size(_sec);
+        }
+
+      uint64_t Section::getAddress()
+        {
+          return bfd_get_section_vma(_parent->_fd, _sec);
+        }
+
+      uint64_t Section::getLastAddress()
+        {
+          return bfd_get_section_vma(_parent->_fd, _sec) + getContentSize();
+        }
+
+      uint64_t Section::getNearestAddress(Symbol *_sym)
+        {
+          uint64_t _next_address = 0;
+          auto _sym_ite = ::bfp::find(begin(), end(), _sym);
+          if (_sym_ite == end())
+            _next_address = getLastAddress();
+          else
+            {
+              while (_sym_ite != end() &&
+                     (*_sym_ite)->getValue() == _sym->getValue())
+                _sym_ite++;
+              if (_sym_ite == end())
+                _next_address = getLastAddress();
+              else
+                _next_address = (*_sym_ite)->getValue();
+            }
+          return _next_address;
         }
 
       const ::std::vector<alent> Section::getLineNO() const
         {
-          return line_numbers;
+          return _line_numbers;
         }
 
       bool Section::hasFlags() const
@@ -232,22 +275,22 @@ namespace bfp
         }
 
 
-      ::std::vector<Symbol>::const_iterator Section::cbegin()
+      Section::__const_iterator Section::cbegin()
         {
           return _symbols.cbegin();
         }
 
-      ::std::vector<Symbol>::const_iterator Section::cend()
+      Section::__const_iterator Section::cend()
         {
           return _symbols.cend();
         }
 
-      ::std::vector<Symbol>::const_reverse_iterator Section::crbegin()
+      Section::__const_reverse_iterator Section::crbegin()
         {
           return _symbols.crbegin();
         }
 
-      ::std::vector<Symbol>::const_reverse_iterator Section::crend()
+      Section::__const_reverse_iterator Section::crend()
         {
           return _symbols.crend();
         }
@@ -267,22 +310,22 @@ namespace bfp
           return _symbols.max_size();
         }
 
-      Symbol Section::operator[](size_t n)
+      Section::__symbol Section::operator[](size_t n)
         {
           return _symbols[n];
         }
 
-      Symbol Section::front()
+      Section::__symbol Section::front()
         {
           return _symbols.front();
         }
 
-      Symbol Section::back()
+      Section::__symbol Section::back()
         {
           return _symbols.back();
         }
 
-      Symbol Section::at(size_t n)
+      Section::__symbol Section::at(size_t n)
         {
           return _symbols.at(n);
         }
@@ -292,34 +335,47 @@ namespace bfp
           return _symbols.empty();
         }
 
-      void Section::push_back(Symbol &_sec)
+      void Section::push_back(Section::__symbol _sec)
         {
           _symbols.push_back(_sec);
         }
 
-      ::std::vector<Symbol>::iterator Section::begin()
+      Section::__iterator Section::begin()
         {
           return _symbols.begin();
         }
 
-      ::std::vector<Symbol>::iterator Section::end()
+      Section::__iterator Section::end()
         {
           return _symbols.end();
         }
 
-      ::std::vector<Symbol>::reverse_iterator Section::rbegin()
+      Section::__reverse_iterator Section::rbegin()
         {
           return _symbols.rbegin();
         }
 
-      ::std::vector<Symbol>::reverse_iterator Section::rend()
+      Section::__reverse_iterator Section::rend()
         {
           return _symbols.rend();
         }
 
       Section::Section(
-          asection *section)
+          asection *section,
+          File *parent)
           :
-          _sec{section}
+          _sec{section},
+          _data{nullptr},
+          _parent{parent}
         { }
+
+      Section::~Section()
+        {
+          if (_not_a_section)
+            delete _sec;
+          for (auto _sym : _symbols)
+            delete _sym;
+          if (_data != nullptr)
+            delete[] _data;
+        }
   }

@@ -20,7 +20,7 @@ namespace bfp
        * @brief This represents BFD class.
        *        Instance is static so there will be only one per runtime.
        *        <tt>get_unique_instance</tt> returns the same instance every time it is called.
-       * @example tests/TestProgram/main.cpp
+       * @example tests/SymbolReader/main.cpp
        */
       class Parser
         {
