@@ -14,24 +14,15 @@
 
 namespace bfp
   {
+      class File;
+
       class Symbol
         {
+          typedef Section *__section;
+          typedef ::std::vector<Instruction *> __instr_vec;
+
       public:
-
-          Symbol(
-              const Symbol &_copy)
-            {
-              _section = _copy._section;
-              _sym = _copy._sym;
-            }
-
-          Symbol &operator=(
-              const Symbol &_copy)
-            {
-              _section = _copy._section;
-              _sym = _copy._sym;
-              return *this;
-            }
+          ~Symbol();
 
           /////////////////////////////////////////////
           ///         Comparition operators         ///
@@ -44,6 +35,12 @@ namespace bfp
               const Symbol &_compare);
 
           bool operator==(
+              const Symbol *_compare);
+
+          bool operator!=(
+              const Symbol *_compare);
+
+          bool operator==(
               const symvalue _compare);
 
           bool operator!=(
@@ -60,7 +57,6 @@ namespace bfp
 
           bool operator!=(
               const char *_compare);
-
 
           friend bool operator==(
               const Symbol &_this,
@@ -69,6 +65,14 @@ namespace bfp
           friend bool operator!=(
               const Symbol &_this,
               const Symbol &_compare);
+
+          friend bool operator==(
+              const Symbol &_this,
+              const Symbol *_compare);
+
+          friend bool operator!=(
+              const Symbol &_this,
+              const Symbol *_compare);
 
           friend bool operator==(
               const Symbol &_this,
@@ -98,13 +102,17 @@ namespace bfp
           ///         GETTERS         ///
           ///////////////////////////////
 
+          /** @return string representation of symbol */
           const ::std::string getName() const;
 
           /** @return all sections where this symbol is (RO) - may be empty*/
-          const Section &section();
+          __section section();
 
           /** @return RAW value of symbol */
           symvalue getValue() const;
+
+          /** @return vector of intructions */
+          __instr_vec &getInstructions();
 
           /////////////////////////////////////////////////
           ///             Symbol attributes             ///
@@ -124,7 +132,7 @@ namespace bfp
 
           bool isWeak() const;
 
-          bool isSectionSymbol() const;
+          bool pointsToSection() const;
 
           bool isOldCommon() const;
 
@@ -146,18 +154,47 @@ namespace bfp
           /// Only File (factory method) may instantiate Symbol class
           friend class File;
 
-          Symbol(
-              asymbol *symbol);
+          friend class Section;
 
-          /** Cannot be instantiated by primitive constructor */
+          /**
+           * @brief initialize symbol object
+           * @param symbol bfd
+           * @param parent File that this symbol belongs to
+           */
+          Symbol(
+              asymbol *symbol,
+              File *parent);
+
+          /** Forbidden primitive constructor */
           Symbol() = delete;
+
+          /** Forbidden copy constructor */
+          Symbol(const Symbol &) = delete;
+
+          /** Forbidden move constructor */
+          Symbol(Symbol &&) = delete;
+
+          /** Forbidden copy assignment */
+          Symbol &operator=(const Symbol &) = delete;
+
+          /** Forbidden move assignment */
+          Symbol &operator=(Symbol &&) = delete;
 
       private:
           /** Appropriate Section to this symbol */
-          ::std::vector<Section>::iterator _section;
+          __section _section = nullptr;
 
           /** BFD symbol structure */
           asymbol *_sym;
+
+          /** File to which this symbol belongs to */
+          File *_parent;
+
+          /** Buffer for internal use */
+          char *_buffer;
+
+          /** Instruction vector */
+          __instr_vec _instructions;
         };
   }
 

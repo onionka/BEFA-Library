@@ -83,12 +83,12 @@ int main(
                 return EXIT_FAILURE;
               }
             for (auto &sec : *file)
-              for (auto &sym : sec)
+              for (auto &sym : *sec)
                 {
                   printf("%016X %20s  %s\n",
-                         (unsigned) sym.getValue(),
-                         sec.getName().c_str(),
-                         sym.getName().c_str());
+                         (unsigned) sym->getValue(),
+                         sec->getName().c_str(),
+                         sym->getName().c_str());
                 }
           }
       }

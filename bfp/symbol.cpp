@@ -12,13 +12,25 @@ namespace bfp
       bool Symbol::operator==(
           const Symbol &_compare)
         {
-          return (_compare.getValue() == getValue());
+          return (_compare._sym == _sym);
+        }
+
+      bool Symbol::operator!=(
+          const Symbol *_compare)
+        {
+          return (_compare->_sym != _sym);
+        }
+
+      bool Symbol::operator==(
+          const Symbol *_compare)
+        {
+          return (_compare->_sym == _sym);
         }
 
       bool Symbol::operator!=(
           const Symbol &_compare)
         {
-          return (_compare.getValue() != getValue());
+          return (_compare._sym != _sym);
         }
 
       bool Symbol::operator==(
@@ -61,14 +73,28 @@ namespace bfp
           const Symbol &_this,
           const Symbol &_compare)
         {
-          return (_compare.getValue() == _this.getValue());
+          return (_compare._sym == _this._sym);
         }
 
       bool operator!=(
           const Symbol &_this,
           const Symbol &_compare)
         {
-          return (_compare.getValue() != _this.getValue());
+          return (_compare._sym != _this._sym);
+        }
+
+      bool operator==(
+          const Symbol &_this,
+          const Symbol *_compare)
+        {
+          return (_compare->_sym == _this._sym);
+        }
+
+      bool operator!=(
+          const Symbol &_this,
+          const Symbol *_compare)
+        {
+          return (_compare->_sym != _this._sym);
         }
 
       bool operator==(
@@ -118,14 +144,14 @@ namespace bfp
           return ::std::string(_sym->name);
         }
 
-      const Section &Symbol::section()
+      Symbol::__section Symbol::section()
         {
-          return *_section;
+          return _section;
         }
 
       symvalue Symbol::getValue() const
         {
-          return _sym->value;
+          return bfd_asymbol_value(_sym);
         }
 
       bool Symbol::hasFlags() const
@@ -163,7 +189,7 @@ namespace bfp
           return static_cast<bool>(_sym->flags & BSF_WEAK);
         }
 
-      bool Symbol::isSectionSymbol() const
+      bool Symbol::pointsToSection() const
         {
           return static_cast<bool>(_sym->flags & BSF_SECTION_SYM);
         }
@@ -208,10 +234,40 @@ namespace bfp
           return static_cast<bool>(_sym->flags & BSF_OBJECT);
         }
 
+      Symbol::__instr_vec &Symbol::getInstructions()
+        {
+          if (isFunction() && _instructions.size() == 0)
+            {
+              /*and finally decoding instructions from _sym to next symbol or end of section*/
+              auto _dis_asm = _parent->getDisassembler();
+              auto _dis_asm_info = _parent->getDisassembleInfo(this);
+              for (int _dis = 0, _instr_size = 0;
+                   getValue() + _dis < section()->getNearestAddress(this);
+                   _dis += _instr_size)
+                {
+                  _parent->_FFILE.pos = 0;
+                  _instr_size = _dis_asm(getValue() + _dis, _dis_asm_info);
+                  _instructions.push_back(new Instruction(
+                      (section()->getContent() + getValue() -
+                       section()->getAddress() + _dis), (size_t) _instr_size,
+                      _parent->_FFILE.buffer,
+                      getValue() - section()->getAddress() + _dis));
+                }
+            }
+          return _instructions;
+        }
+
       Symbol::Symbol(
-          asymbol *symbol)
+          asymbol *symbol,
+          File *parent)
           :
-          _sym{symbol}
+          _sym(symbol),
+          _parent(parent)
         { }
 
+      Symbol::~Symbol()
+        {
+          for (auto _instr : _instructions)
+            delete _instr;
+        }
   }

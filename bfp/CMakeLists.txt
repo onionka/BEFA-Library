@@ -6,6 +6,7 @@ SET(SOURCE_FILES
     symbol.cpp
     section.cpp
     file.cpp
+    instruction.cpp
     )
 
 SET(HEADER_FILES
@@ -16,6 +17,7 @@ SET(HEADER_FILES
     ${PROJECT_SOURCE_DIR}/include/bfp/section.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/symbol.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/support.hpp
+    ${PROJECT_SOURCE_DIR}/include/bfp/instruction.hpp
     )
 
 SET(TEMPLATE_FILES
@@ -29,7 +31,7 @@ ADD_LIBRARY(bfp SHARED
             ${TEMPLATE_FILES}
             )
 
-TARGET_LINK_LIBRARIES(bfp bfd ${Boost_LIBRARIES})
+TARGET_LINK_LIBRARIES(bfp bfd opcodes ${Boost_LIBRARIES})
 
 INSTALL(TARGETS bfp
         DESTINATION lib)

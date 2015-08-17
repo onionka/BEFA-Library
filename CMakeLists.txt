@@ -5,7 +5,8 @@ PROJECT(BinaryFileParser)
 FIND_PACKAGE(Boost 1.50.0 REQUIRED COMPONENTS unit_test_framework program_options REQUIRED)
 # Finding BFD libraries and headers #
 FIND_LIBRARY(BFD_LIBRARY libbfd.a REQUIRED)
-SET(BFD_LIBRARIES ${BFD_LIBRARY})
+FIND_LIBRARY(OPCODE_LIBRARY libopcodes.a REQUIRED)
+SET(BFD_LIBRARIES ${BFD_LIBRARY} ${OPCODE_LIBRARY})
 #################################################################
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(include)

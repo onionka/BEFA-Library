@@ -49,17 +49,19 @@
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # define BINARY_FILE_PARSER_BFP_HPP
 
-#include <vector>                 /// ::std::vector<class>
-#include <iterator>               /// ::std::iterator
-#include <map>                    /// ::std::map
-#include <string>                 /// ::std::to_string, ::std::string
-#include <bfd.h>                  /// binutils
-#include <bfp/exception.hpp>      /// all bfp exceptions
-#include <bfp/support.hpp>        /// support functions
-#include <bfp/section.hpp>        /// Section class
-#include <bfp/symbol.hpp>         /// Symbol class
-#include <bfp/file.hpp>           /// File class
-#include <bfp/parser.hpp>         /// Parser class
+#include <vector>                 // ::std::vector<class>
+#include <iterator>               // ::std::iterator
+#include <map>                    // ::std::map
+#include <string>                 // ::std::to_string, ::std::string
+#include <bfd.h>                  // binutils
+#include <dis-asm.h>              // disassembler
+#include <bfp/exception.hpp>      // all bfp exceptions
+#include <bfp/support.hpp>        // support functions
+#include <bfp/section.hpp>        // Section class
+#include <bfp/instruction.hpp>    // Instruction abstract class + concrete
+#include <bfp/symbol.hpp>         // Symbol class
+#include <bfp/file.hpp>           // File class
+#include <bfp/parser.hpp>         // Parser class
 
 
 #endif //BINARY_FILE_PARSER_BFP_HPP

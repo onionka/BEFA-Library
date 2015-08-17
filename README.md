@@ -5,7 +5,9 @@ Binary File Parser Library
 | [![Build Status](https://travis-ci.org/cibo94/Binary-File-Parser-Library.svg?branch=master)](https://travis-ci.org/cibo94/Binary-File-Parser-Library) | [![codecov.io](http://codecov.io/github/cibo94/Binary-File-Parser-Library/coverage.svg?branch=master)](http://codecov.io/github/cibo94/Binary-File-Parser-Library?branch=master) |
 
 High-level C++ library makes analysis of binary file (executable, library) easier
-in the light of performance and memory efficiency. Bachelor's work.
+in the light of performance and memory efficiency. This is superstructure of
+opcodes and Binary file descriptor from binutils with better documentation and
+implemented using design patters. Bachelor's work.
 
 BUILD
 =====
