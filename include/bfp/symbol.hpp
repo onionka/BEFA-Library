@@ -18,6 +18,12 @@ namespace bfp
 
       class Symbol
         {
+          /** Only File (factory method) may instantiate Symbol class */
+          friend class File;
+
+          /** Section may delete file */
+          friend class Section;
+
           typedef Section *__section;
           typedef ::std::vector<Instruction *> __instr_vec;
 
@@ -151,11 +157,6 @@ namespace bfp
           bool hasObjectData() const;
 
       private:
-          /// Only File (factory method) may instantiate Symbol class
-          friend class File;
-
-          friend class Section;
-
           /**
            * @brief initialize symbol object
            * @param symbol bfd
@@ -195,6 +196,9 @@ namespace bfp
 
           /** Instruction vector */
           __instr_vec _instructions;
+
+          /** if this symbol has any instructions to disassemble */
+          bool has_no_intructions = false;
         };
   }
 

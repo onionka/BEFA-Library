@@ -236,23 +236,32 @@ namespace bfp
 
       Symbol::__instr_vec &Symbol::getInstructions()
         {
-          if (isFunction() && _instructions.size() == 0)
+          if (!has_no_intructions && _instructions.size() == 0)
             {
               /*and finally decoding instructions from _sym to next symbol or end of section*/
               auto _dis_asm = _parent->getDisassembler();
               auto _dis_asm_info = _parent->getDisassembleInfo(this);
+              if (_dis_asm_info == nullptr)
+                {
+                  has_no_intructions = true;
+                  return _instructions;
+                }
               for (int _dis = 0, _instr_size = 0;
                    getValue() + _dis < section()->getNearestAddress(this);
                    _dis += _instr_size)
                 {
                   _parent->_FFILE.pos = 0;
                   _instr_size = _dis_asm(getValue() + _dis, _dis_asm_info);
+                  if (_instr_size <= 0)
+                    break;
                   _instructions.push_back(new Instruction(
                       (section()->getContent() + getValue() -
                        section()->getAddress() + _dis), (size_t) _instr_size,
                       _parent->_FFILE.buffer,
                       getValue() - section()->getAddress() + _dis));
                 }
+
+              has_no_intructions = true;
             }
           return _instructions;
         }

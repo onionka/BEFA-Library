@@ -160,11 +160,16 @@ namespace bfp
            */
           disassembler_ftype getDisassembler();
 
+          /** reads dynamic symbols if there are any */
+          void retrieve_dynamic_symbols();
+
           /** reads sections from file */
           void retrieve_sections();
 
           /** reads symbols from file */
           void retrieve_symbols();
+
+          void retrieve_synthetic_symbols();
 
       private:
           /** Frees all sections and symbols when deleted
@@ -186,6 +191,13 @@ namespace bfp
 
           /** File symbol table */
           asymbol **symbol_table;
+          long number_of_symbols;
+
+          asymbol **dynamic_symbol_table;
+          long number_of_dyn_sym;
+
+          asymbol **synthetic_symbol_table;
+          long synthetic_count;
 
           /** Function that disassembles binary file */
           disassembler_ftype _dis_asm = nullptr;
