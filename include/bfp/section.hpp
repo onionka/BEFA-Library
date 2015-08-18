@@ -8,6 +8,9 @@
 #ifndef __BFP_SECTION_HPP
 # define __BFP_SECTION_HPP
 
+#include "asm.hpp"
+
+
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
@@ -23,6 +26,8 @@ namespace bfp
         {
           /** Only File may instantiate this */
           friend class File;
+
+          friend class Symbol;
 
       public:
           typedef Symbol *__symbol;
@@ -90,6 +95,8 @@ namespace bfp
            */
           const ::std::string getName() const;
 
+          ::std::vector<Instruction *> getNonSymbolData();
+
           /**
            * @return binary content (lazy read)
            */
@@ -114,6 +121,11 @@ namespace bfp
            * @return next nearest address to the symbol in parameter
            */
           uint64_t getNearestAddress(Symbol *_sym);
+
+          /**
+           * @return next nearest address to the symbol in parameter
+           */
+          uint64_t getNearestAddress(uint64_t _address);
 
           /**
            * @return numbers of line
@@ -219,7 +231,8 @@ namespace bfp
           Section() = delete;
 
           /** Forbidden copy constructor */
-          Section(const Section &) = delete;
+          Section(
+              const Section &) = delete;
 
           /** Forbidden move constructor */
           Section(Section &&) = delete;
@@ -240,6 +253,14 @@ namespace bfp
            * @param asc - ascendicaly (default)
            */
           void sort(bool asc = true);
+
+          /**
+           * @brief Prepares structure where disassembler will store info
+           *        This is here because things that are allocated and initialized
+           *        here are used by all symbols so they only
+           * @return pointer to that structure
+           */
+          disassemble_info *getDisassembleInfo();
 
           /** This cannot be instantiated outside this class
            *    but it is done via File (factory method)
@@ -265,6 +286,8 @@ namespace bfp
 
           /** File where Section belongs */
           File *_parent;
+
+          ::std::vector<Instruction *> _instructions;
         };
   }
 

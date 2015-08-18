@@ -26,6 +26,7 @@ namespace bfp
           retrieve_symbols();
           retrieve_dynamic_symbols();
           retrieve_synthetic_symbols();
+          setDisassembleInfo();
           for (auto &_sec : *this)
             _sec->sort();
         }
@@ -135,47 +136,31 @@ namespace bfp
           return _target;
         }
 
-      disassemble_info *File::getDisassembleInfo(Symbol *_sym)
+      void File::setDisassembleInfo()
         {
-          /*if symbol is not a function this doesn't have any sense*/
-          if (!_sym->section()->hasContent())
-            return nullptr;
+          _dis_asm_info = new disassemble_info();
+          init_disassemble_info(_dis_asm_info, &_FFILE,
+                                (fprintf_ftype) ffprintf);
 
-          /*It disassemble info is not set we now initialize/allocate it*/
-          if (_dis_asm_info == nullptr)
-            {
-              _dis_asm_info = new disassemble_info();
-              init_disassemble_info(_dis_asm_info, &_FFILE,
-                                    (fprintf_ftype) ffprintf);
+          /*some bfd settings*/
+          _dis_asm_info->flavour = bfd_get_flavour (_fd);
+          _dis_asm_info->arch = bfd_get_arch(_fd);
+          _dis_asm_info->mach = bfd_get_mach(_fd);
+          _dis_asm_info->octets_per_byte = bfd_octets_per_byte(_fd);
+          _dis_asm_info->skip_zeroes = 8;
+          _dis_asm_info->skip_zeroes_at_end = 3;
+          _dis_asm_info->application_data = _fd;
 
-              /*some bfd settings*/
-              _dis_asm_info->flavour = bfd_get_flavour (_fd);
-              _dis_asm_info->arch = bfd_get_arch(_fd);
-              _dis_asm_info->mach = bfd_get_mach(_fd);
-              _dis_asm_info->octets_per_byte = bfd_octets_per_byte(_fd);
-              _dis_asm_info->skip_zeroes = 8;
-              _dis_asm_info->skip_zeroes_at_end = 3;
-              _dis_asm_info->application_data = _fd;
+          if (bfd_big_endian (_fd))
+            _dis_asm_info->display_endian = BFD_ENDIAN_BIG;
+          else if (bfd_little_endian (_fd))
+            _dis_asm_info->display_endian = BFD_ENDIAN_LITTLE;
+          else
+            _dis_asm_info->endian = BFD_ENDIAN_UNKNOWN;
 
-              if (bfd_big_endian (_fd))
-                _dis_asm_info->display_endian = BFD_ENDIAN_BIG;
-              else if (bfd_little_endian (_fd))
-                _dis_asm_info->display_endian = BFD_ENDIAN_LITTLE;
-              else
-                _dis_asm_info->endian = BFD_ENDIAN_UNKNOWN;
-
-              _dis_asm_info->disassembler_options = (char *) "-M intel,intel-mnemonic";
-            }
-
-          /* This varies so it is set every time this is called
-             into _buffer goes data, vma section address (as base),
-             length data size */
-          _dis_asm_info->buffer = _sym->section()->getContent();
-          _dis_asm_info->buffer_vma = _sym->section()->getAddress();
-          _dis_asm_info->buffer_length = (unsigned) _sym->section()
-                                                        ->getContentSize();
-          return _dis_asm_info;
+          _dis_asm_info->disassembler_options = (char *) "-M intel,intel-mnemonic";
         }
+
 
       disassembler_ftype File::getDisassembler()
         {

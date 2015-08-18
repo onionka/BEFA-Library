@@ -236,11 +236,11 @@ namespace bfp
 
       Symbol::__instr_vec &Symbol::getInstructions()
         {
-          if (!has_no_intructions && _instructions.size() == 0)
+          if (!has_no_intructions && _instructions.empty())
             {
               /*and finally decoding instructions from _sym to next symbol or end of section*/
               auto _dis_asm = _parent->getDisassembler();
-              auto _dis_asm_info = _parent->getDisassembleInfo(this);
+              auto _dis_asm_info = section()->getDisassembleInfo();
               if (_dis_asm_info == nullptr)
                 {
                   has_no_intructions = true;

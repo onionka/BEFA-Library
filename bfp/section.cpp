@@ -16,8 +16,8 @@ namespace bfp
               const Symbol *_1,
               const Symbol *_2) -> bool
             {
-              return (asc ? _1->getValue() < _2->getValue()
-                          : _1->getValue() > _2->getValue()) ||
+              return (asc ? _1->getValue() < _2->getValue() : _1->getValue() >
+                                                              _2->getValue()) ||
                      getName() == _1->getName();
             });
         }
@@ -135,6 +135,24 @@ namespace bfp
       uint64_t Section::getLastAddress()
         {
           return bfd_get_section_vma(_parent->_fd, _sec) + getContentSize();
+        }
+
+      uint64_t Section::getNearestAddress(uint64_t _address)
+        {
+          uint64_t _next_address = 0;
+          auto _sym_ite = ::bfp::find(begin(), end(), (symvalue) _address);
+          if (_sym_ite == end())
+            _next_address = getLastAddress();
+          else
+            {
+              while (_sym_ite != end() && (*_sym_ite)->getValue() == _address)
+                _sym_ite++;
+              if (_sym_ite == end())
+                _next_address = getLastAddress();
+              else
+                _next_address = (*_sym_ite)->getValue();
+            }
+          return _next_address;
         }
 
       uint64_t Section::getNearestAddress(Symbol *_sym)
@@ -387,5 +405,45 @@ namespace bfp
             delete _sym;
           if (_data != nullptr)
             delete[] _data;
+        }
+
+      disassemble_info *Section::getDisassembleInfo()
+        {
+          /*if symbol is not a function this doesn't have any sense*/
+          if (!hasContent())
+            return nullptr;
+
+          /* This varies so it is set in section (where it varies */
+          _parent->_dis_asm_info->buffer = getContent();
+          _parent->_dis_asm_info->buffer_vma = getAddress();
+          _parent->_dis_asm_info->buffer_length = (unsigned) getContentSize();
+          return _parent->_dis_asm_info;
+        }
+
+      ::std::vector<Instruction *> Section::getNonSymbolData()
+        {
+          auto _dis_asm = _parent->getDisassembler();
+          auto _dis_asm_info = getDisassembleInfo();
+          auto _add = getAddress();
+          if (_dis_asm_info == nullptr)
+            return _instructions;
+          if (_instructions.empty())
+            {
+              for (int _dis = 0, _instr_size = 0;
+                   _add + _dis < getNearestAddress(_add);
+                   _dis += _instr_size)
+                {
+                  _parent->_FFILE.pos = 0;
+                  _instr_size = _dis_asm(_add + _dis, _dis_asm_info);
+                  if (_instr_size <= 0)
+                    break;
+                  _instructions.push_back(new Instruction((getContent() + _dis),
+                                                          (size_t) _instr_size,
+                                                          _parent->_FFILE
+                                                                 .buffer,
+                                                          _add + _dis));
+                }
+            }
+          return _instructions;
         }
   }

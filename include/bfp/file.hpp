@@ -148,14 +148,6 @@ namespace bfp
               ...);
 
           /**
-           * @brief Prepares structure where disassembler will store info
-           *        This is here because things that are allocated and initialized
-           *        here are used by all symbols so they only
-           * @return pointer to that structure
-           */
-          disassemble_info *getDisassembleInfo(Symbol *_sym);
-
-          /**
            * @brief This prepares disassembler
            */
           disassembler_ftype getDisassembler();
@@ -170,6 +162,14 @@ namespace bfp
           void retrieve_symbols();
 
           void retrieve_synthetic_symbols();
+
+          /**
+           * @brief Prepares structure where disassembler will store info
+           *        This is here because things that are allocated and initialized
+           *        here are used by all symbols so they only
+           * @return pointer to that structure
+           */
+          void setDisassembleInfo();
 
       private:
           /** Frees all sections and symbols when deleted

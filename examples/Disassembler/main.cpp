@@ -73,6 +73,11 @@ int main(
               {
                 printf("\n%s <0x%016X>:\n", sec->getName().c_str(),
                        (unsigned) sec->getAddress());
+                if (sec->hasCodeOnly())
+                  for (auto &non_sym_i : sec->getNonSymbolData())
+                      printf("\t\t0x%016X %40s  %s\n", non_sym_i->getAddress(),
+                             non_sym_i->getBinary().c_str(),
+                             non_sym_i->getSignature().c_str());
                 for (auto &sym : *sec)
                   {
                     printf("\n\t%s <0x%016X>\n", sym->getName().c_str(),

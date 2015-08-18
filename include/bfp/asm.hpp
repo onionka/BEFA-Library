@@ -18,6 +18,8 @@ namespace bfp
         {
           friend class Symbol;
 
+          friend class Section;
+
           typedef const char *c_string;
       public:
           typedef uint8_t __byte;
