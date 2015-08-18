@@ -21,6 +21,9 @@ namespace bfp
 
       class Section
         {
+          /** Only File may instantiate this */
+          friend class File;
+
       public:
           typedef Symbol *__symbol;
           typedef ::std::vector<__symbol> __sym_vector;
@@ -28,8 +31,6 @@ namespace bfp
           typedef __sym_vector::reverse_iterator __reverse_iterator;
           typedef __sym_vector::const_iterator __const_iterator;
           typedef __sym_vector::const_reverse_iterator __const_reverse_iterator;
-
-          ~Section();
 
           // ************************************* //
           //         Comparition operators         //
@@ -211,8 +212,8 @@ namespace bfp
           bool isCreatedByLinker() const;
 
       private:
-          /// Only File may instantiate this
-          friend class File;
+          /** frees memory -> only File may do it */
+          ~Section();
 
           /** Forbidden primitive constructor */
           Section() = delete;
@@ -233,6 +234,13 @@ namespace bfp
           void push_back(
               __symbol _sec);
 
+          /**
+           * @brief sorts symbols in this section by value
+           *        may corrupt disassembler so it is for internal use
+           * @param asc - ascendicaly (default)
+           */
+          void sort(bool asc = true);
+
           /** This cannot be instantiated outside this class
            *    but it is done via File (factory method)
            * @param section is BFD structure that represents
@@ -243,8 +251,6 @@ namespace bfp
               File *parent);
 
       private:
-          bool _not_a_section = false;
-
           /** Section as BFD structure */
           asection *_sec;
 

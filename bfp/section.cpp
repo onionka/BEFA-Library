@@ -10,6 +10,18 @@
 
 namespace bfp
   {
+      void Section::sort(bool asc)
+        {
+          ::std::sort(begin(), end(), [&](
+              const Symbol *_1,
+              const Symbol *_2) -> bool
+            {
+              return (asc ? _1->getValue() < _2->getValue()
+                          : _1->getValue() > _2->getValue()) ||
+                     getName() == _1->getName();
+            });
+        }
+
       bool Section::operator==(
           const Section &_compare)
         {
@@ -371,8 +383,6 @@ namespace bfp
 
       Section::~Section()
         {
-          if (_not_a_section)
-            delete _sec;
           for (auto _sym : _symbols)
             delete _sym;
           if (_data != nullptr)

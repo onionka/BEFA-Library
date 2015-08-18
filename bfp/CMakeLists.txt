@@ -6,7 +6,7 @@ SET(SOURCE_FILES
     symbol.cpp
     section.cpp
     file.cpp
-    instruction.cpp
+    asm.cpp
     )
 
 SET(HEADER_FILES
@@ -17,7 +17,7 @@ SET(HEADER_FILES
     ${PROJECT_SOURCE_DIR}/include/bfp/section.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/symbol.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/support.hpp
-    ${PROJECT_SOURCE_DIR}/include/bfp/instruction.hpp
+    ${PROJECT_SOURCE_DIR}/include/bfp/asm.hpp
     )
 
 SET(TEMPLATE_FILES

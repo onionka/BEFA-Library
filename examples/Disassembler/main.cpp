@@ -77,7 +77,7 @@ int main(
                   {
                     printf("\n\t%s <0x%016X>\n", sym->getName().c_str(),
                            (unsigned) sym->getValue());
-                    if (*sec == ".text" && *sym == "_start")
+                    if (*sec == ".text" && sym->isFunction())
                       {
                         ::std::cout << sym->getInstructions().size() << ::std::endl;
                         for (auto &_instr : sym->getInstructions())

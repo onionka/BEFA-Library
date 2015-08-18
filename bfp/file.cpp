@@ -22,69 +22,10 @@ namespace bfp
           _path{path},
           _target{target}
         {
-          long storage_needed;
-          long number_of_symbols;
-          long i;
-
-          storage_needed = bfd_get_symtab_upper_bound (_fd);
-
-          if (storage_needed < 0)
-            BFP_ASSERT();
-
-          if (storage_needed == 0)
-            return;
-
-          symbol_table = (asymbol **) malloc(
-              static_cast<size_t>(storage_needed));
-
-          if ((number_of_symbols = bfd_canonicalize_symtab (_fd,
-                                                            symbol_table)) < 0)
-            BFP_ASSERT();
-
-          Section *_s_com = new Section(bfd_com_section_ptr, this);
-          Section *_s_und = new Section(bfd_und_section_ptr, this);
-          Section *_s_abs = new Section(bfd_abs_section_ptr, this);
-          Section *_s_ind = new Section(bfd_ind_section_ptr, this);
-          push_back(_s_com);
-          push_back(_s_und);
-          push_back(_s_abs);
-          push_back(_s_ind);
-          for (asection *_sec = _fd->sections;
-               _sec != NULL;
-               _sec = _sec->next)
-            {
-              Section *_s = new Section(_sec, this);
-              push_back(_s);
-            }
-
-          for (i = 0;
-               i < number_of_symbols;
-               ++i)
-            {
-
-              auto _sec = end();
-              if (symbol_table[i]->section != nullptr)
-                _sec = ::bfp::find(begin(), end(), symbol_table[i]->section);
-              if (_sec == end())
-                {
-                  RAISE(Exception::Parser::WrongFormat);
-                }
-              else
-                {
-                  Symbol *_sym = new Symbol(symbol_table[i], this);
-                  _sym->_section = *_sec;
-                  (*_sec)->push_back(_sym);
-                }
-            }
+          retrieve_sections();
+          retrieve_symbols();
           for (auto &_sec : *this)
-            ::std::sort(_sec->begin(), _sec->end(), [&](
-                const Symbol *_1,
-                const Symbol *_2) -> bool
-              {
-                return _1->getValue() < _2->getValue() ||
-                       _sec->getName() == _1->getName();
-              });
-
+            _sec->sort();
         }
 
       File::~File()
@@ -202,7 +143,7 @@ namespace bfp
             {
               _dis_asm_info = new disassemble_info();
               init_disassemble_info(_dis_asm_info, &_FFILE,
-                                    (fprintf_ftype) fsprintf);
+                                    (fprintf_ftype) ffprintf);
 
               /*some bfd settings*/
               _dis_asm_info->flavour = bfd_get_flavour (_fd);
@@ -240,7 +181,69 @@ namespace bfp
           return _dis_asm;
         }
 
-      int File::fsprintf(
+      void File::retrieve_symbols()
+        {
+          long storage_needed;
+          long number_of_symbols;
+          long i;
+
+          storage_needed = bfd_get_symtab_upper_bound (_fd);
+
+          if (storage_needed < 0)
+            BFP_ASSERT();
+
+          if (storage_needed == 0)
+            return;
+
+          symbol_table = (asymbol **) malloc(
+              static_cast<size_t>(storage_needed));
+
+          if ((number_of_symbols = bfd_canonicalize_symtab (_fd,
+                                                            symbol_table)) < 0)
+            BFP_ASSERT();
+
+
+          for (i = 0;
+               i < number_of_symbols;
+               ++i)
+            {
+
+              auto _sec = end();
+              if (symbol_table[i]->section != nullptr)
+                _sec = ::bfp::find(begin(), end(), symbol_table[i]->section);
+              if (_sec == end())
+                {
+                  RAISE(Exception::Parser::WrongFormat);
+                }
+              else
+                {
+                  Symbol *_sym = new Symbol(symbol_table[i], this);
+                  _sym->_section = *_sec;
+                  (*_sec)->push_back(_sym);
+                }
+            }
+        }
+
+      void File::retrieve_sections()
+        {
+          Section *_s_com = new Section(bfd_com_section_ptr, this);
+          Section *_s_und = new Section(bfd_und_section_ptr, this);
+          Section *_s_abs = new Section(bfd_abs_section_ptr, this);
+          Section *_s_ind = new Section(bfd_ind_section_ptr, this);
+          push_back(_s_com);
+          push_back(_s_und);
+          push_back(_s_abs);
+          push_back(_s_ind);
+          for (asection *_sec = _fd->sections;
+               _sec != NULL;
+               _sec = _sec->next)
+            {
+              Section *_s = new Section(_sec, this);
+              push_back(_s);
+            }
+        }
+
+      int File::ffprintf(
           File::__ffile *f,
           const char *format,
           ...)

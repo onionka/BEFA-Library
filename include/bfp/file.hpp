@@ -25,6 +25,14 @@ namespace bfp
        */
       class File
         {
+          /** So BFD may create instance of this or delete */
+          friend class Parser;
+
+          /** For accessing private data */
+          friend class Section;
+
+          /** For accessing private data */
+          friend class Symbol;
 
       public:
           typedef Section *__section;
@@ -48,11 +56,6 @@ namespace bfp
               ~FFILE();
 
             } __ffile;
-
-          /** Frees all sections and symbols when deleted
-           *    By default it is done by BFD so ... don't do it
-           */
-          ~File();
 
           /** @return path to this file */
           const char *get_path() const;
@@ -99,13 +102,6 @@ namespace bfp
           bool empty();
 
       private:
-          /// So BFD may create instance of this
-          friend class Parser;
-
-          friend class Section;
-
-          friend class Symbol;
-
           /** File can't be created outside of BFD singleton/factory
            *    This is opened by BFD and closed by BFD
            *      (May be accessed via vector of files in BFD)
@@ -145,8 +141,8 @@ namespace bfp
            * @param ... formating info
            * @return number of written bytes to f (FFILE)
            */
-          __attribute__((format(printf, 2, 3)))
-          static int fsprintf(
+          ATTRIBUTE_PRINTF_2
+          static int ffprintf(
               __ffile *f,
               const char *format,
               ...);
@@ -164,15 +160,25 @@ namespace bfp
            */
           disassembler_ftype getDisassembler();
 
+          /** reads sections from file */
+          void retrieve_sections();
+
+          /** reads symbols from file */
+          void retrieve_symbols();
 
       private:
+          /** Frees all sections and symbols when deleted
+           *    By default it is done by BFD so ... don't do it
+           */
+          ~File();
+
           /** File descriptor */
           bfd *_fd;
 
           /** Path to executable */
           const char *_path;
 
-          /** Target name eg. elf64-x86-64 */
+          /** Target name ie. elf64-x86-64 */
           const char *_target;
 
           /** Vector of section in file (contains also appropriate symbols) */

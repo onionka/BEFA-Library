@@ -44,7 +44,9 @@ namespace bfp
         {
           bfd_init();
           auto _bfd_targets = bfd_target_list();
-          for (auto _target = _bfd_targets; *_target != NULL; ++_target)
+          for (auto _target = _bfd_targets;
+               *_target != NULL;
+               ++_target)
             _targets.push_back(::std::string(*_target));
           free(_bfd_targets);
         }
