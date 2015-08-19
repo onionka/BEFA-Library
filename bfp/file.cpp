@@ -25,7 +25,7 @@ namespace bfp
           retrieve_sections();
           retrieve_symbols();
           retrieve_dynamic_symbols();
-          retrieve_synthetic_symbols();
+          //retrieve_synthetic_symbols();
           setDisassembleInfo();
           for (auto &_sec : *this)
             _sec->sort();
@@ -35,6 +35,8 @@ namespace bfp
         {
           bfd_close(_fd);
           free(symbol_table);
+          free(dynamic_symbol_table);
+          //free(synthetic_symbol_table);
           for (auto &_sec: _sections)
             delete _sec;
           if (_dis_asm_info != nullptr)

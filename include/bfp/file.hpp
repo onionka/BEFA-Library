@@ -101,6 +101,11 @@ namespace bfp
 
           bool empty();
 
+          /** Frees all sections and symbols when deleted
+           *    By default it is done by BFD so ... don't do it
+           */
+          ~File();
+
       private:
           /** File can't be created outside of BFD singleton/factory
            *    This is opened by BFD and closed by BFD
@@ -172,10 +177,6 @@ namespace bfp
           void setDisassembleInfo();
 
       private:
-          /** Frees all sections and symbols when deleted
-           *    By default it is done by BFD so ... don't do it
-           */
-          ~File();
 
           /** File descriptor */
           bfd *_fd;
