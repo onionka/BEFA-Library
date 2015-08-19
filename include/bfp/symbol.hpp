@@ -7,6 +7,7 @@
 #ifndef __BFP_SYMBOL_HPP
 # define __BFP_SYMBOL_HPP
 
+
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
@@ -24,11 +25,30 @@ namespace bfp
           /** Section may delete file */
           friend class Section;
 
-          typedef Section *__section;
-          typedef ::std::vector<Instruction *> __instr_vec;
 
       public:
+          typedef Section *__section;
+          typedef Instruction *__data;
+          typedef ::std::vector<__data> __instr_vec;
+          typedef Iterator<Symbol> __iterator;
+
           ~Symbol();
+
+          void next(Instruction *_data);
+          void prev(Instruction *_data);
+
+          __iterator begin();
+
+          __iterator end();
+
+          size_t capacity();
+
+          size_t size();
+
+          size_t max_size();
+
+          Instruction &operator[](
+              size_t n);
 
           /////////////////////////////////////////////
           ///         Comparition operators         ///
@@ -199,6 +219,8 @@ namespace bfp
 
           /** if this symbol has any instructions to disassemble */
           bool has_no_intructions = false;
+
+          int64_t _size = -1;
         };
   }
 

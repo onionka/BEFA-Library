@@ -234,6 +234,84 @@ namespace bfp
           return static_cast<bool>(_sym->flags & BSF_OBJECT);
         }
 
+      Symbol::__iterator Symbol::begin()
+        {
+          __iterator _ite(this);
+          return _ite;
+        }
+
+      Symbol::__iterator Symbol::end()
+        {
+          __iterator _ite(this, section()->getLastAddress());
+          return _ite;
+        }
+
+      size_t Symbol::size()
+        {
+          if (_size == -1)
+            _size = (int64_t) (section()->getNearestAddress(getValue()) -
+                               getValue());
+          return (size_t) _size;
+        }
+
+      size_t Symbol::capacity()
+        {
+          return size();
+        }
+
+      size_t Symbol::max_size()
+        {
+          return size();
+        }
+
+      Instruction &Symbol::operator[](
+          size_t n)
+        {
+          return *(__iterator(this, n));
+        }
+
+      void Symbol::next(Instruction *_data)
+        {
+          auto _dis_asm = _parent->getDisassembler();
+          auto _dis_asm_info = section()->getDisassembleInfo();
+          uint64_t nearest_address = section()->getNearestAddress(
+              _data->_address);
+          _parent->_FFILE.pos = 0;
+          int _instr_size = _dis_asm(nearest_address, _dis_asm_info);
+          _data->_address = nearest_address;
+          if (_instr_size < 0)
+            {
+              return;
+            }
+          _data->realloc((size_t)_instr_size);
+          memcpy(_data->_op_code, section()->getContent() - nearest_address -
+                                  section()->getAddress(),
+                 (size_t) _instr_size);
+          _data->_s_signature = _parent->_FFILE.buffer;
+          _data->_binary = "";
+        }
+
+      void Symbol::prev(Instruction *_data)
+        {
+          auto _dis_asm = _parent->getDisassembler();
+          auto _dis_asm_info = section()->getDisassembleInfo();
+          uint64_t nearest_address = section()->getNearestPrevAddress(
+              _data->_address);
+          _parent->_FFILE.pos = 0;
+          int _instr_size = _dis_asm(nearest_address, _dis_asm_info);
+          _data->_address = nearest_address;
+          if (_instr_size < 0)
+            {
+              return;
+            }
+          _data->realloc((size_t)_instr_size);
+          memcpy(_data->_op_code, section()->getContent() - nearest_address -
+                                  section()->getAddress(),
+                 (size_t) _instr_size);
+          _data->_s_signature = _parent->_FFILE.buffer;
+          _data->_binary = "";
+        }
+
       Symbol::__instr_vec &Symbol::getInstructions()
         {
           if (!has_no_intructions && _instructions.empty())

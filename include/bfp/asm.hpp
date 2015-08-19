@@ -20,6 +20,8 @@ namespace bfp
 
           friend class Section;
 
+          friend class Iterator;
+
           typedef const char *c_string;
       public:
           typedef uint8_t __byte;
@@ -64,10 +66,28 @@ namespace bfp
            * @param _copy object that will be copied
            */
           Instruction(
-              const Instruction *_copy);
+              Instruction *_copy);
 
-          /** Forbidden primitive constructor */
-          Instruction() = delete;
+          void realloc(size_t _s)
+            {
+              if (_size <= _s)
+                {
+                  delete[] _op_code;
+                  _op_code = new __byte[_s];
+                }
+            }
+
+      public:
+          Instruction()
+            {
+              _op_code = new __byte[0];
+              _s_signature = "";
+              _address = 0x0;
+              _binary = "";
+              _size = 0;
+              _name = "";
+            }
+      private:
 
           /** Forbidden copy constructor */
           Instruction(const Instruction &) = delete;

@@ -8,19 +8,18 @@
 #ifndef __BFP_SECTION_HPP
 # define __BFP_SECTION_HPP
 
-#include "asm.hpp"
-
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
-
 
 namespace bfp
   {
       class File;
 
       class Symbol;
+
+      class Instruction;
 
       class Section
         {
@@ -30,8 +29,8 @@ namespace bfp
           friend class Symbol;
 
       public:
-          typedef Symbol *__symbol;
-          typedef ::std::vector<__symbol> __sym_vector;
+          typedef Symbol *__data;
+          typedef ::std::vector<__data> __sym_vector;
           typedef __sym_vector::iterator __iterator;
           typedef __sym_vector::reverse_iterator __reverse_iterator;
           typedef __sym_vector::const_iterator __const_iterator;
@@ -127,9 +126,11 @@ namespace bfp
            */
           uint64_t getNearestAddress(uint64_t _address);
 
-          /**
-           * @return numbers of line
-           */
+          uint64_t getNearestPrevAddress(uint64_t _address);
+
+              /**
+               * @return numbers of line
+               */
           const ::std::vector<alent> getLineNO() const;
 
 
@@ -159,14 +160,14 @@ namespace bfp
 
           size_t max_size();
 
-          __symbol operator[](
+          __data operator[](
               size_t n);
 
-          __symbol front();
+          __data front();
 
-          __symbol back();
+          __data back();
 
-          __symbol at(
+          __data at(
               size_t n);
 
           bool empty();
@@ -245,7 +246,7 @@ namespace bfp
 
           /** This should be constant vector so push_back is not allowed (only internal) */
           void push_back(
-              __symbol _sec);
+              __data _sec);
 
           /**
            * @brief sorts symbols in this section by value

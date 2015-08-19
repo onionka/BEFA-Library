@@ -7,6 +7,7 @@ SET(SOURCE_FILES
     section.cpp
     file.cpp
     asm.cpp
+    iterator.cpp
     )
 
 SET(HEADER_FILES
@@ -18,6 +19,7 @@ SET(HEADER_FILES
     ${PROJECT_SOURCE_DIR}/include/bfp/symbol.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/support.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/asm.hpp
+    ${PROJECT_SOURCE_DIR}/include/bfp/iterator.hpp
     )
 
 SET(TEMPLATE_FILES

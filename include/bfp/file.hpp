@@ -35,8 +35,8 @@ namespace bfp
           friend class Symbol;
 
       public:
-          typedef Section *__section;
-          typedef ::std::vector<__section> __sec_vector;
+          typedef Section *__data;
+          typedef ::std::vector<__data> __sec_vector;
           typedef __sec_vector::iterator __iterator;
           typedef __sec_vector::reverse_iterator __reverse_iterator;
           typedef __sec_vector::const_iterator __const_iterator;
@@ -89,14 +89,14 @@ namespace bfp
 
           size_t max_size();
 
-          __section operator[](
+          __data operator[](
               size_t n);
 
-          __section front();
+          __data front();
 
-          __section back();
+          __data back();
 
-          __section at(
+          __data at(
               size_t n);
 
           bool empty();
@@ -137,7 +137,7 @@ namespace bfp
 
           /** This should be constant vector so push_back is not allowed (only internal) */
           void push_back(
-              __section _sec);
+              __data _sec);
 
           /**
            * @brief Our custom fake printf that stores output from disassembler

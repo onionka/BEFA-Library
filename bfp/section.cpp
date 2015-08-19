@@ -155,6 +155,24 @@ namespace bfp
           return _next_address;
         }
 
+      uint64_t Section::getNearestPrevAddress(uint64_t _address)
+        {
+          uint64_t _next_address = 0;
+          auto _sym_ite = ::bfp::find(rbegin(), rend(), (symvalue) _address);
+          if (_sym_ite == rend())
+            _next_address = getAddress();
+          else
+            {
+              while (_sym_ite != rend() && (*_sym_ite)->getValue() == _address)
+                _sym_ite++;
+              if (_sym_ite == rend())
+                _next_address = getAddress();
+              else
+                _next_address = (*_sym_ite)->getValue();
+            }
+          return _next_address;
+        }
+
       uint64_t Section::getNearestAddress(Symbol *_sym)
         {
           uint64_t _next_address = 0;
@@ -340,22 +358,22 @@ namespace bfp
           return _symbols.max_size();
         }
 
-      Section::__symbol Section::operator[](size_t n)
+      Section::__data Section::operator[](size_t n)
         {
           return _symbols[n];
         }
 
-      Section::__symbol Section::front()
+      Section::__data Section::front()
         {
           return _symbols.front();
         }
 
-      Section::__symbol Section::back()
+      Section::__data Section::back()
         {
           return _symbols.back();
         }
 
-      Section::__symbol Section::at(size_t n)
+      Section::__data Section::at(size_t n)
         {
           return _symbols.at(n);
         }
@@ -365,7 +383,7 @@ namespace bfp
           return _symbols.empty();
         }
 
-      void Section::push_back(Section::__symbol _sec)
+      void Section::push_back(Section::__data _sec)
         {
           _symbols.push_back(_sec);
         }

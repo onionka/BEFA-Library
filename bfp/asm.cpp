@@ -25,7 +25,7 @@ namespace bfp
         }
 
       Instruction::Instruction(
-          const Instruction *_copy)
+          Instruction *_copy)
         {
           _op_code = new __byte[_copy->_size];
           _op_code = (__byte *) memcpy(_op_code, _copy->_op_code,

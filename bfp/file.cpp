@@ -98,22 +98,22 @@ namespace bfp
           return _sections.max_size();
         }
 
-      File::__section File::operator[](size_t n)
+      File::__data File::operator[](size_t n)
         {
           return _sections[n];
         }
 
-      File::__section File::front()
+      File::__data File::front()
         {
           return _sections.front();
         }
 
-      File::__section File::back()
+      File::__data File::back()
         {
           return _sections.back();
         }
 
-      File::__section File::at(size_t n)
+      File::__data File::at(size_t n)
         {
           return _sections.at(n);
         }
@@ -123,7 +123,7 @@ namespace bfp
           return _sections.empty();
         }
 
-      void File::push_back(File::__section _sec)
+      void File::push_back(File::__data _sec)
         {
           _sections.push_back(_sec);
         }
