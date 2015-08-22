@@ -24,8 +24,6 @@ namespace bfp
         {
           retrieve_sections();
           retrieve_symbols();
-          retrieve_dynamic_symbols();
-          //retrieve_synthetic_symbols();
           setDisassembleInfo();
           for (auto &_sec : *this)
             _sec->sort();
@@ -35,8 +33,7 @@ namespace bfp
         {
           bfd_close(_fd);
           free(symbol_table);
-          free(dynamic_symbol_table);
-          //free(synthetic_symbol_table);
+          free(synthetic_symbol_table);
           for (auto &_sec: _sections)
             delete _sec;
           if (_dis_asm_info != nullptr)
@@ -171,86 +168,14 @@ namespace bfp
           return _dis_asm;
         }
 
-      void File::retrieve_synthetic_symbols()
-        {
-          synthetic_symbol_table = (asymbol **) malloc(sizeof(asymbol *));
-          synthetic_count = bfd_get_synthetic_symtab(_fd, number_of_symbols,
-                                                     symbol_table,
-                                                     number_of_dyn_sym,
-                                                     dynamic_symbol_table,
-                                                     synthetic_symbol_table);
-          for (long i = 0;
-               i < synthetic_count;
-               ++i)
-            {
-              auto _sec = end();
-              if ((*synthetic_symbol_table)[i].section != nullptr)
-                _sec = ::bfp::find(begin(), end(),
-                                   (*synthetic_symbol_table)[i].section);
-              if (_sec == end())
-                {
-                  RAISE(Exception::Parser::WrongFormat);
-                }
-              else
-                {
-                  Symbol *_sym = new Symbol((*synthetic_symbol_table) + i,
-                                            this);
-                  _sym->_section = *_sec;
-                  (*_sec)->push_back(_sym);
-                }
-            }
-        }
-
-      void File::retrieve_dynamic_symbols()
-        {
-          long storage_needed;
-          long i;
-
-          storage_needed = bfd_get_dynamic_symtab_upper_bound (_fd);
-
-          if (storage_needed < 0 && (bfd_get_file_flags (_fd) & DYNAMIC))
-            BFP_ASSERT();
-
-          if (storage_needed < 0)
-            BFP_ASSERT();
-
-          if (storage_needed == 0)
-            return;
-
-          dynamic_symbol_table = (asymbol **) malloc(
-              static_cast<size_t>(storage_needed));
-
-          number_of_dyn_sym = bfd_canonicalize_dynamic_symtab (_fd,
-                                                               dynamic_symbol_table);
-
-          for (i = 0;
-               i < number_of_dyn_sym;
-               ++i)
-            {
-
-              auto _sec = end();
-              if (dynamic_symbol_table[i]->section != nullptr)
-                _sec = ::bfp::find(begin(), end(),
-                                   dynamic_symbol_table[i]->section);
-              if (_sec == end())
-                {
-                  RAISE(Exception::Parser::WrongFormat);
-                }
-              else
-                {
-                  Symbol *_sym = new Symbol(dynamic_symbol_table[i], this);
-                  _sym->_section = *_sec;
-                  (*_sec)->push_back(_sym);
-                }
-            }
-        }
-
       void File::retrieve_symbols()
         {
           long storage_needed;
-          long i;
+          long dyn_storage_needed;
+
 
           storage_needed = bfd_get_symtab_upper_bound (_fd);
+          dyn_storage_needed = bfd_get_dynamic_symtab_upper_bound (_fd);
 
           if (storage_needed < 0)
             BFP_ASSERT();
@@ -258,16 +183,49 @@ namespace bfp
           if (storage_needed == 0)
             return;
 
+          if (dyn_storage_needed < 0 && (bfd_get_file_flags (_fd) & DYNAMIC))
+            BFP_ASSERT();
+
+          if (dyn_storage_needed < 0)
+            BFP_ASSERT();
+
+          if (dyn_storage_needed == 0)
+            return;
+
+
           symbol_table = (asymbol **) malloc(
-              static_cast<size_t>(storage_needed));
+              static_cast<size_t>(storage_needed + dyn_storage_needed));
 
           if ((number_of_symbols = bfd_canonicalize_symtab (_fd,
                                                             symbol_table)) < 0)
             BFP_ASSERT();
 
 
-          for (i = 0;
-               i < number_of_symbols;
+          if ((number_of_dyn_sym = bfd_canonicalize_dynamic_symtab (_fd,
+                                                                    symbol_table +
+                                                                    number_of_symbols)) <
+              0)
+            BFP_ASSERT();
+
+
+          synthetic_count = bfd_get_synthetic_symtab(_fd, number_of_symbols,
+                                                     symbol_table,
+                                                     number_of_dyn_sym,
+                                                     symbol_table +
+                                                     number_of_symbols,
+                                                     &synthetic_symbol_table);
+          symbol_table = (asymbol **) realloc(symbol_table, sizeof(asymbol *) *
+                                                            (synthetic_count +
+                                                             number_of_symbols +
+                                                             number_of_dyn_sym));
+          for (long i = 0;
+               i < synthetic_count;
+               ++i)
+            symbol_table[synthetic_count + number_of_symbols + i] =
+                synthetic_symbol_table + i;
+
+          for (long i = 0;
+               i < number_of_symbols + number_of_dyn_sym;
                ++i)
             {
               auto _sec = end();
