@@ -270,7 +270,10 @@ namespace bfp
            */
           Section(
               asection *section,
-              File *parent);
+              bfd *bfd,
+              disassembler_ftype dis_asm,
+              disassemble_info *dis_info,
+              asymbol **table);
 
       private:
           /** Section as BFD structure */
@@ -285,9 +288,10 @@ namespace bfp
           /** Binary content of this file */
           uint8_t *_data;
 
-          /** File where Section belongs */
-          File *_parent;
-
+          disassembler_ftype _dis_asm;
+          disassemble_info *_dis_info;
+          asymbol **_table;
+          bfd *_bfd;
           ::std::vector<Instruction *> _instructions;
         };
   }

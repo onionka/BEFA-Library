@@ -312,7 +312,7 @@ namespace bfp
           _data->_binary = "";
         }
 
-      Symbol::__instr_vec &Symbol::getInstructions()
+      Symbol::__instr_vec &&Symbol::getInstructions()
         {
           if (!has_no_intructions && _instructions.empty())
             {
@@ -322,7 +322,7 @@ namespace bfp
               if (_dis_asm_info == nullptr)
                 {
                   has_no_intructions = true;
-                  return _instructions;
+                  return ::std::move(_instructions);
                 }
               for (int _dis = 0, _instr_size = 0;
                    getValue() + _dis < section()->getNearestAddress(this);
@@ -336,12 +336,12 @@ namespace bfp
                       (section()->getContent() + getValue() -
                        section()->getAddress() + _dis), (size_t) _instr_size,
                       _parent->_FFILE.buffer,
-                      getValue() - section()->getAddress() + _dis));
+                      getValue() + _dis));
                 }
 
               has_no_intructions = true;
             }
-          return _instructions;
+          return ::std::move(_instructions);
         }
 
       Symbol::Symbol(

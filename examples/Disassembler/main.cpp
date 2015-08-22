@@ -23,11 +23,11 @@ int main(
     try
       {
         po::options_description desc("Allowed options");
-        desc.add_options()("help,h", "prints help")("list-targets,lt",
+        desc.add_options()("help,h", "prints help")("list-targets,l",
                                                     "prints list of appropriate targets")(
-            "list-symbols,ls", "prints list of symbols")("file,f",
-                                                         ::boost::program_options::value<::std::string>(),
-                                                         "binary file")(
+            "list-symbols,s", "prints list of symbols")("file,f",
+                                                        ::boost::program_options::value<::std::string>(),
+                                                        "binary file")(
             "target,t", ::boost::program_options::value<::std::string>(),
             "target of binary file (default is first appropriate found)");
         po::positional_options_description p;
@@ -73,20 +73,19 @@ int main(
               {
                 printf("\n%s <0x%016X>:\n", sec->getName().c_str(),
                        (unsigned) sec->getAddress());
-                if (sec->hasCodeOnly())
-                  for (auto &non_sym_i : sec->getNonSymbolData())
-                      printf("\t\t0x%016X %40s  %s\n", non_sym_i->getAddress(),
-                             non_sym_i->getBinary().c_str(),
-                             non_sym_i->getSignature().c_str());
                 for (auto &sym : *sec)
                   {
                     printf("\n\t%s <0x%016X>\n", sym->getName().c_str(),
                            (unsigned) sym->getValue());
-                    for (auto &_instr : *sym)
-                      printf("\t\t0x%016X %40s  %s\n", _instr.getAddress(),
-                             _instr.getBinary().c_str(),
-                             _instr.getSignature().c_str());
+                    if (sec->hasCodeOnly())
+                      {
+                        for (auto &_instr : sym->getInstructions())
+                          printf("\t\t0x%016X %40s  %s\n", _instr->getAddress(),
+                                 _instr->getBinary().c_str(),
+                                 _instr->getSignature().c_str());
+                      }
                   }
+
               }
           }
       }

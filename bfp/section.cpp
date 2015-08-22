@@ -116,8 +116,7 @@ namespace bfp
             {
               /*we need section data to disassemble*/
               _data = new uint8_t[getContentSize()];
-              bfd_get_section_contents(_parent->_fd, _sec, _data, 0,
-                                       getContentSize());
+              bfd_get_section_contents(_bfd, _sec, _data, 0, getContentSize());
             }
           return _data;
         }
@@ -129,12 +128,12 @@ namespace bfp
 
       uint64_t Section::getAddress()
         {
-          return bfd_get_section_vma(_parent->_fd, _sec);
+          return bfd_get_section_vma(_bfd, _sec);
         }
 
       uint64_t Section::getLastAddress()
         {
-          return bfd_get_section_vma(_parent->_fd, _sec) + getContentSize();
+          return bfd_get_section_vma(_bfd, _sec) + getContentSize();
         }
 
       uint64_t Section::getNearestAddress(uint64_t _address)
@@ -410,11 +409,17 @@ namespace bfp
 
       Section::Section(
           asection *section,
-          File *parent)
+          bfd *bfd,
+          disassembler_ftype dis_asm,
+          disassemble_info *dis_info,
+          asymbol **table)
           :
-          _sec{section},
-          _data{nullptr},
-          _parent{parent}
+          _sec(section),
+          _data(nullptr),
+          _dis_asm(dis_asm),
+          _dis_info(dis_info),
+          _table(table),
+          _bfd(bfd)
         { }
 
       Section::~Section()
@@ -427,38 +432,29 @@ namespace bfp
 
       disassemble_info *Section::getDisassembleInfo()
         {
-          /*if symbol is not a function this doesn't have any sense*/
-          if (!hasContent())
-            return nullptr;
-
           /* This varies so it is set in section (where it varies */
-          _parent->_dis_asm_info->buffer = getContent();
-          _parent->_dis_asm_info->buffer_vma = getAddress();
-          _parent->_dis_asm_info->buffer_length = (unsigned) getContentSize();
-          return _parent->_dis_asm_info;
+          _dis_info->buffer = getContent();
+          _dis_info->buffer_vma = getAddress();
+          _dis_info->buffer_length = (unsigned) getContentSize();
+          return _dis_info;
         }
 
       ::std::vector<Instruction *> Section::getNonSymbolData()
         {
-          auto _dis_asm = _parent->getDisassembler();
-          auto _dis_asm_info = getDisassembleInfo();
           auto _add = getAddress();
-          if (_dis_asm_info == nullptr)
-            return _instructions;
           if (_instructions.empty())
             {
               for (int _dis = 0, _instr_size = 0;
                    _add + _dis < getNearestAddress(_add);
                    _dis += _instr_size)
                 {
-                  _parent->_FFILE.pos = 0;
-                  _instr_size = _dis_asm(_add + _dis, _dis_asm_info);
+                  File::_FFILE.pos = 0;
+                  _instr_size = _dis_asm(_add + _dis, _dis_info);
                   if (_instr_size <= 0)
                     break;
                   _instructions.push_back(new Instruction((getContent() + _dis),
                                                           (size_t) _instr_size,
-                                                          _parent->_FFILE
-                                                                 .buffer,
+                                                          File::_FFILE.buffer,
                                                           _add + _dis));
                 }
             }

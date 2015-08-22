@@ -138,7 +138,7 @@ namespace bfp
           symvalue getValue() const;
 
           /** @return vector of intructions */
-          __instr_vec &getInstructions();
+          __instr_vec &&getInstructions();
 
           /////////////////////////////////////////////////
           ///             Symbol attributes             ///

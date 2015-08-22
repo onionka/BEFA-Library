@@ -22,9 +22,10 @@ namespace bfp
           _path{path},
           _target{target}
         {
+          setDisassembleInfo();
+
           retrieve_sections();
           retrieve_symbols();
-          setDisassembleInfo();
           for (auto &_sec : *this)
             _sec->sort();
         }
@@ -246,10 +247,14 @@ namespace bfp
 
       void File::retrieve_sections()
         {
-          Section *_s_com = new Section(bfd_com_section_ptr, this);
-          Section *_s_und = new Section(bfd_und_section_ptr, this);
-          Section *_s_abs = new Section(bfd_abs_section_ptr, this);
-          Section *_s_ind = new Section(bfd_ind_section_ptr, this);
+          Section *_s_com = new Section(bfd_com_section_ptr, _fd, _dis_asm,
+                                        _dis_asm_info, symbol_table);
+          Section *_s_und = new Section(bfd_und_section_ptr, _fd, _dis_asm,
+                                        _dis_asm_info, symbol_table);
+          Section *_s_abs = new Section(bfd_abs_section_ptr, _fd, _dis_asm,
+                                        _dis_asm_info, symbol_table);
+          Section *_s_ind = new Section(bfd_ind_section_ptr, _fd, _dis_asm,
+                                        _dis_asm_info, symbol_table);
           push_back(_s_com);
           push_back(_s_und);
           push_back(_s_abs);
@@ -258,7 +263,8 @@ namespace bfp
                _sec != NULL;
                _sec = _sec->next)
             {
-              Section *_s = new Section(_sec, this);
+              Section *_s = new Section(_sec, _fd, _dis_asm, _dis_asm_info,
+                                        symbol_table);
               push_back(_s);
             }
         }
