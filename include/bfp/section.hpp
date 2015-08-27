@@ -272,7 +272,7 @@ namespace bfp
               asection *section,
               bfd *bfd,
               disassembler_ftype dis_asm,
-              disassemble_info *dis_info,
+              disassemble_info dis_info,
               asymbol **table);
 
       private:
@@ -289,7 +289,7 @@ namespace bfp
           uint8_t *_data;
 
           disassembler_ftype _dis_asm;
-          disassemble_info *_dis_info;
+          disassemble_info _dis_info;
           asymbol **_table;
           bfd *_bfd;
           ::std::vector<Instruction *> _instructions;

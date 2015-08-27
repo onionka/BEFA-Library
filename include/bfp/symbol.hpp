@@ -27,27 +27,29 @@ namespace bfp
 
 
       public:
-          typedef Section *__section;
           typedef Instruction *__data;
           typedef ::std::vector<__data> __instr_vec;
-          typedef Iterator<Symbol> __iterator;
+          typedef ::elfpp::ForwardIterator<
+              Instruction,
+              Symbol> __iterator;
 
           ~Symbol();
 
-          void next(Instruction *_data);
-          void prev(Instruction *_data);
+          void next(
+              Instruction *instr,
+              __iterator::difference_type *offset);
 
           __iterator begin();
 
           __iterator end();
 
-          size_t capacity();
+          __iterator::difference_type capacity();
 
-          size_t size();
+          __iterator::difference_type size();
 
-          size_t max_size();
+          __iterator::difference_type max_size();
 
-          Instruction &operator[](
+          Instruction operator[](
               size_t n);
 
           /////////////////////////////////////////////
@@ -131,14 +133,11 @@ namespace bfp
           /** @return string representation of symbol */
           const ::std::string getName() const;
 
-          /** @return all sections where this symbol is (RO) - may be empty*/
-          __section section();
-
           /** @return RAW value of symbol */
           symvalue getValue() const;
 
           /** @return vector of intructions */
-          __instr_vec &&getInstructions();
+          __instr_vec getInstructions();
 
           /////////////////////////////////////////////////
           ///             Symbol attributes             ///
@@ -176,6 +175,32 @@ namespace bfp
 
           bool hasObjectData() const;
 
+          Symbol(Symbol &&_mv)
+            {
+              ::std::swap(_sym, _mv._sym);
+              ::std::swap(_data, _mv._data);
+              ::std::swap(_dis_fun, _mv._dis_fun);
+              ::std::swap(_dis_info, _mv._dis_info);
+              ::std::swap(_buffer, _mv._buffer);
+              ::std::swap(_instructions, _mv._instructions);
+              ::std::swap(has_no_intructions, _mv.has_no_intructions);
+              ::std::swap(_size, _mv._size);
+            }
+
+          Symbol &operator=(Symbol &&_mv)
+            {
+              ::std::swap(_sym, _mv._sym);
+              ::std::swap(_data, _mv._data);
+              ::std::swap(_dis_fun, _mv._dis_fun);
+              ::std::swap(_dis_info, _mv._dis_info);
+              ::std::swap(_buffer, _mv._buffer);
+              ::std::swap(_instructions, _mv._instructions);
+              ::std::swap(has_no_intructions, _mv.has_no_intructions);
+              ::std::swap(_size, _mv._size);
+              return *this;
+            }
+
+
       private:
           /**
            * @brief initialize symbol object
@@ -184,7 +209,9 @@ namespace bfp
            */
           Symbol(
               asymbol *symbol,
-              File *parent);
+              uint8_t *data,
+              disassembler_ftype dis_fun,
+              disassemble_info *dis_info);
 
           /** Forbidden primitive constructor */
           Symbol() = delete;
@@ -192,24 +219,16 @@ namespace bfp
           /** Forbidden copy constructor */
           Symbol(const Symbol &) = delete;
 
-          /** Forbidden move constructor */
-          Symbol(Symbol &&) = delete;
-
           /** Forbidden copy assignment */
           Symbol &operator=(const Symbol &) = delete;
 
-          /** Forbidden move assignment */
-          Symbol &operator=(Symbol &&) = delete;
-
       private:
-          /** Appropriate Section to this symbol */
-          __section _section = nullptr;
-
           /** BFD symbol structure */
           asymbol *_sym;
-
-          /** File to which this symbol belongs to */
-          File *_parent;
+          asymbol *_next;
+          uint8_t *_data;
+          disassembler_ftype _dis_fun;
+          disassemble_info *_dis_info;
 
           /** Buffer for internal use */
           char *_buffer;

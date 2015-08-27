@@ -11,6 +11,8 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
+#include <memory>
+
 
 namespace bfp
   {
@@ -27,6 +29,7 @@ namespace bfp
           typedef uint8_t __byte;
           typedef uint64_t __address_t;
           typedef ::std::string __signature_t;
+          typedef __byte *__ptr;
 
           /** @return string representation of instruction in Intel style */
           __signature_t getSignature();
@@ -35,7 +38,7 @@ namespace bfp
           ::std::string getName();
 
           /** @return binary op_code */
-          __byte *getOpCode();
+          __ptr &getOpCode();
 
           /** @return address of instruction */
           __address_t getAddress();
@@ -44,9 +47,6 @@ namespace bfp
           __signature_t getBinary();
 
       private:
-          /** frees memory */
-          ~Instruction();
-
           /**
            * @brief Cannot be created outside this library
            * @param op_code binary representation of instruction
@@ -61,53 +61,62 @@ namespace bfp
               const char *signature,
               __address_t address);
 
-          /**
-           * @brief Copies Instruction object - internal use
-           * @param _copy object that will be copied
-           */
-          Instruction(
-              Instruction *_copy);
-
-          void realloc(size_t _s)
-            {
-              if (_size <= _s)
-                {
-                  delete[] _op_code;
-                  _op_code = new __byte[_s];
-                }
-            }
-
       public:
           Instruction()
+            { }
+
+          Instruction(Instruction &&_mv)
             {
-              _op_code = new __byte[0];
-              _s_signature = "";
-              _address = 0x0;
-              _binary = "";
-              _size = 0;
-              _name = "";
+              _op_code = _mv._op_code;
+              _s_signature = _mv._s_signature;
+              _address = _mv._address;
+              _binary = _mv._binary;
+              _size = _mv._size;
+              _name = _mv._name;
             }
-      private:
 
-          /** Forbidden copy constructor */
-          Instruction(const Instruction &) = delete;
+          Instruction &operator=(Instruction &&_mv)
+            {
+              _op_code = _mv._op_code;
+              _s_signature = _mv._s_signature;
+              _address = _mv._address;
+              _binary = _mv._binary;
+              _size = _mv._size;
+              _name = _mv._name;
+              return *this;
+            }
 
-          /** Forbidden move constructor */
-          Instruction(Instruction &&) = delete;
+          Instruction(const Instruction &_cp)
+            {
+              _op_code = _cp._op_code;
+              _s_signature = _cp._s_signature;
+              _address = _cp._address;
+              _binary = _cp._binary;
+              _size = _cp._size;
+              _name = _cp._name;
+            }
 
-          /** Forbidden copy assignment */
-          Instruction &operator=(const Instruction &) = delete;
+          Instruction &operator=(const Instruction &_cp)
+            {
+              _op_code = _cp._op_code;
+              _s_signature = _cp._s_signature;
+              _address = _cp._address;
+              _binary = _cp._binary;
+              _size = _cp._size;
+              _name = _cp._name;
+              return *this;
+            }
 
-          /** Forbidden move assignment */
-          Instruction &operator=(Instruction &&) = delete;
+          ~Instruction()
+            { }
 
       private:
           /** array of bytes */
-          __byte *_op_code;
+          __ptr _op_code = nullptr;
           __signature_t _s_signature;
-          __address_t _address;
+          __address_t _address = 0x0;
           __signature_t _binary;
-          size_t _size;
+          size_t _size = 0x0;
           ::std::string _name;
         };
   }

@@ -144,11 +144,6 @@ namespace bfp
           return ::std::string(_sym->name);
         }
 
-      Symbol::__section Symbol::section()
-        {
-          return _section;
-        }
-
       symvalue Symbol::getValue() const
         {
           return bfd_asymbol_value(_sym);
@@ -234,111 +229,100 @@ namespace bfp
           return static_cast<bool>(_sym->flags & BSF_OBJECT);
         }
 
+      Symbol::__iterator::difference_type Symbol::size()
+        {
+          if (_size == -1)
+            _size;
+          return _size;
+        }
+
+      Symbol::__iterator::difference_type Symbol::capacity()
+        {
+          return size();
+        }
+
+      Symbol::__iterator::difference_type Symbol::max_size()
+        {
+          return size();
+        }
+
+      Instruction Symbol::operator[](
+          size_t n)
+        {
+          //return *(begin() + (int)n);
+          __iterator i = begin();
+          for (size_t j = 0;
+               j < n;
+               j++, i++);
+          return ::std::move(*i);
+        }
+
+
       Symbol::__iterator Symbol::begin()
         {
-          __iterator _ite(this);
+          auto _file = (File::__ffile *) _dis_info->stream;
+          _file->pos = 0;
+          int _instr_size = _dis_fun(getValue(), _dis_info);
+          if (_instr_size < 0 || _instr_size >= size())
+            return __iterator(this, size());
+          auto _ite = __iterator(this, _instr_size);
+          _ite->_address = getValue();
+          _ite->_op_code = _data;
+          _ite->_size = static_cast<size_t>(_instr_size);
+          _ite->_s_signature = _file->buffer;
+          _ite->_binary = "";
           return _ite;
         }
 
       Symbol::__iterator Symbol::end()
         {
-          __iterator _ite(this, section()->getLastAddress());
-          return _ite;
+          return __iterator(this, size());
         }
 
-      size_t Symbol::size()
+      void Symbol::next(
+          Instruction *instr,
+          __iterator::difference_type *offset)
         {
-          if (_size == -1)
-            _size = (int64_t) (section()->getNearestAddress(getValue()) -
-                               getValue());
-          return (size_t) _size;
-        }
-
-      size_t Symbol::capacity()
-        {
-          return size();
-        }
-
-      size_t Symbol::max_size()
-        {
-          return size();
-        }
-
-      Instruction &Symbol::operator[](
-          size_t n)
-        {
-          return *(__iterator(this, n));
-        }
-
-      void Symbol::next(Instruction *_data)
-        {
-          auto _dis_asm = _parent->getDisassembler();
-          auto _dis_asm_info = section()->getDisassembleInfo();
-          uint64_t nearest_address = section()->getNearestAddress(
-              _data->_address);
-          _parent->_FFILE.pos = 0;
-          int _instr_size = _dis_asm(nearest_address, _dis_asm_info);
-          _data->_address = nearest_address;
-          if (_instr_size < 0)
+          auto _file = (File::__ffile *) _dis_info->stream;
+          _file->pos = 0;
+          int _instr_size = _dis_fun(getValue() + *offset, _dis_info);
+          if (_instr_size < 0 || _instr_size >= size())
             {
+              *offset = size();
               return;
             }
-          _data->realloc((size_t)_instr_size);
-          memcpy(_data->_op_code, section()->getContent() - nearest_address -
-                                  section()->getAddress(),
-                 (size_t) _instr_size);
-          _data->_s_signature = _parent->_FFILE.buffer;
-          _data->_binary = "";
+          instr->_address = getValue() + *offset;
+          instr->_op_code = _data + *offset;
+          instr->_size = static_cast<size_t>(_instr_size);
+          instr->_s_signature = _file->buffer;
+          instr->_binary = "";
+          *offset += _instr_size;
         }
 
-      void Symbol::prev(Instruction *_data)
-        {
-          auto _dis_asm = _parent->getDisassembler();
-          auto _dis_asm_info = section()->getDisassembleInfo();
-          uint64_t nearest_address = section()->getNearestPrevAddress(
-              _data->_address);
-          _parent->_FFILE.pos = 0;
-          int _instr_size = _dis_asm(nearest_address, _dis_asm_info);
-          _data->_address = nearest_address;
-          if (_instr_size < 0)
-            {
-              return;
-            }
-          _data->realloc((size_t)_instr_size);
-          memcpy(_data->_op_code, section()->getContent() - nearest_address -
-                                  section()->getAddress(),
-                 (size_t) _instr_size);
-          _data->_s_signature = _parent->_FFILE.buffer;
-          _data->_binary = "";
-        }
-
-      Symbol::__instr_vec &&Symbol::getInstructions()
+      Symbol::__instr_vec Symbol::getInstructions()
         {
           if (!has_no_intructions && _instructions.empty())
             {
+              uint64_t next_address = this->getValue() + size();
               /*and finally decoding instructions from _sym to next symbol or end of section*/
-              auto _dis_asm = _parent->getDisassembler();
-              auto _dis_asm_info = section()->getDisassembleInfo();
-              if (_dis_asm_info == nullptr)
+              auto _file = (File::__ffile *) _dis_info->stream;
+              if (_dis_info == nullptr)
                 {
                   has_no_intructions = true;
                   return ::std::move(_instructions);
                 }
               for (int _dis = 0, _instr_size = 0;
-                   getValue() + _dis < section()->getNearestAddress(this);
+                   getValue() + _dis < next_address;
                    _dis += _instr_size)
                 {
-                  _parent->_FFILE.pos = 0;
-                  _instr_size = _dis_asm(getValue() + _dis, _dis_asm_info);
+                  _file->pos = 0;
+                  _instr_size = _dis_fun(getValue() + _dis, _dis_info);
                   if (_instr_size <= 0)
                     break;
-                  _instructions.push_back(new Instruction(
-                      (section()->getContent() + getValue() -
-                       section()->getAddress() + _dis), (size_t) _instr_size,
-                      _parent->_FFILE.buffer,
-                      getValue() + _dis));
+                  _instructions.push_back(
+                      new Instruction((_data + _dis), (size_t) _instr_size,
+                                      _file->buffer, getValue() + _dis));
                 }
-
               has_no_intructions = true;
             }
           return ::std::move(_instructions);
@@ -346,10 +330,14 @@ namespace bfp
 
       Symbol::Symbol(
           asymbol *symbol,
-          File *parent)
+          uint8_t *data,
+          disassembler_ftype dis_fun,
+          disassemble_info *dis_info)
           :
           _sym(symbol),
-          _parent(parent)
+          _data(data),
+          _dis_fun(dis_fun),
+          _dis_info(dis_info)
         { }
 
       Symbol::~Symbol()

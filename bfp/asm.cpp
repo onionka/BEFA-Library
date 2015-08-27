@@ -14,30 +14,14 @@ namespace bfp
           const char *signature,
           Instruction::__address_t address)
           :
+          _op_code(op_code),
           _s_signature(signature),
           _address(address),
           _size(count),
           _name("")
-        {
-          _op_code = new __byte[_size];
-          _op_code = (__byte *) memcpy(_op_code, op_code,
-                                       _size * sizeof(__byte));
-        }
+        { }
 
-      Instruction::Instruction(
-          Instruction *_copy)
-        {
-          _op_code = new __byte[_copy->_size];
-          _op_code = (__byte *) memcpy(_op_code, _copy->_op_code,
-                                       _copy->_size * sizeof(__byte));
-          _s_signature = _copy->_s_signature;
-          _address = _copy->_address;
-          _binary = _copy->_binary;
-          _size = _copy->_size;
-          _name = _copy->_name;
-        }
-
-      Instruction::__byte *Instruction::getOpCode()
+      Instruction::__ptr &Instruction::getOpCode()
         {
           return _op_code;
         }
@@ -61,11 +45,6 @@ namespace bfp
                 }
             }
           return _binary;
-        }
-
-      Instruction::~Instruction()
-        {
-          delete[] _op_code;
         }
 
       ::std::string Instruction::getName()

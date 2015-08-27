@@ -23,11 +23,8 @@ namespace bfp
           _target{target}
         {
           setDisassembleInfo();
-
-          retrieve_sections();
           retrieve_symbols();
-          for (auto &_sec : *this)
-            _sec->sort();
+          retrieve_sections();
         }
 
       File::~File()
@@ -157,7 +154,6 @@ namespace bfp
             _dis_asm_info->display_endian = BFD_ENDIAN_LITTLE;
           else
             _dis_asm_info->endian = BFD_ENDIAN_UNKNOWN;
-
           _dis_asm_info->disassembler_options = (char *) "-M intel,intel-mnemonic";
         }
 
@@ -173,42 +169,28 @@ namespace bfp
         {
           long storage_needed;
           long dyn_storage_needed;
-
-
           storage_needed = bfd_get_symtab_upper_bound (_fd);
           dyn_storage_needed = bfd_get_dynamic_symtab_upper_bound (_fd);
-
           if (storage_needed < 0)
             BFP_ASSERT();
-
           if (storage_needed == 0)
             return;
-
           if (dyn_storage_needed < 0 && (bfd_get_file_flags (_fd) & DYNAMIC))
             BFP_ASSERT();
-
           if (dyn_storage_needed < 0)
             BFP_ASSERT();
-
           if (dyn_storage_needed == 0)
             return;
-
-
           symbol_table = (asymbol **) malloc(
               static_cast<size_t>(storage_needed + dyn_storage_needed));
-
           if ((number_of_symbols = bfd_canonicalize_symtab (_fd,
                                                             symbol_table)) < 0)
             BFP_ASSERT();
-
-
           if ((number_of_dyn_sym = bfd_canonicalize_dynamic_symtab (_fd,
                                                                     symbol_table +
                                                                     number_of_symbols)) <
               0)
             BFP_ASSERT();
-
-
           synthetic_count = bfd_get_synthetic_symtab(_fd, number_of_symbols,
                                                      symbol_table,
                                                      number_of_dyn_sym,
@@ -222,11 +204,46 @@ namespace bfp
           for (long i = 0;
                i < synthetic_count;
                ++i)
-            symbol_table[synthetic_count + number_of_symbols + i] =
+            symbol_table[number_of_dyn_sym + number_of_symbols + i] =
                 synthetic_symbol_table + i;
 
+          ::std::sort(symbol_table,
+                      symbol_table + synthetic_count + number_of_symbols +
+                      number_of_dyn_sym, [&](
+                  const asymbol *_1,
+                  const asymbol *_2) -> bool
+                        {
+                          return _1->value < _2->value;
+                        });
+        }
+
+      void File::retrieve_sections()
+        {
+          Section *_s_com = new Section(bfd_com_section_ptr, _fd, _dis_asm,
+                                        *_dis_asm_info, symbol_table);
+          Section *_s_und = new Section(bfd_und_section_ptr, _fd, _dis_asm,
+                                        *_dis_asm_info, symbol_table);
+          Section *_s_abs = new Section(bfd_abs_section_ptr, _fd, _dis_asm,
+                                        *_dis_asm_info, symbol_table);
+          Section *_s_ind = new Section(bfd_ind_section_ptr, _fd, _dis_asm,
+                                        *_dis_asm_info, symbol_table);
+          push_back(_s_com);
+          push_back(_s_und);
+          push_back(_s_abs);
+          push_back(_s_ind);
+          for (asection *_sec = _fd->sections;
+               _sec != NULL;
+               _sec = _sec->next)
+            {
+              long i;
+              for (i = 0; i < size() && (*(symbol_table + i))->section == _sec; i++);
+              Section *_s = new Section(_sec, _fd, _dis_asm, *_dis_asm_info,
+                                        symbol_table + i);
+              push_back(_s);
+            }
+
           for (long i = 0;
-               i < number_of_symbols + number_of_dyn_sym;
+               i < number_of_symbols + number_of_dyn_sym + synthetic_count;
                ++i)
             {
               auto _sec = end();
@@ -238,35 +255,29 @@ namespace bfp
                 }
               else
                 {
-                  Symbol *_sym = new Symbol(symbol_table[i], this);
-                  _sym->_section = *_sec;
+                  Symbol *_sym = new Symbol(symbol_table[i],
+                                            (*_sec)->getContent() +
+                                            symbol_table[i]->value,
+                                            getDisassembler(),
+                                            (*_sec)->getDisassembleInfo());
+                  if (i + 1 <
+                      number_of_symbols + number_of_dyn_sym + synthetic_count)
+                    {
+                      long j;
+                      for (j = i + 1;
+                           j + 1 < number_of_symbols + number_of_dyn_sym +
+                                   synthetic_count &&
+                           symbol_table[j]->value == symbol_table[i]->value;
+                           j++);
+                      _sym->_size = symbol_table[j]->value -
+                                    symbol_table[i]->value;
+                    }
+                  else
+                    _sym->_size = (*_sec)->getContentSize();
                   (*_sec)->push_back(_sym);
                 }
             }
-        }
 
-      void File::retrieve_sections()
-        {
-          Section *_s_com = new Section(bfd_com_section_ptr, _fd, _dis_asm,
-                                        _dis_asm_info, symbol_table);
-          Section *_s_und = new Section(bfd_und_section_ptr, _fd, _dis_asm,
-                                        _dis_asm_info, symbol_table);
-          Section *_s_abs = new Section(bfd_abs_section_ptr, _fd, _dis_asm,
-                                        _dis_asm_info, symbol_table);
-          Section *_s_ind = new Section(bfd_ind_section_ptr, _fd, _dis_asm,
-                                        _dis_asm_info, symbol_table);
-          push_back(_s_com);
-          push_back(_s_und);
-          push_back(_s_abs);
-          push_back(_s_ind);
-          for (asection *_sec = _fd->sections;
-               _sec != NULL;
-               _sec = _sec->next)
-            {
-              Section *_s = new Section(_sec, _fd, _dis_asm, _dis_asm_info,
-                                        symbol_table);
-              push_back(_s);
-            }
         }
 
       int File::ffprintf(

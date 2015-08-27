@@ -78,12 +78,10 @@ int main(
                     printf("\n\t%s <0x%016X>\n", sym->getName().c_str(),
                            (unsigned) sym->getValue());
                     if (sec->hasCodeOnly())
-                      {
-                        for (auto &_instr : sym->getInstructions())
-                          printf("\t\t0x%016X %40s  %s\n", _instr->getAddress(),
-                                 _instr->getBinary().c_str(),
-                                 _instr->getSignature().c_str());
-                      }
+                      for (auto &_instr : *sym)
+                        printf("\t\t0x%016X %40s  %s\n", _instr.getAddress(),
+                               _instr.getBinary().c_str(),
+                               _instr.getSignature().c_str());
                   }
 
               }

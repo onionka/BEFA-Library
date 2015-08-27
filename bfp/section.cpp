@@ -12,14 +12,6 @@ namespace bfp
   {
       void Section::sort(bool asc)
         {
-          ::std::sort(begin(), end(), [&](
-              const Symbol *_1,
-              const Symbol *_2) -> bool
-            {
-              return (asc ? _1->getValue() < _2->getValue() : _1->getValue() >
-                                                              _2->getValue()) ||
-                     getName() == _1->getName();
-            });
         }
 
       bool Section::operator==(
@@ -411,7 +403,7 @@ namespace bfp
           asection *section,
           bfd *bfd,
           disassembler_ftype dis_asm,
-          disassemble_info *dis_info,
+          disassemble_info dis_info,
           asymbol **table)
           :
           _sec(section),
@@ -433,10 +425,10 @@ namespace bfp
       disassemble_info *Section::getDisassembleInfo()
         {
           /* This varies so it is set in section (where it varies */
-          _dis_info->buffer = getContent();
-          _dis_info->buffer_vma = getAddress();
-          _dis_info->buffer_length = (unsigned) getContentSize();
-          return _dis_info;
+          _dis_info.buffer = getContent();
+          _dis_info.buffer_vma = getAddress();
+          _dis_info.buffer_length = (unsigned) getContentSize();
+          return &_dis_info;
         }
 
       ::std::vector<Instruction *> Section::getNonSymbolData()
@@ -449,7 +441,7 @@ namespace bfp
                    _dis += _instr_size)
                 {
                   File::_FFILE.pos = 0;
-                  _instr_size = _dis_asm(_add + _dis, _dis_info);
+                  _instr_size = _dis_asm(_add + _dis, &_dis_info);
                   if (_instr_size <= 0)
                     break;
                   _instructions.push_back(new Instruction((getContent() + _dis),
