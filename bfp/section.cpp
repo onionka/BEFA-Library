@@ -10,9 +10,6 @@
 
 namespace bfp
   {
-      void Section::sort(bool asc)
-        {
-        }
 
       bool Section::operator==(
           const Section &_compare)
@@ -108,14 +105,15 @@ namespace bfp
             {
               /*we need section data to disassemble*/
               _data = new uint8_t[getContentSize()];
-              bfd_get_section_contents(_bfd, _sec, _data, 0, getContentSize());
+              bfd_get_section_contents(_bfd, _sec, _data, 0,
+                                       static_cast<size_t>(getContentSize()));
             }
           return _data;
         }
 
-      size_t Section::getContentSize()
+      Section::__iterator::difference_type Section::getContentSize()
         {
-          return (size_t) bfd_get_section_size(_sec);
+          return bfd_get_section_size(_sec);
         }
 
       uint64_t Section::getAddress()
@@ -126,61 +124,6 @@ namespace bfp
       uint64_t Section::getLastAddress()
         {
           return bfd_get_section_vma(_bfd, _sec) + getContentSize();
-        }
-
-      uint64_t Section::getNearestAddress(uint64_t _address)
-        {
-          uint64_t _next_address = 0;
-          auto _sym_ite = ::bfp::find(begin(), end(), (symvalue) _address);
-          if (_sym_ite == end())
-            _next_address = getLastAddress();
-          else
-            {
-              while (_sym_ite != end() && (*_sym_ite)->getValue() == _address)
-                _sym_ite++;
-              if (_sym_ite == end())
-                _next_address = getLastAddress();
-              else
-                _next_address = (*_sym_ite)->getValue();
-            }
-          return _next_address;
-        }
-
-      uint64_t Section::getNearestPrevAddress(uint64_t _address)
-        {
-          uint64_t _next_address = 0;
-          auto _sym_ite = ::bfp::find(rbegin(), rend(), (symvalue) _address);
-          if (_sym_ite == rend())
-            _next_address = getAddress();
-          else
-            {
-              while (_sym_ite != rend() && (*_sym_ite)->getValue() == _address)
-                _sym_ite++;
-              if (_sym_ite == rend())
-                _next_address = getAddress();
-              else
-                _next_address = (*_sym_ite)->getValue();
-            }
-          return _next_address;
-        }
-
-      uint64_t Section::getNearestAddress(Symbol *_sym)
-        {
-          uint64_t _next_address = 0;
-          auto _sym_ite = ::bfp::find(begin(), end(), _sym);
-          if (_sym_ite == end())
-            _next_address = getLastAddress();
-          else
-            {
-              while (_sym_ite != end() &&
-                     (*_sym_ite)->getValue() == _sym->getValue())
-                _sym_ite++;
-              if (_sym_ite == end())
-                _next_address = getLastAddress();
-              else
-                _next_address = (*_sym_ite)->getValue();
-            }
-          return _next_address;
         }
 
       const ::std::vector<alent> Section::getLineNO() const
@@ -313,90 +256,80 @@ namespace bfp
           return static_cast<bool>(_sec->flags & SEC_LINKER_CREATED);
         }
 
-
-      Section::__const_iterator Section::cbegin()
+      Section::__iterator::difference_type Section::capacity()
         {
-          return _symbols.cbegin();
+          return size();
         }
 
-      Section::__const_iterator Section::cend()
-        {
-          return _symbols.cend();
-        }
-
-      Section::__const_reverse_iterator Section::crbegin()
-        {
-          return _symbols.crbegin();
-        }
-
-      Section::__const_reverse_iterator Section::crend()
-        {
-          return _symbols.crend();
-        }
-
-      size_t Section::capacity()
-        {
-          return _symbols.capacity();
-        }
-
-      size_t Section::size()
+      Section::__iterator::difference_type Section::size()
         {
           return _symbols.size();
         }
 
-      size_t Section::max_size()
+      Section::__iterator::difference_type Section::max_size()
         {
-          return _symbols.max_size();
+          return size();
         }
 
-      Section::__data Section::operator[](size_t n)
+      void Section::next(
+          Symbol *_sym,
+          Section::__iterator::difference_type *offset)
         {
-          return _symbols[n];
+          (*offset) += 1;
+          _sym->_dis_fun = _dis_asm;
+          _sym->_dis_info = getDisassembleInfo();
+          _sym->_sym = _symbols[*offset];
+          if ((*offset) + 1 < size())
+            {
+              for (auto _s: _symbols)
+                if (bfd_asymbol_value(_s) > _sym->getValue())
+                  {
+                    _sym->_size = bfd_asymbol_value(_s) - _sym->getValue();
+                    break;
+                  }
+            }
+          else
+            _sym->_size = hasContent() ? getContentSize() : 0;
+          _sym->has_no_intructions = false;
         }
 
-      Section::__data Section::front()
+      Symbol Section::operator[](size_t n)
         {
-          return _symbols.front();
-        }
-
-      Section::__data Section::back()
-        {
-          return _symbols.back();
-        }
-
-      Section::__data Section::at(size_t n)
-        {
-          return _symbols.at(n);
-        }
-
-      bool Section::empty()
-        {
-          return _symbols.empty();
-        }
-
-      void Section::push_back(Section::__data _sec)
-        {
-          _symbols.push_back(_sec);
+          __iterator _ite = begin();
+          for (size_t i = 0;
+               i < n;
+               i++, _ite++);
+          return *_ite;
         }
 
       Section::__iterator Section::begin()
         {
-          return _symbols.begin();
+          __iterator _ite(this, 0);
+          if (size() <= 0)
+            return end();
+          _ite->_sym = _symbols.front();
+          _ite->_dis_fun = _dis_asm;
+          _ite->_dis_info = getDisassembleInfo();
+          if (size() > 1)
+            {
+              /* We are finding next nearest possible address *
+               * that is not the same with created symbol     */
+              for (auto _s: _symbols)
+                if (bfd_asymbol_value(_s) > _ite->getValue())
+                  {
+                    _ite->_size = bfd_asymbol_value(_s) - _ite->getValue();
+                    break;
+                  }
+            }
+          else
+            _ite->_size = getContentSize();
+          _ite->has_no_intructions = false;
+          return _ite;
         }
 
       Section::__iterator Section::end()
         {
-          return _symbols.end();
-        }
-
-      Section::__reverse_iterator Section::rbegin()
-        {
-          return _symbols.rbegin();
-        }
-
-      Section::__reverse_iterator Section::rend()
-        {
-          return _symbols.rend();
+          return __iterator(this, size() - 1);
         }
 
       Section::Section(
@@ -404,20 +337,17 @@ namespace bfp
           bfd *bfd,
           disassembler_ftype dis_asm,
           disassemble_info dis_info,
-          asymbol **table)
+          ::std::vector<asymbol *> &&symbols)
           :
           _sec(section),
-          _data(nullptr),
           _dis_asm(dis_asm),
           _dis_info(dis_info),
-          _table(table),
+          _symbols(symbols),
           _bfd(bfd)
         { }
 
       Section::~Section()
         {
-          for (auto _sym : _symbols)
-            delete _sym;
           if (_data != nullptr)
             delete[] _data;
         }
@@ -429,27 +359,5 @@ namespace bfp
           _dis_info.buffer_vma = getAddress();
           _dis_info.buffer_length = (unsigned) getContentSize();
           return &_dis_info;
-        }
-
-      ::std::vector<Instruction *> Section::getNonSymbolData()
-        {
-          auto _add = getAddress();
-          if (_instructions.empty())
-            {
-              for (int _dis = 0, _instr_size = 0;
-                   _add + _dis < getNearestAddress(_add);
-                   _dis += _instr_size)
-                {
-                  File::_FFILE.pos = 0;
-                  _instr_size = _dis_asm(_add + _dis, &_dis_info);
-                  if (_instr_size <= 0)
-                    break;
-                  _instructions.push_back(new Instruction((getContent() + _dis),
-                                                          (size_t) _instr_size,
-                                                          File::_FFILE.buffer,
-                                                          _add + _dis));
-                }
-            }
-          return _instructions;
         }
   }

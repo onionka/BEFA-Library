@@ -17,6 +17,8 @@ namespace bfp
   {
       class File;
 
+      class Section;
+
       class Symbol
         {
           /** Only File (factory method) may instantiate Symbol class */
@@ -27,8 +29,6 @@ namespace bfp
 
 
       public:
-          typedef Instruction *__data;
-          typedef ::std::vector<__data> __instr_vec;
           typedef ::elfpp::ForwardIterator<
               Instruction,
               Symbol> __iterator;
@@ -136,9 +136,6 @@ namespace bfp
           /** @return RAW value of symbol */
           symvalue getValue() const;
 
-          /** @return vector of intructions */
-          __instr_vec getInstructions();
-
           /////////////////////////////////////////////////
           ///             Symbol attributes             ///
           /////////////////////////////////////////////////
@@ -178,11 +175,8 @@ namespace bfp
           Symbol(Symbol &&_mv)
             {
               ::std::swap(_sym, _mv._sym);
-              ::std::swap(_data, _mv._data);
               ::std::swap(_dis_fun, _mv._dis_fun);
               ::std::swap(_dis_info, _mv._dis_info);
-              ::std::swap(_buffer, _mv._buffer);
-              ::std::swap(_instructions, _mv._instructions);
               ::std::swap(has_no_intructions, _mv.has_no_intructions);
               ::std::swap(_size, _mv._size);
             }
@@ -190,18 +184,13 @@ namespace bfp
           Symbol &operator=(Symbol &&_mv)
             {
               ::std::swap(_sym, _mv._sym);
-              ::std::swap(_data, _mv._data);
               ::std::swap(_dis_fun, _mv._dis_fun);
               ::std::swap(_dis_info, _mv._dis_info);
-              ::std::swap(_buffer, _mv._buffer);
-              ::std::swap(_instructions, _mv._instructions);
               ::std::swap(has_no_intructions, _mv.has_no_intructions);
               ::std::swap(_size, _mv._size);
               return *this;
             }
 
-
-      private:
           /**
            * @brief initialize symbol object
            * @param symbol bfd
@@ -209,37 +198,40 @@ namespace bfp
            */
           Symbol(
               asymbol *symbol,
-              uint8_t *data,
               disassembler_ftype dis_fun,
               disassemble_info *dis_info);
 
-          /** Forbidden primitive constructor */
-          Symbol() = delete;
+          Symbol() = default;
 
-          /** Forbidden copy constructor */
-          Symbol(const Symbol &) = delete;
+          Symbol(const Symbol &_cp)
+            {
+              _sym = _cp._sym;
+              _dis_fun = _cp._dis_fun;
+              _dis_info = _cp._dis_info;
+              has_no_intructions = _cp.has_no_intructions;
+              _size = _cp._size;
+            }
 
-          /** Forbidden copy assignment */
-          Symbol &operator=(const Symbol &) = delete;
+          Symbol &operator=(const Symbol &_cp)
+            {
+              _sym = _cp._sym;
+              _dis_fun = _cp._dis_fun;
+              _dis_info = _cp._dis_info;
+              has_no_intructions = _cp.has_no_intructions;
+              _size = _cp._size;
+              return *this;
+            }
 
       private:
           /** BFD symbol structure */
-          asymbol *_sym;
-          asymbol *_next;
-          uint8_t *_data;
-          disassembler_ftype _dis_fun;
-          disassemble_info *_dis_info;
-
-          /** Buffer for internal use */
-          char *_buffer;
-
-          /** Instruction vector */
-          __instr_vec _instructions;
+          asymbol *_sym = nullptr;
+          disassembler_ftype _dis_fun = nullptr;
+          disassemble_info *_dis_info = nullptr;
 
           /** if this symbol has any instructions to disassemble */
           bool has_no_intructions = false;
 
-          int64_t _size = -1;
+          __iterator::difference_type _size = -1;
         };
   }
 

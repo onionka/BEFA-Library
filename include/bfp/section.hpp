@@ -29,12 +29,9 @@ namespace bfp
           friend class Symbol;
 
       public:
-          typedef Symbol *__data;
-          typedef ::std::vector<__data> __sym_vector;
-          typedef __sym_vector::iterator __iterator;
-          typedef __sym_vector::reverse_iterator __reverse_iterator;
-          typedef __sym_vector::const_iterator __const_iterator;
-          typedef __sym_vector::const_reverse_iterator __const_reverse_iterator;
+          typedef ::elfpp::ForwardIterator<
+              Symbol,
+              Section> __iterator;
 
           // ************************************* //
           //         Comparition operators         //
@@ -94,8 +91,6 @@ namespace bfp
            */
           const ::std::string getName() const;
 
-          ::std::vector<Instruction *> getNonSymbolData();
-
           /**
            * @return binary content (lazy read)
            */
@@ -104,7 +99,7 @@ namespace bfp
           /**
            * @return size of binary content
            */
-          size_t getContentSize();
+          Section::__iterator::difference_type getContentSize();
 
           /**
            * @return address of section in memory
@@ -117,20 +112,8 @@ namespace bfp
           uint64_t getLastAddress();
 
           /**
-           * @return next nearest address to the symbol in parameter
+           * @return numbers of line
            */
-          uint64_t getNearestAddress(Symbol *_sym);
-
-          /**
-           * @return next nearest address to the symbol in parameter
-           */
-          uint64_t getNearestAddress(uint64_t _address);
-
-          uint64_t getNearestPrevAddress(uint64_t _address);
-
-              /**
-               * @return numbers of line
-               */
           const ::std::vector<alent> getLineNO() const;
 
 
@@ -138,39 +121,22 @@ namespace bfp
           //       Vector operations       //
           // ***************************** //
 
-          __const_iterator cbegin();
-
-          __const_iterator cend();
-
-          __const_reverse_iterator crbegin();
-
-          __const_reverse_iterator crend();
-
           __iterator begin();
 
           __iterator end();
 
-          __reverse_iterator rbegin();
+          __iterator::difference_type capacity();
 
-          __reverse_iterator rend();
+          __iterator::difference_type size();
 
-          size_t capacity();
+          __iterator::difference_type max_size();
 
-          size_t size();
+          void next(
+              Symbol *_sym,
+              __iterator::difference_type *offset);
 
-          size_t max_size();
-
-          __data operator[](
+          Symbol operator[](
               size_t n);
-
-          __data front();
-
-          __data back();
-
-          __data at(
-              size_t n);
-
-          bool empty();
 
           // ******************************************** //
           //              Section attributes              //
@@ -244,17 +210,6 @@ namespace bfp
           /** Forbidden move assignment */
           Section &operator=(Section &&) = delete;
 
-          /** This should be constant vector so push_back is not allowed (only internal) */
-          void push_back(
-              __data _sec);
-
-          /**
-           * @brief sorts symbols in this section by value
-           *        may corrupt disassembler so it is for internal use
-           * @param asc - ascendicaly (default)
-           */
-          void sort(bool asc = true);
-
           /**
            * @brief Prepares structure where disassembler will store info
            *        This is here because things that are allocated and initialized
@@ -273,26 +228,26 @@ namespace bfp
               bfd *bfd,
               disassembler_ftype dis_asm,
               disassemble_info dis_info,
-              asymbol **table);
+              ::std::vector<asymbol *> &&symbols);
 
       private:
           /** Section as BFD structure */
           asection *_sec;
 
-          /** Vector of appropriate symbols */
-          __sym_vector _symbols;
-
           /** Vector of line numbers - TODO: findout for what is this */
           ::std::vector<alent> _line_numbers;
 
           /** Binary content of this file */
-          uint8_t *_data;
+          uint8_t *_data = nullptr;
 
+          /** Number of symbols */
+          int64_t _size = -1;
+
+          /** BFD structures: */
           disassembler_ftype _dis_asm;
           disassemble_info _dis_info;
-          asymbol **_table;
+          ::std::vector<asymbol *> _symbols;
           bfd *_bfd;
-          ::std::vector<Instruction *> _instructions;
         };
   }
 

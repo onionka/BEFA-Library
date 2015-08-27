@@ -160,6 +160,8 @@ namespace bfp
           /** reads sections from file */
           void retrieve_sections();
 
+          ::std::vector<asymbol *> get_sym_from_sec(const asection *beg);
+
           /** reads symbols from file */
           void retrieve_symbols();
 
@@ -191,6 +193,7 @@ namespace bfp
           long number_of_symbols;
           long number_of_dyn_sym;
           long synthetic_count;
+          long table_count;
 
           /** Function that disassembles binary file */
           disassembler_ftype _dis_asm = nullptr;

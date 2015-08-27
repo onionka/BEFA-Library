@@ -58,9 +58,9 @@
 #include <bfp/exception.hpp>      // all bfp exceptions
 #include <bfp/support.hpp>        // support functions
 #include <bfp/iterator.hpp>       // Iterator class
-#include <bfp/section.hpp>        // Section class
 #include <bfp/asm.hpp>            // Instruction class
 #include <bfp/symbol.hpp>         // Symbol class
+#include <bfp/section.hpp>        // Section class
 #include <bfp/file.hpp>           // File class
 #include <bfp/parser.hpp>         // Parser class
 

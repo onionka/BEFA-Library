@@ -231,8 +231,6 @@ namespace bfp
 
       Symbol::__iterator::difference_type Symbol::size()
         {
-          if (_size == -1)
-            _size;
           return _size;
         }
 
@@ -254,9 +252,8 @@ namespace bfp
           for (size_t j = 0;
                j < n;
                j++, i++);
-          return ::std::move(*i);
+          return *i;
         }
-
 
       Symbol::__iterator Symbol::begin()
         {
@@ -264,85 +261,52 @@ namespace bfp
           _file->pos = 0;
           int _instr_size = _dis_fun(getValue(), _dis_info);
           if (_instr_size < 0 || _instr_size >= size())
-            return __iterator(this, size());
-          auto _ite = __iterator(this, _instr_size);
-          _ite->_address = getValue();
-          _ite->_op_code = _data;
-          _ite->_size = static_cast<size_t>(_instr_size);
-          _ite->_s_signature = _file->buffer;
-          _ite->_binary = "";
-          return _ite;
+            return end();
+          auto _out = __iterator(this, _instr_size);
+          _out->_address = getValue();
+          _out->_op_code = _dis_info->buffer;
+          _out->_size = static_cast<size_t>(_instr_size);
+          _out->_s_signature = _file->buffer;
+          _out->_binary = "";
+          return _out;
         }
 
       Symbol::__iterator Symbol::end()
         {
-          return __iterator(this, size());
+          return __iterator(this, size() + 1);
         }
 
       void Symbol::next(
           Instruction *instr,
-          __iterator::difference_type *offset)
+          Symbol::__iterator::difference_type *offset)
         {
           auto _file = (File::__ffile *) _dis_info->stream;
           _file->pos = 0;
           int _instr_size = _dis_fun(getValue() + *offset, _dis_info);
-          if (_instr_size < 0 || _instr_size >= size())
+          if (_instr_size < 0 || _instr_size >= size() || *offset > size())
             {
-              *offset = size();
+              *offset = size() + 1;
               return;
             }
           instr->_address = getValue() + *offset;
-          instr->_op_code = _data + *offset;
+          instr->_op_code = _dis_info->buffer + getValue() -
+                            _dis_info->buffer_vma + *offset;
           instr->_size = static_cast<size_t>(_instr_size);
           instr->_s_signature = _file->buffer;
           instr->_binary = "";
           *offset += _instr_size;
         }
 
-      Symbol::__instr_vec Symbol::getInstructions()
-        {
-          if (!has_no_intructions && _instructions.empty())
-            {
-              uint64_t next_address = this->getValue() + size();
-              /*and finally decoding instructions from _sym to next symbol or end of section*/
-              auto _file = (File::__ffile *) _dis_info->stream;
-              if (_dis_info == nullptr)
-                {
-                  has_no_intructions = true;
-                  return ::std::move(_instructions);
-                }
-              for (int _dis = 0, _instr_size = 0;
-                   getValue() + _dis < next_address;
-                   _dis += _instr_size)
-                {
-                  _file->pos = 0;
-                  _instr_size = _dis_fun(getValue() + _dis, _dis_info);
-                  if (_instr_size <= 0)
-                    break;
-                  _instructions.push_back(
-                      new Instruction((_data + _dis), (size_t) _instr_size,
-                                      _file->buffer, getValue() + _dis));
-                }
-              has_no_intructions = true;
-            }
-          return ::std::move(_instructions);
-        }
-
       Symbol::Symbol(
           asymbol *symbol,
-          uint8_t *data,
           disassembler_ftype dis_fun,
           disassemble_info *dis_info)
           :
           _sym(symbol),
-          _data(data),
           _dis_fun(dis_fun),
           _dis_info(dis_info)
         { }
 
       Symbol::~Symbol()
-        {
-          for (auto _instr : _instructions)
-            delete _instr;
-        }
+        { }
   }
