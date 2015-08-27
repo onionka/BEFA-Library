@@ -99,7 +99,7 @@ namespace bfp
           /**
            * @return size of binary content
            */
-          Section::__iterator::difference_type getContentSize();
+          size_t getContentSize();
 
           /**
            * @return address of section in memory
@@ -190,25 +190,54 @@ namespace bfp
 
           bool isCreatedByLinker() const;
 
-      private:
-          /** frees memory -> only File may do it */
+          Section() = default;
+
+          Section(
+              const Section &_cp)
+            {
+              _sec = _cp._sec;
+              _line_numbers = _cp._line_numbers;
+              _data = _cp._data;
+              _dis_asm = _cp._dis_asm;
+              _dis_info = _cp._dis_info;
+              _symbols = _cp._symbols;
+            }
+
+          Section(Section &&_mv)
+            {
+              ::std::swap(_sec, _mv._sec);
+              ::std::swap(_line_numbers, _mv._line_numbers);
+              ::std::swap(_data, _mv._data);
+              ::std::swap(_dis_asm, _mv._dis_asm);
+              ::std::swap(_dis_info, _mv._dis_info);
+              ::std::swap(_symbols, _mv._symbols);
+            }
+
+          Section &operator=(const Section &_cp)
+            {
+              _sec = _cp._sec;
+              _line_numbers = _cp._line_numbers;
+              _data = _cp._data;
+              _dis_asm = _cp._dis_asm;
+              _dis_info = _cp._dis_info;
+              _symbols = _cp._symbols;
+              return *this;
+            }
+
+          Section &operator=(Section &&_mv)
+            {
+              ::std::swap(_sec, _mv._sec);
+              ::std::swap(_line_numbers, _mv._line_numbers);
+              ::std::swap(_data, _mv._data);
+              ::std::swap(_dis_asm, _mv._dis_asm);
+              ::std::swap(_dis_info, _mv._dis_info);
+              ::std::swap(_symbols, _mv._symbols);
+              return *this;
+            }
+
           ~Section();
 
-          /** Forbidden primitive constructor */
-          Section() = delete;
-
-          /** Forbidden copy constructor */
-          Section(
-              const Section &) = delete;
-
-          /** Forbidden move constructor */
-          Section(Section &&) = delete;
-
-          /** Forbidden copy assignment */
-          Section &operator=(const Section &) = delete;
-
-          /** Forbidden move assignment */
-          Section &operator=(Section &&) = delete;
+      private:
 
           /**
            * @brief Prepares structure where disassembler will store info
@@ -225,9 +254,8 @@ namespace bfp
            */
           Section(
               asection *section,
-              bfd *bfd,
               disassembler_ftype dis_asm,
-              disassemble_info dis_info,
+              disassemble_info *dis_info,
               ::std::vector<asymbol *> &&symbols);
 
       private:
@@ -238,16 +266,16 @@ namespace bfp
           ::std::vector<alent> _line_numbers;
 
           /** Binary content of this file */
-          uint8_t *_data = nullptr;
+          uint8_t *_data;
 
-          /** Number of symbols */
-          int64_t _size = -1;
-
-          /** BFD structures: */
+          /** BFD disassembler*/
           disassembler_ftype _dis_asm;
-          disassemble_info _dis_info;
+
+          /** BFD disassemble info */
+          disassemble_info *_dis_info;
+
+          /** BFD symbols at section */
           ::std::vector<asymbol *> _symbols;
-          bfd *_bfd;
         };
   }
 

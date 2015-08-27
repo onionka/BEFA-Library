@@ -35,12 +35,10 @@ namespace bfp
           friend class Symbol;
 
       public:
-          typedef Section *__data;
-          typedef ::std::vector<__data> __sec_vector;
-          typedef __sec_vector::iterator __iterator;
-          typedef __sec_vector::reverse_iterator __reverse_iterator;
-          typedef __sec_vector::const_iterator __const_iterator;
-          typedef __sec_vector::const_reverse_iterator __const_reverse_iterator;
+          typedef ::elfpp::ForwardIterator<
+              Section,
+              File> __iterator;
+
           typedef struct FFILE
             {
               const size_t base_size = 64;
@@ -67,39 +65,22 @@ namespace bfp
           ///       Vector operations       ///
           /////////////////////////////////////
 
-          __const_iterator cbegin();
-
-          __const_iterator cend();
-
-          __const_reverse_iterator crbegin();
-
-          __const_reverse_iterator crend();
-
           __iterator begin();
 
           __iterator end();
 
-          __reverse_iterator rbegin();
+          void next(
+              Section *_sec,
+              __iterator::difference_type *offset);
 
-          __reverse_iterator rend();
+          __iterator::difference_type capacity();
 
-          size_t capacity();
+          __iterator::difference_type size();
 
-          size_t size();
+          __iterator::difference_type max_size();
 
-          size_t max_size();
-
-          __data operator[](
-              size_t n);
-
-          __data front();
-
-          __data back();
-
-          __data at(
-              size_t n);
-
-          bool empty();
+          __iterator::value_type operator[](
+              int n);
 
           /** Frees all sections and symbols when deleted
            *    By default it is done by BFD so ... don't do it
@@ -135,10 +116,6 @@ namespace bfp
           /** Forbidden move assignment */
           File &operator=(File &&) = delete;
 
-          /** This should be constant vector so push_back is not allowed (only internal) */
-          void push_back(
-              __data _sec);
-
           /**
            * @brief Our custom fake printf that stores output from disassembler
            * @param f our fake file
@@ -156,9 +133,6 @@ namespace bfp
            * @brief This prepares disassembler
            */
           disassembler_ftype getDisassembler();
-
-          /** reads sections from file */
-          void retrieve_sections();
 
           ::std::vector<asymbol *> get_sym_from_sec(const asection *beg);
 
@@ -184,9 +158,6 @@ namespace bfp
           /** Target name ie. elf64-x86-64 */
           const char *_target;
 
-          /** Vector of section in file (contains also appropriate symbols) */
-          __sec_vector _sections;
-
           /** File symbol table */
           asymbol **symbol_table;
           asymbol *synthetic_symbol_table;
@@ -200,6 +171,10 @@ namespace bfp
 
           /** Here will be all info about instructions */
           disassemble_info *_dis_asm_info = nullptr;
+
+          /** Binary content of this file */
+          uint8_t *_buffer;
+          size_t buffer_size = 0;
 
           /** Static file that stores everything that will be written to it
            *  so we may access data later and clear it

@@ -9,6 +9,7 @@
 #include <cstdarg>
 
 
+#define DEFAULT_BUFFER_SIZE 1024
 namespace bfp
   {
       File::__ffile File::_FFILE;
@@ -20,11 +21,12 @@ namespace bfp
           :
           _fd{fd},
           _path{path},
-          _target{target}
+          _target{target},
+          _buffer((uint8_t *)malloc(DEFAULT_BUFFER_SIZE))
         {
+          buffer_size = DEFAULT_BUFFER_SIZE;
           setDisassembleInfo();
           retrieve_symbols();
-          retrieve_sections();
         }
 
       File::~File()
@@ -32,95 +34,109 @@ namespace bfp
           bfd_close(_fd);
           free(symbol_table);
           free(synthetic_symbol_table);
-          for (auto &_sec: _sections)
-            delete _sec;
+          free(_buffer);
           if (_dis_asm_info != nullptr)
             delete _dis_asm_info;
         }
 
-      File::__const_iterator File::cbegin()
-        {
-          return _sections.cbegin();
-        }
-
-      File::__const_iterator File::cend()
-        {
-          return _sections.cend();
-        }
-
       File::__iterator File::begin()
         {
-          return _sections.begin();
+          asection *_sec = _bfd_std_section;
+          __iterator _ite(this, 0);
+          _ite->_sec = _sec;
+          if (_ite->hasContent())
+            {
+              size_t _size = static_cast<size_t>(_ite->getContentSize());
+              if (buffer_size < _size)
+                {
+                  buffer_size = _size;
+                  _buffer = (uint8_t *)realloc(_buffer, buffer_size);
+                }
+              bfd_get_section_contents(_fd, _sec, _buffer, 0, _size);
+              _ite->_data = _buffer;
+            }
+          else
+            {
+              _ite->_data = nullptr;
+            }
+          _ite->_symbols = get_sym_from_sec(_sec);
+          _ite->_dis_asm = getDisassembler();
+          _ite->_dis_info = _dis_asm_info;
+          return _ite;
+        }
+
+      void File::next(
+          Section *_sec,
+          File::__iterator::difference_type *offset)
+        {
+          if ((*offset += 1) == size())
+            return;
+          asection *_s;
+          if (*offset < 4)
+            _s = _bfd_std_section + *offset;
+          else
+            {
+              _s = _fd->sections;
+              for (__iterator::difference_type i = 0;
+                   i < *offset - 4 && i < size() && _s != nullptr;
+                   i++)
+                _s = _s->next;
+              if (_s == nullptr)
+                {
+                  *offset = size();
+                  return;
+                }
+            }
+          _sec->_sec = _s;
+          if (_sec->hasContent())
+            {
+              size_t _size = _sec->getContentSize();
+              if (buffer_size < _size)
+                {
+                  buffer_size = _size;
+                  _buffer = (uint8_t *)realloc(_buffer, buffer_size);
+                }
+              bfd_get_section_contents(_fd, _s, _buffer, 0, _size);
+              _sec->_data = _buffer;
+            }
+          else
+            {
+              _sec->_data = nullptr;
+            }
+          _s->vma = bfd_get_section_vma(_fd, _s);
+          _sec->_symbols = get_sym_from_sec(_s);
+          _sec->_dis_asm = getDisassembler();
+          _sec->_dis_info = _dis_asm_info;
         }
 
       File::__iterator File::end()
         {
-          return _sections.end();
+          return __iterator(this, size());
         }
 
-      File::__const_reverse_iterator File::crbegin()
+      File::__iterator::difference_type File::capacity()
         {
-          return _sections.crbegin();
+          return size();
         }
 
-      File::__const_reverse_iterator File::crend()
+      File::__iterator::difference_type File::size()
         {
-          return _sections.crend();
+          return _fd->section_count + 4;
         }
 
-      File::__reverse_iterator File::rbegin()
+      File::__iterator::difference_type File::max_size()
         {
-          return _sections.rbegin();
+          return size();
         }
 
-      File::__reverse_iterator File::rend()
+      File::__iterator::value_type File::operator[](int n)
         {
-          return _sections.rend();
-        }
-
-      size_t File::capacity()
-        {
-          return _sections.capacity();
-        }
-
-      size_t File::size()
-        {
-          return _sections.size();
-        }
-
-      size_t File::max_size()
-        {
-          return _sections.max_size();
-        }
-
-      File::__data File::operator[](size_t n)
-        {
-          return _sections[n];
-        }
-
-      File::__data File::front()
-        {
-          return _sections.front();
-        }
-
-      File::__data File::back()
-        {
-          return _sections.back();
-        }
-
-      File::__data File::at(size_t n)
-        {
-          return _sections.at(n);
-        }
-
-      bool File::empty()
-        {
-          return _sections.empty();
-        }
-
-      void File::push_back(File::__data _sec)
-        {
-          _sections.push_back(_sec);
+          __iterator _ite = begin();
+          for (int i = 0;
+               i < n;
+               i++)
+            _ite++;
+          return *_ite;
         }
 
       const char *File::get_path() const
@@ -215,44 +231,14 @@ namespace bfp
             });
         }
 
-      void File::retrieve_sections()
-        {
-          Section *_s_com = new Section(bfd_com_section_ptr, _fd, getDisassembler(),
-                                        *_dis_asm_info,
-                                        get_sym_from_sec(bfd_com_section_ptr));
-          Section *_s_und = new Section(bfd_und_section_ptr, _fd, getDisassembler(),
-                                        *_dis_asm_info,
-                                        get_sym_from_sec(bfd_und_section_ptr));
-          Section *_s_abs = new Section(bfd_abs_section_ptr, _fd, getDisassembler(),
-                                        *_dis_asm_info,
-                                        get_sym_from_sec(bfd_abs_section_ptr));
-          Section *_s_ind = new Section(bfd_ind_section_ptr, _fd, getDisassembler(),
-                                        *_dis_asm_info,
-                                        get_sym_from_sec(bfd_ind_section_ptr));
-          push_back(_s_com);
-          push_back(_s_und);
-          push_back(_s_abs);
-          push_back(_s_ind);
-          for (asection *_sec = _fd->sections;
-               _sec != NULL;
-               _sec = _sec->next)
-            {
-              Section *_s = new Section(_sec, _fd, getDisassembler(), *_dis_asm_info,
-                                        get_sym_from_sec(_sec));
-              push_back(_s);
-            }
-        }
-
       ::std::vector<asymbol *> File::get_sym_from_sec(const asection *_sec)
         {
           return ::std::move(
-              ::bfp::filter(
-                  symbol_table,
-                  symbol_table + table_count,
-                  [&_sec](const asymbol *_sym) -> bool
-                   {
-                     return _sym->section == _sec;
-                   }));
+              ::bfp::filter(symbol_table, symbol_table + table_count,
+                            [&_sec](const asymbol *_sym) -> bool
+                              {
+                                return _sym->section == _sec;
+                              }));
         }
 
       int File::ffprintf(

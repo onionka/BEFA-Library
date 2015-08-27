@@ -101,29 +101,22 @@ namespace bfp
 
       uint8_t *Section::getContent()
         {
-          if (_data == nullptr)
-            {
-              /*we need section data to disassemble*/
-              _data = new uint8_t[getContentSize()];
-              bfd_get_section_contents(_bfd, _sec, _data, 0,
-                                       static_cast<size_t>(getContentSize()));
-            }
           return _data;
         }
 
-      Section::__iterator::difference_type Section::getContentSize()
+      size_t Section::getContentSize()
         {
           return bfd_get_section_size(_sec);
         }
 
       uint64_t Section::getAddress()
         {
-          return bfd_get_section_vma(_bfd, _sec);
+          return _sec->vma;
         }
 
       uint64_t Section::getLastAddress()
         {
-          return bfd_get_section_vma(_bfd, _sec) + getContentSize();
+          return _sec->vma + getContentSize();
         }
 
       const ::std::vector<alent> Section::getLineNO() const
@@ -275,7 +268,8 @@ namespace bfp
           Symbol *_sym,
           Section::__iterator::difference_type *offset)
         {
-          (*offset) += 1;
+          if ((*offset += 1) == size())
+            return;
           _sym->_dis_fun = _dis_asm;
           _sym->_dis_info = getDisassembleInfo();
           _sym->_sym = _symbols[*offset];
@@ -334,30 +328,25 @@ namespace bfp
 
       Section::Section(
           asection *section,
-          bfd *bfd,
           disassembler_ftype dis_asm,
-          disassemble_info dis_info,
+          disassemble_info *dis_info,
           ::std::vector<asymbol *> &&symbols)
           :
           _sec(section),
           _dis_asm(dis_asm),
           _dis_info(dis_info),
-          _symbols(symbols),
-          _bfd(bfd)
+          _symbols(symbols)
         { }
 
       Section::~Section()
-        {
-          if (_data != nullptr)
-            delete[] _data;
-        }
+        { }
 
       disassemble_info *Section::getDisassembleInfo()
         {
           /* This varies so it is set in section (where it varies */
-          _dis_info.buffer = getContent();
-          _dis_info.buffer_vma = getAddress();
-          _dis_info.buffer_length = (unsigned) getContentSize();
-          return &_dis_info;
+          _dis_info->buffer = getContent();
+          _dis_info->buffer_vma = getAddress();
+          _dis_info->buffer_length = (unsigned) getContentSize();
+          return _dis_info;
         }
   }
