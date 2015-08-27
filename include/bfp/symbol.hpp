@@ -29,7 +29,7 @@ namespace bfp
 
 
       public:
-          typedef ::elfpp::ForwardIterator<
+          typedef ::bfp::ForwardIterator<
               Instruction,
               Symbol> __iterator;
 
@@ -38,6 +38,10 @@ namespace bfp
           void next(
               Instruction *instr,
               __iterator::difference_type *offset);
+
+          ///////////////////////////////////////
+          //         Vector operations         //
+          ///////////////////////////////////////
 
           __iterator begin();
 
@@ -52,9 +56,9 @@ namespace bfp
           Instruction operator[](
               size_t n);
 
-          /////////////////////////////////////////////
-          ///         Comparition operators         ///
-          /////////////////////////////////////////////
+          ///////////////////////////////////////////
+          //         Comparition operators         //
+          ///////////////////////////////////////////
 
           bool operator==(
               const Symbol &_compare);
@@ -126,9 +130,9 @@ namespace bfp
               const Symbol &_this,
               const char *_compare);
 
-          ///////////////////////////////
-          ///         GETTERS         ///
-          ///////////////////////////////
+          /////////////////////////////
+          //         GETTERS         //
+          /////////////////////////////
 
           /** @return string representation of symbol */
           const ::std::string getName() const;
@@ -136,9 +140,9 @@ namespace bfp
           /** @return RAW value of symbol */
           symvalue getValue() const;
 
-          /////////////////////////////////////////////////
-          ///             Symbol attributes             ///
-          /////////////////////////////////////////////////
+          ///////////////////////////////////////////////
+          //             Symbol attributes             //
+          ///////////////////////////////////////////////
 
           bool hasFlags() const;
 
@@ -172,24 +176,30 @@ namespace bfp
 
           bool hasObjectData() const;
 
-          Symbol(Symbol &&_mv)
-            {
-              ::std::swap(_sym, _mv._sym);
-              ::std::swap(_dis_fun, _mv._dis_fun);
-              ::std::swap(_dis_info, _mv._dis_info);
-              ::std::swap(has_no_intructions, _mv.has_no_intructions);
-              ::std::swap(_size, _mv._size);
-            }
+          /** So if we want use this as flyweight object
+           * we need this to have default constructor
+           */
+          Symbol() = default;
 
-          Symbol &operator=(Symbol &&_mv)
-            {
-              ::std::swap(_sym, _mv._sym);
-              ::std::swap(_dis_fun, _mv._dis_fun);
-              ::std::swap(_dis_info, _mv._dis_info);
-              ::std::swap(has_no_intructions, _mv.has_no_intructions);
-              ::std::swap(_size, _mv._size);
-              return *this;
-            }
+          /** And move constructor
+           * @see Symbol
+           */
+          Symbol(Symbol &&_mv);
+
+          /** And move operator
+           * @see Symbol
+           */
+          Symbol &operator=(Symbol &&_mv);
+
+          /** And copy constructor
+           * @see Symbol
+           */
+          Symbol(const Symbol &_cp);
+
+          /** And copy operator
+           * @see Symbol
+           */
+          Symbol &operator=(const Symbol &_cp);
 
           /**
            * @brief initialize symbol object
@@ -201,36 +211,20 @@ namespace bfp
               disassembler_ftype dis_fun,
               disassemble_info *dis_info);
 
-          Symbol() = default;
-
-          Symbol(const Symbol &_cp)
-            {
-              _sym = _cp._sym;
-              _dis_fun = _cp._dis_fun;
-              _dis_info = _cp._dis_info;
-              has_no_intructions = _cp.has_no_intructions;
-              _size = _cp._size;
-            }
-
-          Symbol &operator=(const Symbol &_cp)
-            {
-              _sym = _cp._sym;
-              _dis_fun = _cp._dis_fun;
-              _dis_info = _cp._dis_info;
-              has_no_intructions = _cp.has_no_intructions;
-              _size = _cp._size;
-              return *this;
-            }
-
       private:
           /** BFD symbol structure */
           asymbol *_sym = nullptr;
+
+          /** BFD disassembler function */
           disassembler_ftype _dis_fun = nullptr;
+
+          /** BFD disassembler info */
           disassemble_info *_dis_info = nullptr;
 
           /** if this symbol has any instructions to disassemble */
           bool has_no_intructions = false;
 
+          /** size of symbols - bytes */
           __iterator::difference_type _size = -1;
         };
   }

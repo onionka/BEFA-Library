@@ -128,15 +128,8 @@ BOOST_AUTO_TEST_SUITE(bfp_supp_functions)
                                    [](::std::string &_str) -> bool
                                      {
                                        return _str[0] == 't';
-                                     }, [](::std::string &_str) -> bool
-                                     {
-                                       return _str.size() == 4;
                                      });
-          BOOST_CHECK(_founded.size() == 3);
-          for (auto _str : _founded)
-            {
-              BOOST_CHECK(_str == "text");
-            }
+          BOOST_CHECK(_founded.size() == 6);
         }
 
   BOOST_AUTO_TEST_SUITE_END()

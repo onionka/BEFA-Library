@@ -21,34 +21,34 @@ BOOST_AUTO_TEST_SUITE(base_section)
           BOOST_MESSAGE("Checking section attributes");
           for (auto &_sec : *_file)
             {
-              _sec->getName();
-              _sec->getLineNO();
-              _sec->getIndex();
-              _sec->getContent();
-              _sec->hasFlags();
-              _sec->isAllocOnLoad();
-              _sec->isLoadedWithFile();
-              _sec->hasRellocInfo();
-              _sec->isReadOnly();
-              _sec->hasCodeOnly();
-              _sec->hasDataOnly();
-              _sec->isInROM();
-              _sec->hasConstructorInfo();
-              _sec->hasContent();
-              _sec->isSuppressed();
-              _sec->isCOFF();
-              _sec->hasCommonSymbols();
-              _sec->isDebugOnly();
-              _sec->isInMemory();
-              _sec->isExcluded();
-              _sec->isSorted();
-              _sec->linkOnce();
-              _sec->linkDuplicates();
-              _sec->discardDuplicates();
-              _sec->linkOneDuplicate();
-              _sec->linkSameSizedDuplicates();
-              _sec->linkSameDuplicates();
-              _sec->isCreatedByLinker();
+              _sec.getName();
+              _sec.getLineNO();
+              _sec.getIndex();
+              _sec.getContent();
+              _sec.hasFlags();
+              _sec.isAllocOnLoad();
+              _sec.isLoadedWithFile();
+              _sec.hasRellocInfo();
+              _sec.isReadOnly();
+              _sec.hasCodeOnly();
+              _sec.hasDataOnly();
+              _sec.isInROM();
+              _sec.hasConstructorInfo();
+              _sec.hasContent();
+              _sec.isSuppressed();
+              _sec.isCOFF();
+              _sec.hasCommonSymbols();
+              _sec.isDebugOnly();
+              _sec.isInMemory();
+              _sec.isExcluded();
+              _sec.isSorted();
+              _sec.linkOnce();
+              _sec.linkDuplicates();
+              _sec.discardDuplicates();
+              _sec.linkOneDuplicate();
+              _sec.linkSameSizedDuplicates();
+              _sec.linkSameDuplicates();
+              _sec.isCreatedByLinker();
             }
         }
 
@@ -58,35 +58,35 @@ BOOST_AUTO_TEST_SUITE(base_section)
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                         .back();
           auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
-          CHECK_VECTOR(**_dot_text);
-          __BOOST_MESSAGE_DOT_TEXT((size_t) (*_dot_text)->getContent());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->getIndex());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->getName()
+          CHECK_VECTOR(*_dot_text);
+          __BOOST_MESSAGE_DOT_TEXT((size_t) _dot_text->getContent());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->getIndex());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->getName()
                                             .c_str());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->hasFlags());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isAllocOnLoad());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isLoadedWithFile());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->hasRellocInfo());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isReadOnly());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->hasCodeOnly());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->hasDataOnly());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isInROM());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->hasConstructorInfo());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->hasContent());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isSuppressed());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isCOFF());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->hasCommonSymbols());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isDebugOnly());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isInMemory());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isExcluded());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isSorted());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->linkOnce());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->linkDuplicates());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->discardDuplicates());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->linkOneDuplicate());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->linkSameSizedDuplicates());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->linkSameDuplicates());
-          __BOOST_MESSAGE_DOT_TEXT((*_dot_text)->isCreatedByLinker());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->hasFlags());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isAllocOnLoad());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isLoadedWithFile());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->hasRellocInfo());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isReadOnly());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->hasCodeOnly());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->hasDataOnly());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isInROM());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->hasConstructorInfo());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->hasContent());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isSuppressed());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isCOFF());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->hasCommonSymbols());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isDebugOnly());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isInMemory());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isExcluded());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isSorted());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->linkOnce());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->linkDuplicates());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->discardDuplicates());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->linkOneDuplicate());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->linkSameSizedDuplicates());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->linkSameDuplicates());
+          __BOOST_MESSAGE_DOT_TEXT(_dot_text->isCreatedByLinker());
         }
 
       BOOST_AUTO_TEST_CASE(as_vector)
@@ -94,21 +94,21 @@ BOOST_AUTO_TEST_SUITE(base_section)
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                            .back();
           auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
-          CHECK_VECTOR(**_dot_text);
+          CHECK_VECTOR(*_dot_text);
         }
 
       BOOST_AUTO_TEST_CASE(operators)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                            .back();
-          auto _dot_test = ::bfp::find(_file->begin(), _file->end(), ".text");
-          BOOST_CHECK(**_dot_test == **_dot_test);
-          BOOST_CHECK(**_dot_test == ".text");
-          BOOST_CHECK(!(**_dot_test == (asection *) 0));
+          auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
+          BOOST_CHECK(*_dot_text == *_dot_text);
+          BOOST_CHECK(*_dot_text == ".text");
+          BOOST_CHECK(!(*_dot_text == (asection *) 0));
 
-          BOOST_CHECK(!(**_dot_test != **_dot_test));
-          BOOST_CHECK(**_dot_test != "text");
-          BOOST_CHECK(**_dot_test != (asection *) 0);
+          BOOST_CHECK(!(*_dot_text != *_dot_text));
+          BOOST_CHECK(*_dot_text != "text");
+          BOOST_CHECK(*_dot_text != (asection *) 0);
         }
 
   BOOST_AUTO_TEST_SUITE_END()

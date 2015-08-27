@@ -25,9 +25,9 @@ int main(
         po::options_description desc("Allowed options");
         desc.add_options()("help,h",
                            "prints help"
-                          )("list-targets,lt",
+                          )("list-targets,l",
                             "prints list of appropriate targets"
-                           )("list-symbols,ls",
+                           )("list-symbols,s",
                              "prints list of symbols"
                             )("file,f",
                               ::boost::program_options::value<::std::string>(),
@@ -83,12 +83,12 @@ int main(
                 return EXIT_FAILURE;
               }
             for (auto &sec : *file)
-              for (auto &sym : *sec)
+              for (auto &sym : sec)
                 {
                   printf("%016X %20s  %s\n",
-                         (unsigned) sym->getValue(),
-                         sec->getName().c_str(),
-                         sym->getName().c_str());
+                         (unsigned) sym.getValue(),
+                         sec.getName().c_str(),
+                         sym.getName().c_str());
                 }
           }
       }

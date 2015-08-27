@@ -309,4 +309,42 @@ namespace bfp
 
       Symbol::~Symbol()
         { }
+
+      Symbol::Symbol(Symbol &&_mv)
+        {
+          ::std::swap(_sym, _mv._sym);
+          ::std::swap(_dis_fun, _mv._dis_fun);
+          ::std::swap(_dis_info, _mv._dis_info);
+          ::std::swap(has_no_intructions, _mv.has_no_intructions);
+          ::std::swap(_size, _mv._size);
+        }
+
+      Symbol &Symbol::operator=(Symbol &&_mv)
+        {
+          ::std::swap(_sym, _mv._sym);
+          ::std::swap(_dis_fun, _mv._dis_fun);
+          ::std::swap(_dis_info, _mv._dis_info);
+          ::std::swap(has_no_intructions, _mv.has_no_intructions);
+          ::std::swap(_size, _mv._size);
+          return *this;
+        }
+
+      Symbol::Symbol(const Symbol &_cp)
+        {
+          _sym = _cp._sym;
+          _dis_fun = _cp._dis_fun;
+          _dis_info = _cp._dis_info;
+          has_no_intructions = _cp.has_no_intructions;
+          _size = _cp._size;
+        }
+
+      Symbol &Symbol::operator=(const Symbol &_cp)
+        {
+          _sym = _cp._sym;
+          _dis_fun = _cp._dis_fun;
+          _dis_info = _cp._dis_info;
+          has_no_intructions = _cp.has_no_intructions;
+          _size = _cp._size;
+          return *this;
+        }
   }

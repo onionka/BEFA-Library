@@ -349,4 +349,47 @@ namespace bfp
           _dis_info->buffer_length = (unsigned) getContentSize();
           return _dis_info;
         }
+
+      Section::Section(
+          const Section &_cp)
+        {
+          _sec = _cp._sec;
+          _line_numbers = _cp._line_numbers;
+          _data = _cp._data;
+          _dis_asm = _cp._dis_asm;
+          _dis_info = _cp._dis_info;
+          _symbols = _cp._symbols;
+        }
+
+      Section::Section(Section &&_mv)
+        {
+          ::std::swap(_sec, _mv._sec);
+          ::std::swap(_line_numbers, _mv._line_numbers);
+          ::std::swap(_data, _mv._data);
+          ::std::swap(_dis_asm, _mv._dis_asm);
+          ::std::swap(_dis_info, _mv._dis_info);
+          ::std::swap(_symbols, _mv._symbols);
+        }
+
+      Section &Section::operator=(const Section &_cp)
+        {
+          _sec = _cp._sec;
+          _line_numbers = _cp._line_numbers;
+          _data = _cp._data;
+          _dis_asm = _cp._dis_asm;
+          _dis_info = _cp._dis_info;
+          _symbols = _cp._symbols;
+          return *this;
+        }
+
+      Section &Section::operator=(Section &&_mv)
+        {
+          ::std::swap(_sec, _mv._sec);
+          ::std::swap(_line_numbers, _mv._line_numbers);
+          ::std::swap(_data, _mv._data);
+          ::std::swap(_dis_asm, _mv._dis_asm);
+          ::std::swap(_dis_info, _mv._dis_info);
+          ::std::swap(_symbols, _mv._symbols);
+          return *this;
+        }
   }

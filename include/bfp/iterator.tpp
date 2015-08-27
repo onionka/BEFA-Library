@@ -1,17 +1,25 @@
+/**
+ * @file iterator.tpp
+ * @author Miroslav Cibulka
+ * @brief Iterators of all kinds
+ */
+
 #ifndef __BFP_ITERATOR_HPP
 #define __BFP_ITERATOR_HPP
 
-#include <bits/stl_iterator_base_types.h>
+#ifndef BINARY_FILE_PARSER_BFP_HPP
+# error "Don't include this file directly, use #include <bfp.hpp> instead"
+#endif
 
 
-namespace elfpp
+namespace bfp
   {
       template<
           typename __wrapper,
           typename __owner,
           typename __tag = ::std::forward_iterator_tag>
         class ForwardIterator :
-            public std::iterator<
+            public ::std::iterator<
                 __tag,
                 __wrapper>
           {
@@ -61,14 +69,18 @@ namespace elfpp
             ite_type &operator=(
                 const ite_type &_cp)
               {
-                this->ForwardIterator(_cp);
+                _data = _cp._data;
+                _owner = _cp._owner;
+                _offset = _cp._offset;
                 return *this;
               }
 
             ite_type &operator=(
                 ite_type &&_mv)
               {
-                this->ForwardIterator(_mv);
+                ::std::swap(_data, _mv._data);
+                ::std::swap(_owner, _mv._owner);
+                ::std::swap(_offset, _mv._offset);
                 return *this;
               }
 
@@ -174,7 +186,8 @@ namespace elfpp
 
             ite_type &operator--()
               {
-                this->_owner->prev(&this->_data, &this->_offset);
+                this->_owner
+                    ->prev(&this->_data, &this->_offset);
                 return *this;
               }
 

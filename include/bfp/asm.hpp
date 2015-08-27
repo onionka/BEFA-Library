@@ -62,53 +62,17 @@ namespace bfp
               __address_t address);
 
       public:
-          Instruction()
-            { }
+          Instruction();
 
-          Instruction(Instruction &&_mv)
-            {
-              _op_code = _mv._op_code;
-              _s_signature = _mv._s_signature;
-              _address = _mv._address;
-              _binary = _mv._binary;
-              _size = _mv._size;
-              _name = _mv._name;
-            }
+          Instruction(Instruction &&_mv);
 
-          Instruction &operator=(Instruction &&_mv)
-            {
-              _op_code = _mv._op_code;
-              _s_signature = _mv._s_signature;
-              _address = _mv._address;
-              _binary = _mv._binary;
-              _size = _mv._size;
-              _name = _mv._name;
-              return *this;
-            }
+          Instruction &operator=(Instruction &&_mv);
 
-          Instruction(const Instruction &_cp)
-            {
-              _op_code = _cp._op_code;
-              _s_signature = _cp._s_signature;
-              _address = _cp._address;
-              _binary = _cp._binary;
-              _size = _cp._size;
-              _name = _cp._name;
-            }
+          Instruction(const Instruction &_cp);
 
-          Instruction &operator=(const Instruction &_cp)
-            {
-              _op_code = _cp._op_code;
-              _s_signature = _cp._s_signature;
-              _address = _cp._address;
-              _binary = _cp._binary;
-              _size = _cp._size;
-              _name = _cp._name;
-              return *this;
-            }
+          Instruction & operator=(const Instruction &_cp);
 
-          ~Instruction()
-            { }
+          ~Instruction();
 
       private:
           /** array of bytes */

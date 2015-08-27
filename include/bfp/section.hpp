@@ -29,7 +29,7 @@ namespace bfp
           friend class Symbol;
 
       public:
-          typedef ::elfpp::ForwardIterator<
+          typedef ::bfp::ForwardIterator<
               Symbol,
               Section> __iterator;
 
@@ -193,47 +193,16 @@ namespace bfp
           Section() = default;
 
           Section(
-              const Section &_cp)
-            {
-              _sec = _cp._sec;
-              _line_numbers = _cp._line_numbers;
-              _data = _cp._data;
-              _dis_asm = _cp._dis_asm;
-              _dis_info = _cp._dis_info;
-              _symbols = _cp._symbols;
-            }
+              const Section &_cp);
 
-          Section(Section &&_mv)
-            {
-              ::std::swap(_sec, _mv._sec);
-              ::std::swap(_line_numbers, _mv._line_numbers);
-              ::std::swap(_data, _mv._data);
-              ::std::swap(_dis_asm, _mv._dis_asm);
-              ::std::swap(_dis_info, _mv._dis_info);
-              ::std::swap(_symbols, _mv._symbols);
-            }
+          Section(
+              Section &&_mv);
 
-          Section &operator=(const Section &_cp)
-            {
-              _sec = _cp._sec;
-              _line_numbers = _cp._line_numbers;
-              _data = _cp._data;
-              _dis_asm = _cp._dis_asm;
-              _dis_info = _cp._dis_info;
-              _symbols = _cp._symbols;
-              return *this;
-            }
+          Section &operator=(
+              const Section &_cp);
 
-          Section &operator=(Section &&_mv)
-            {
-              ::std::swap(_sec, _mv._sec);
-              ::std::swap(_line_numbers, _mv._line_numbers);
-              ::std::swap(_data, _mv._data);
-              ::std::swap(_dis_asm, _mv._dis_asm);
-              ::std::swap(_dis_info, _mv._dis_info);
-              ::std::swap(_symbols, _mv._symbols);
-              return *this;
-            }
+          Section &operator=(
+              Section &&_mv);
 
           ~Section();
 

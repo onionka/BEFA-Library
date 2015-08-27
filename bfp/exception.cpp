@@ -31,7 +31,9 @@
         msg += ::std::string("\nFunctions backtrace:\n");
       }
 
-    for (int j = n - 1; j >= 3; j--)
+    for (int j = n - 1;
+         j >= 3;
+         j--)
       {
         msg += ::std::string("\t") + std::to_string(n - j) + ": " +
                ::std::string(strings[j]) + "\n";

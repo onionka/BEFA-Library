@@ -19,7 +19,7 @@ ADD_SUBDIRECTORY(doc)
 #################################################################
 ENABLE_TESTING()
 FIND_PROGRAM(VAL valgrind)
-SET(VALGRIND ${VAL} --leak-check=full --show-reachable=yes)
+SET(VALGRIND ${VAL} --leak-check=full)
 IF (NOT EXISTS ${VAL})
   MESSAGE(WARNING "Valgrind is not available! running tests without it ...")
   SET(VALGRIND)

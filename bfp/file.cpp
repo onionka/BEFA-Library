@@ -22,7 +22,7 @@ namespace bfp
           _fd{fd},
           _path{path},
           _target{target},
-          _buffer((uint8_t *)malloc(DEFAULT_BUFFER_SIZE))
+          _buffer((uint8_t *) malloc(DEFAULT_BUFFER_SIZE))
         {
           buffer_size = DEFAULT_BUFFER_SIZE;
           setDisassembleInfo();
@@ -50,7 +50,7 @@ namespace bfp
               if (buffer_size < _size)
                 {
                   buffer_size = _size;
-                  _buffer = (uint8_t *)realloc(_buffer, buffer_size);
+                  _buffer = (uint8_t *) realloc(_buffer, buffer_size);
                 }
               bfd_get_section_contents(_fd, _sec, _buffer, 0, _size);
               _ite->_data = _buffer;
@@ -94,7 +94,7 @@ namespace bfp
               if (buffer_size < _size)
                 {
                   buffer_size = _size;
-                  _buffer = (uint8_t *)realloc(_buffer, buffer_size);
+                  _buffer = (uint8_t *) realloc(_buffer, buffer_size);
                 }
               bfd_get_section_contents(_fd, _s, _buffer, 0, _size);
               _sec->_data = _buffer;

@@ -11,12 +11,6 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
-#include <vector>                 /// ::std::vector<class>
-#include <dis-asm.h>
-#include <iterator>               /// ::std::iterator
-#include <map>                    /// ::std::map
-#include <string>                 /// ::std::to_string, ::std::string
-
 
 namespace bfp
   {
@@ -35,7 +29,7 @@ namespace bfp
           friend class Symbol;
 
       public:
-          typedef ::elfpp::ForwardIterator<
+          typedef ::bfp::ForwardIterator<
               Section,
               File> __iterator;
 
