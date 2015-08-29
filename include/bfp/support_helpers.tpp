@@ -26,7 +26,7 @@ namespace bfp
 
       /**
        * @brief retrieves type of object that is hidden behind nth reference
-       * @param __ptr is object/pointer
+       * @tparam __ptr is object/pointer
        */
       template<typename __ptr>
         struct remove_references<__ptr *>
@@ -45,9 +45,9 @@ namespace bfp
 
             /**
              * @brief generates info about function statically
-             * @param ClassType is type of class in (lambda) function - deduced
-             * @param ReturnType is type of return value in (lambda) function - deduced
-             * @param Args are types of arguments in (lambda) function - deduced
+             * @tparam ClassType is type of class in (lambda) function - deduced
+             * @tparam ReturnType is type of return value in (lambda) function - deduced
+             * @tparam Args are types of arguments in (lambda) function - deduced
              */
             template<
                 typename ClassType,
@@ -64,15 +64,15 @@ namespace bfp
                   typedef ReturnType result_type;
 
                   /**
-             * @brief set of types in function arguments
-             */
+                   * @brief set of types in function arguments
+                   */
                   template<size_t i>
                     struct argv
                       {
                         /**
-                   * @brief the i-th argument is equivalent to the i-th tuple element of a tuple
-                   *        composed of those arguments.
-                   */
+                         * @brief the i-th argument is equivalent to the i-th tuple element of a tuple
+                         *        composed of those arguments.
+                         */
                         typedef typename ::std::tuple_element<
                             i,
                             std::tuple<Args...>>::type type;
@@ -81,7 +81,7 @@ namespace bfp
 
             /**
              * @brief call function with certain, non-void, return value
-             * @param __ret is type of return value
+             * @tparam __ret is type of return value
              */
             template<
                 typename __ret>

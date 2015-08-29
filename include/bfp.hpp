@@ -40,7 +40,6 @@
  *                  ::std::cerr << ex.what();
  *                  return EXIT_FAILURE;
  *                }
- *              delete _bfd;
  *              return EXIT_SUCCESS;
  *            }
  *        @endcode
@@ -49,7 +48,6 @@
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # define BINARY_FILE_PARSER_BFP_HPP
 
-#include <bits/stl_iterator_base_types.h>
 #include <vector>                 // ::std::vector<class>
 #include <iterator>               // ::std::iterator
 #include <map>                    // ::std::map
@@ -58,7 +56,7 @@
 #include <dis-asm.h>              // disassembler
 #include <bfp/exception.hpp>      // all bfp exceptions
 #include <bfp/support.hpp>        // support functions
-#include <bfp/iterator.tpp>       // Iterator classes
+#include <bfp/iterator.hpp>       // Iterator classes
 #include <bfp/asm.hpp>            // Instruction class
 #include <bfp/symbol.hpp>         // Symbol class
 #include <bfp/section.hpp>        // Section class

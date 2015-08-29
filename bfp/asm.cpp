@@ -62,7 +62,7 @@ namespace bfp
           return _s_signature;
         }
 
-      Instruction::Instruction(Instruction && _mv)
+      Instruction::Instruction(Instruction &&_mv)
         {
           _op_code = _mv._op_code;
           _s_signature = _mv._s_signature;
@@ -72,16 +72,16 @@ namespace bfp
           _name = _mv._name;
         }
 
-      Instruction &Instruction::operator=(Instruction && _mv)
-      {
-                    _op_code = _mv._op_code;
-                    _s_signature = _mv._s_signature;
-                    _address = _mv._address;
-                    _binary = _mv._binary;
-                    _size = _mv._size;
-                    _name = _mv._name;
-                    return *this;
-                  }
+      Instruction &Instruction::operator=(Instruction &&_mv)
+        {
+          _op_code = _mv._op_code;
+          _s_signature = _mv._s_signature;
+          _address = _mv._address;
+          _binary = _mv._binary;
+          _size = _mv._size;
+          _name = _mv._name;
+          return *this;
+        }
 
       Instruction::Instruction(const Instruction &_cp)
         {

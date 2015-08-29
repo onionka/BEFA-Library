@@ -2,11 +2,11 @@
  * @file symbol.hpp
  * @author Miroslav Cibulka
  * @brief Symbol class
+ *
  */
 
 #ifndef __BFP_SYMBOL_HPP
 # define __BFP_SYMBOL_HPP
-
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
@@ -15,46 +15,73 @@
 
 namespace bfp
   {
-      class File;
-
       class Section;
 
-      class Symbol
+      class Symbol :
+          public Vector<
+              ForwardIterator<
+                  Instruction,
+                  Symbol>>
         {
-          /** Only File (factory method) may instantiate Symbol class */
-          friend class File;
-
-          /** Section may delete file */
+          /** Section sets instance of this on-fly
+           *  so has to have access to private
+           *  variables
+           */
           friend class Section;
 
+          /** Base type of this class  */
+          typedef Vector<
+              ForwardIterator<
+                  Instruction,
+                  Symbol>> _Base;
+
+          /** Iterator type */
+          typedef typename _Base::iterator iterator;
+
+          /** Difference type */
+          typedef typename _Base::difference_type difference_type;
+
+          /** Value type (Section) */
+          typedef typename _Base::value_type value_type;
 
       public:
-          typedef ::bfp::ForwardIterator<
-              Instruction,
-              Symbol> __iterator;
-
-          ~Symbol();
-
+          /**
+           * @brief this is needed by iterator because he doesn't know
+           *        what is next element in row so he invoke this method
+           *        that fills instr wrapper and moves offset
+           * @param instr is wrapper for instruction
+           * @param offset is our pointer to 'vector' that shows
+           *        where we are, so we may easily check if iterator
+           *        reached end
+           */
           void next(
-              Instruction *instr,
-              __iterator::difference_type *offset);
+              value_type &instr,
+              difference_type &offset);
 
           ///////////////////////////////////////
           //         Vector operations         //
           ///////////////////////////////////////
 
-          __iterator begin();
+          /** begin of iteration */
+          iterator begin();
 
-          __iterator end();
+          /** end of iteration - stops at nearest symbol */
+          iterator end();
 
-          __iterator::difference_type capacity();
+          /** @see size */
+          difference_type capacity();
 
-          __iterator::difference_type size();
+          /** Size is how many bytes is this symbol pointing on */
+          difference_type size();
 
-          __iterator::difference_type max_size();
+          /** @see size */
+          difference_type max_size();
 
-          Instruction operator[](
-              size_t n);
+          /** this is unefficient because of looped jump in instructions
+           * So time complexity is linear (n).
+           */
+          value_type operator[](
+              int n);
 
           ///////////////////////////////////////////
           //         Comparition operators         //
@@ -137,7 +164,7 @@ namespace bfp
           /** @return string representation of symbol */
           const ::std::string getName() const;
 
-          /** @return RAW value of symbol */
+          /** @return gets address of symbol/or value */
           symvalue getValue() const;
 
           ///////////////////////////////////////////////
@@ -176,8 +203,16 @@ namespace bfp
 
           bool hasObjectData() const;
 
+          /** This has to be default/primitive destructor
+           *  like constructor so nothing is allocated
+           *  via new and nothing needs to be deallocated
+           *  (memory-leak-free)
+           */
+          ~Symbol() = default;
+
           /** So if we want use this as flyweight object
-           * we need this to have default constructor
+           * we need this to have default constructor.
+           * Parent object sets needed variables on fly.
            */
           Symbol() = default;
 
@@ -225,7 +260,7 @@ namespace bfp
           bool has_no_intructions = false;
 
           /** size of symbols - bytes */
-          __iterator::difference_type _size = -1;
+          difference_type _size = -1;
         };
   }
 

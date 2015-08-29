@@ -249,56 +249,56 @@ namespace bfp
           return static_cast<bool>(_sec->flags & SEC_LINKER_CREATED);
         }
 
-      Section::__iterator::difference_type Section::capacity()
+      Section::difference_type Section::capacity()
         {
           return size();
         }
 
-      Section::__iterator::difference_type Section::size()
+      Section::difference_type Section::size()
         {
           return _symbols.size();
         }
 
-      Section::__iterator::difference_type Section::max_size()
+      Section::difference_type Section::max_size()
         {
           return size();
         }
 
       void Section::next(
-          Symbol *_sym,
-          Section::__iterator::difference_type *offset)
+          Symbol &_sym,
+          Section::difference_type &offset)
         {
-          if ((*offset += 1) == size())
+          if ((offset += 1) == size())
             return;
-          _sym->_dis_fun = _dis_asm;
-          _sym->_dis_info = getDisassembleInfo();
-          _sym->_sym = _symbols[*offset];
-          if ((*offset) + 1 < size())
+          _sym._dis_fun = _dis_asm;
+          _sym._dis_info = getDisassembleInfo();
+          _sym._sym = _symbols[offset];
+          if (offset + 1 < size())
             {
               for (auto _s: _symbols)
-                if (bfd_asymbol_value(_s) > _sym->getValue())
+                if (bfd_asymbol_value(_s) > _sym.getValue())
                   {
-                    _sym->_size = bfd_asymbol_value(_s) - _sym->getValue();
+                    _sym._size = bfd_asymbol_value(_s) - _sym.getValue();
                     break;
                   }
             }
           else
-            _sym->_size = hasContent() ? getContentSize() : 0;
-          _sym->has_no_intructions = false;
+            _sym._size = hasContent() ? getContentSize() : 0;
+          _sym.has_no_intructions = false;
         }
 
-      Symbol Section::operator[](size_t n)
+      Symbol Section::operator[](int n)
         {
-          __iterator _ite = begin();
-          for (size_t i = 0;
+          iterator _ite = begin();
+          for (int i = 0;
                i < n;
                i++, _ite++);
           return *_ite;
         }
 
-      Section::__iterator Section::begin()
+      Section::iterator Section::begin()
         {
-          __iterator _ite(this, 0);
+          iterator _ite(this, 0);
           if (size() <= 0)
             return end();
           _ite->_sym = _symbols.front();
@@ -321,9 +321,9 @@ namespace bfp
           return _ite;
         }
 
-      Section::__iterator Section::end()
+      Section::iterator Section::end()
         {
-          return __iterator(this, size() - 1);
+          return iterator(this, size() - 1);
         }
 
       Section::Section(

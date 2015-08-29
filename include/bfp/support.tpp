@@ -41,7 +41,7 @@ namespace bfp
       template<
           typename __ite,
           typename __finder_type,
-          typename __value = typename __ite::value_type>
+          typename __value = typename ::std::iterator_traits<__ite>::value_type>
         const ::std::vector<__value> search(
             __ite _begin,
             __ite _end,
@@ -59,7 +59,7 @@ namespace bfp
       template<
           typename __ite,
           typename __finder_type,
-          typename __value = typename __ite::value_type>
+          typename __value = typename ::std::iterator_traits<__ite>::value_type>
         __ite find(
             __ite _begin,
             __ite _end,
@@ -77,7 +77,7 @@ namespace bfp
           typename __ite,
           typename __func,
           typename __ret = typename __apply::function_traits<__func>::result_type,
-          typename __value = typename __ite::value_type,
+          typename __value = typename ::std::iterator_traits<__ite>::value_type,
           typename... __args>
         __ret apply(
             __ite begin,

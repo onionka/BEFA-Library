@@ -12,7 +12,7 @@
 #define DEFAULT_BUFFER_SIZE 1024
 namespace bfp
   {
-      File::__ffile File::_FFILE;
+      File::ffile File::_FFILE;
 
       File::File(
           bfd *fd,
@@ -39,10 +39,10 @@ namespace bfp
             delete _dis_asm_info;
         }
 
-      File::__iterator File::begin()
+      File::iterator File::begin()
         {
           asection *_sec = _bfd_std_section;
-          __iterator _ite(this, 0);
+          iterator _ite(this, 0);
           _ite->_sec = _sec;
           if (_ite->hasContent())
             {
@@ -66,72 +66,72 @@ namespace bfp
         }
 
       void File::next(
-          Section *_sec,
-          File::__iterator::difference_type *offset)
+          Section &_sec,
+          File::difference_type &offset)
         {
-          if ((*offset += 1) == size())
+          if ((offset += 1) == size())
             return;
           asection *_s;
-          if (*offset < 4)
-            _s = _bfd_std_section + *offset;
+          if (offset < 4)
+            _s = _bfd_std_section + offset;
           else
             {
               _s = _fd->sections;
-              for (__iterator::difference_type i = 0;
-                   i < *offset - 4 && i < size() && _s != nullptr;
+              for (difference_type i = 0;
+                   i < offset - 4 && i < size() && _s != nullptr;
                    i++)
                 _s = _s->next;
               if (_s == nullptr)
                 {
-                  *offset = size();
+                  offset = size();
                   return;
                 }
             }
-          _sec->_sec = _s;
-          if (_sec->hasContent())
+          _sec._sec = _s;
+          if (_sec.hasContent())
             {
-              size_t _size = _sec->getContentSize();
+              size_t _size = _sec.getContentSize();
               if (buffer_size < _size)
                 {
                   buffer_size = _size;
                   _buffer = (uint8_t *) realloc(_buffer, buffer_size);
                 }
               bfd_get_section_contents(_fd, _s, _buffer, 0, _size);
-              _sec->_data = _buffer;
+              _sec._data = _buffer;
             }
           else
             {
-              _sec->_data = nullptr;
+              _sec._data = nullptr;
             }
           _s->vma = bfd_get_section_vma(_fd, _s);
-          _sec->_symbols = get_sym_from_sec(_s);
-          _sec->_dis_asm = getDisassembler();
-          _sec->_dis_info = _dis_asm_info;
+          _sec._symbols = get_sym_from_sec(_s);
+          _sec._dis_asm = getDisassembler();
+          _sec._dis_info = _dis_asm_info;
         }
 
-      File::__iterator File::end()
+      File::iterator File::end()
         {
-          return __iterator(this, size());
+          return iterator(this, size());
         }
 
-      File::__iterator::difference_type File::capacity()
+      File::difference_type File::capacity()
         {
           return size();
         }
 
-      File::__iterator::difference_type File::size()
+      File::difference_type File::size()
         {
           return _fd->section_count + 4;
         }
 
-      File::__iterator::difference_type File::max_size()
+      File::difference_type File::max_size()
         {
           return size();
         }
 
-      File::__iterator::value_type File::operator[](int n)
+      File::value_type File::operator[](int n)
         {
-          __iterator _ite = begin();
+          iterator _ite = begin();
           for (int i = 0;
                i < n;
                i++)
@@ -242,7 +242,7 @@ namespace bfp
         }
 
       int File::ffprintf(
-          File::__ffile *f,
+          File::ffile *f,
           const char *format,
           ...)
         {
@@ -289,4 +289,13 @@ namespace bfp
           pos = 0;
         }
 
+      long File::getSymTableSize() const
+        {
+          return table_count;
+        }
+
+      size_t File::getBufferSize() const
+        {
+          return buffer_size;
+        }
   }

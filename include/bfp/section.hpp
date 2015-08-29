@@ -19,19 +19,30 @@ namespace bfp
 
       class Symbol;
 
-      class Instruction;
-
-      class Section
+      class Section :
+          public Vector<
+              ForwardIterator<
+                  Symbol,
+                  Section>>
         {
           /** Only File may instantiate this */
           friend class File;
 
-          friend class Symbol;
+          /** Base type of this class  */
+          typedef Vector<
+              ForwardIterator<
+                  Symbol,
+                  Section>> _Base;
 
+          /** Iterator type */
+          typedef typename _Base::iterator iterator;
+
+          /** Difference type */
+          typedef typename _Base::difference_type difference_type;
+
+          /** Value type (Section) */
+          typedef typename _Base::value_type value_type;
       public:
-          typedef ::bfp::ForwardIterator<
-              Symbol,
-              Section> __iterator;
 
           // ************************************* //
           //         Comparition operators         //
@@ -121,22 +132,30 @@ namespace bfp
           //       Vector operations       //
           // ***************************** //
 
-          __iterator begin();
+          iterator begin();
 
-          __iterator end();
+          iterator end();
 
-          __iterator::difference_type capacity();
+          difference_type capacity();
 
-          __iterator::difference_type size();
+          difference_type size();
 
-          __iterator::difference_type max_size();
+          difference_type max_size();
 
+          /**
+           * @bref same as in Symbol
+           * @see Symbol::next
+           */
           void next(
-              Symbol *_sym,
-              __iterator::difference_type *offset);
+              value_type &_sym,
+              difference_type &offset);
 
-          Symbol operator[](
-              size_t n);
+          /**
+           * @brief same as Symbol - complexity = linear (n)
+           * @see Symbol::next
+           */
+          value_type operator[](
+              int n);
 
           // ******************************************** //
           //              Section attributes              //
@@ -219,7 +238,10 @@ namespace bfp
           /** This cannot be instantiated outside this class
            *    but it is done via File (factory method)
            * @param section is BFD structure that represents
-           *          section of binary file ie. .text, .bss, .data
+           *                section of exe/lib file ie. .text, .bss, .data
+           * @param dis_asm is function that disassembles binary data
+           * @param dis_info is structure of variables needed by dis_asm
+           * @param symbols are symbols that belongs to this section
            */
           Section(
               asection *section,

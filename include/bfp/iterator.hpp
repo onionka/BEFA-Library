@@ -1,7 +1,71 @@
 /**
- * @file iterator.tpp
+ * @file iterator.hpp
  * @author Miroslav Cibulka
  * @brief Iterators of all kinds
+ * @details
+ *  example of use:
+ *    Let's say we have class that contains raw data and we want to wrap them. We may
+ *    use Flyweight pattern to minimalize memory usage and increase speed.
+ *    @code
+ *      class RawData :
+ *        public ::bfp::Vector<
+ *            ::bfp::ForwardIterator<
+ *                Wrapper,
+ *                RawData>>
+ *        {
+ *        typedef ::bfp::Vector<
+ *            ::bfp::ForwardIterator<
+ *                Wrapper,
+ *                RawData>> _Base;
+ *
+ *      public:
+ *          // Allocation and data fill
+ *          ...
+ *          /// We need to create begin of iteration
+ *          virtual _Base::iterator begin()
+ *            {
+ *              _Base::iterator _ret(this, 0);
+ *              /// that we have to fill it with raw data
+ *              return _ret;
+ *            }
+ *
+ *          /// We need to define when iteration should stop
+ *          /// This should return iterator with no data
+ *          virtual _Base::iterator end()
+ *            {
+ *              return _Base::iterator(this, size());
+ *            }
+ *
+ *          /// This should fill _wrapper object with data
+ *          virtual void next(
+ *              _Base::value_type &_wrapper,
+ *              _Base::difference_type &_diff)
+ *            {
+ *              _diff += 1;
+ *              _wrapper.data = raw_data + _diff;
+ *            }
+ *
+ *          /// This returns size of data
+ *          virtual _Base::difference_type size() { return size_of_data; }
+ *
+ *          /// This are just aliases to size()
+ *          virtual _Base::difference_type capacity() { return size(); }
+ *          virtual _Base::difference_type max_size() { return size(); }
+ *
+ *       private:
+ *          /// Raw data
+ *          uint8_t *raw_data;
+ *
+ *          /// Size of raw data
+ *          _Base::difference_type size_of_data;
+ *        }
+ *    @endcode
+ *
+ *    Requirements:
+ *      * Wrapper should be class with default/primitive constructor and RawData
+ *        should have access to his attributes.
+ *      * Implementation of inherited method
+ *
  */
 
 #ifndef __BFP_ITERATOR_HPP
@@ -11,9 +75,47 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
+#include <bits/stl_iterator_base_types.h>
+#include <utility>
+
 
 namespace bfp
   {
+      /** Base class for all vector that use Flyweight iterator
+       * @tparam __iterator is expected iterator type (ForwardIterator, BidirectionalIterator ...)
+       */
+      template<
+          typename __iterator>
+        class Vector
+          {
+        public:
+            typedef __iterator iterator;
+            typedef typename iterator::difference_type difference_type;
+            typedef typename iterator::value_type value_type;
+
+            virtual iterator begin() = 0;
+
+            virtual iterator end() = 0;
+
+            virtual void next(
+                value_type &,
+                difference_type &) = 0;
+
+            virtual void prev(
+                value_type &,
+                difference_type &)
+              { }
+
+            virtual difference_type capacity() = 0;
+
+            virtual difference_type size() = 0;
+
+            virtual difference_type max_size() = 0;
+
+            virtual ~Vector()
+              { }
+          };
+
       template<
           typename __wrapper,
           typename __owner,
@@ -23,10 +125,10 @@ namespace bfp
                 __tag,
                 __wrapper>
           {
+        public:
             typedef ::std::iterator<
                 __tag,
                 __wrapper> _Base;
-        public:
             typedef __wrapper wrapper;
             typedef __owner owner;
             typedef typename _Base::difference_type difference_type;
@@ -37,16 +139,16 @@ namespace bfp
 
             typedef ForwardIterator<
                 wrapper,
-                owner,
+                __owner,
                 __tag> ite_type;
 
             ForwardIterator() = default;
 
             ForwardIterator(
-                owner *owner,
+                owner *own,
                 difference_type offset = 0)
                 :
-                _owner(owner),
+                _owner(own),
                 _offset(offset)
               { }
 
@@ -61,9 +163,9 @@ namespace bfp
             ForwardIterator(
                 ite_type &&_mv)
               {
-                ::std::swap(_data, _mv._data);
-                ::std::swap(_owner, _mv._owner);
-                ::std::swap(_offset, _mv._offset);
+                _data = _mv._data;
+                _owner = _mv._owner;
+                _offset = _mv._offset;
               }
 
             ite_type &operator=(
@@ -78,15 +180,15 @@ namespace bfp
             ite_type &operator=(
                 ite_type &&_mv)
               {
-                ::std::swap(_data, _mv._data);
-                ::std::swap(_owner, _mv._owner);
-                ::std::swap(_offset, _mv._offset);
+                _data = _mv._data;
+                _owner = _mv._owner;
+                _offset = _mv._offset;
                 return *this;
               }
 
             ite_type &operator++()
               {
-                _owner->next(&_data, &_offset);
+                _owner->next(_data, _offset);
                 return *this;
               }
 
@@ -100,7 +202,6 @@ namespace bfp
             bool operator==(
                 const ite_type &_ite)
               {
-                ::std::cout << _offset << " " << _ite._offset << ::std::endl;
                 return _offset == _ite._offset;
               }
 
@@ -120,7 +221,6 @@ namespace bfp
                 return &_data;
               }
 
-
             void swap(ite_type &other)
               {
                 ::std::swap(other._data, _data);
@@ -130,10 +230,11 @@ namespace bfp
 
             ~ForwardIterator() noexcept
               { }
+        private:
+            owner *_owner = nullptr;
 
         protected:
             value_type _data;
-            owner *_owner = nullptr;
             difference_type _offset = -1;
           };
 
@@ -147,10 +248,10 @@ namespace bfp
                 __owner,
                 __tag>
           {
+        public:
             typedef ::std::iterator<
                 __tag,
                 __wrapper> _Base;
-        public:
             typedef BidirectionalIterator<
                 __wrapper,
                 __owner,
@@ -187,7 +288,7 @@ namespace bfp
             ite_type &operator--()
               {
                 this->_owner
-                    ->prev(&this->_data, &this->_offset);
+                    ->prev(this->_data, this->_offset);
                 return *this;
               }
 
@@ -197,6 +298,9 @@ namespace bfp
                 ++*this;
                 return tmp;
               }
+
+        private:
+            owner *_owner = nullptr;
           };
 
       template<
@@ -209,10 +313,10 @@ namespace bfp
                 __owner,
                 __tag>
           {
+        public:
             typedef ::std::iterator<
                 __tag,
                 __wrapper> _Base;
-        public:
             typedef RandomAccessIterator<
                 __wrapper,
                 __owner,
@@ -228,7 +332,7 @@ namespace bfp
             RandomAccessIterator() = default;
 
             RandomAccessIterator(
-                owner *owner,
+                Vector<ite_type> *owner,
                 difference_type offset = 0)
               {
                 this->BidirectionalIterator(owner, offset);
@@ -303,6 +407,9 @@ namespace bfp
               {
                 return !(*this < it);
               }
+
+        private:
+            Vector<ite_type> *_owner = nullptr;
           };
   }
 #endif //__BFP_ITERATOR_HPP

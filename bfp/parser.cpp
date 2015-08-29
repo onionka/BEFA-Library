@@ -11,8 +11,8 @@ namespace bfp
   {
       Parser *Parser::get_unique_instance()
         {
-          static Parser *instance = new Parser();
-          return instance;
+          static Parser instance;
+          return &instance;
         }
 
       File *Parser::Open(

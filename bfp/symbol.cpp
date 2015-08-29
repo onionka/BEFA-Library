@@ -229,40 +229,40 @@ namespace bfp
           return static_cast<bool>(_sym->flags & BSF_OBJECT);
         }
 
-      Symbol::__iterator::difference_type Symbol::size()
+      Symbol::difference_type Symbol::size()
         {
           return _size;
         }
 
-      Symbol::__iterator::difference_type Symbol::capacity()
+      Symbol::difference_type Symbol::capacity()
         {
           return size();
         }
 
-      Symbol::__iterator::difference_type Symbol::max_size()
+      Symbol::difference_type Symbol::max_size()
         {
           return size();
         }
 
-      Instruction Symbol::operator[](
-          size_t n)
+      Symbol::value_type Symbol::operator[](
+          int n)
         {
           //return *(begin() + (int)n);
-          __iterator i = begin();
-          for (size_t j = 0;
+          iterator i = begin();
+          for (int j = 0;
                j < n;
                j++, i++);
           return *i;
         }
 
-      Symbol::__iterator Symbol::begin()
+      Symbol::iterator Symbol::begin()
         {
-          auto _file = (File::__ffile *) _dis_info->stream;
+          auto _file = (File::ffile *) _dis_info->stream;
           _file->pos = 0;
           int _instr_size = _dis_fun(getValue(), _dis_info);
           if (_instr_size < 0 || _instr_size >= size())
             return end();
-          auto _out = __iterator(this, _instr_size);
+          auto _out = iterator(this, _instr_size);
           _out->_address = getValue();
           _out->_op_code = _dis_info->buffer;
           _out->_size = static_cast<size_t>(_instr_size);
@@ -271,30 +271,30 @@ namespace bfp
           return _out;
         }
 
-      Symbol::__iterator Symbol::end()
+      Symbol::iterator Symbol::end()
         {
-          return __iterator(this, size() + 1);
+          return iterator(this, size() + 1);
         }
 
       void Symbol::next(
-          Instruction *instr,
-          Symbol::__iterator::difference_type *offset)
+          Symbol::value_type &instr,
+          Symbol::difference_type &offset)
         {
-          auto _file = (File::__ffile *) _dis_info->stream;
+          auto _file = (File::ffile *) _dis_info->stream;
           _file->pos = 0;
-          int _instr_size = _dis_fun(getValue() + *offset, _dis_info);
-          if (_instr_size < 0 || _instr_size >= size() || *offset > size())
+          int _instr_size = _dis_fun(getValue() + offset, _dis_info);
+          if (_instr_size < 0 || _instr_size >= size() || offset > size())
             {
-              *offset = size() + 1;
+              offset = size() + 1;
               return;
             }
-          instr->_address = getValue() + *offset;
-          instr->_op_code = _dis_info->buffer + getValue() -
-                            _dis_info->buffer_vma + *offset;
-          instr->_size = static_cast<size_t>(_instr_size);
-          instr->_s_signature = _file->buffer;
-          instr->_binary = "";
-          *offset += _instr_size;
+          instr._address = getValue() + offset;
+          instr._op_code = _dis_info->buffer + getValue() -
+                            _dis_info->buffer_vma + offset;
+          instr._size = static_cast<size_t>(_instr_size);
+          instr._s_signature = _file->buffer;
+          instr._binary = "";
+          offset += _instr_size;
         }
 
       Symbol::Symbol(
@@ -307,25 +307,22 @@ namespace bfp
           _dis_info(dis_info)
         { }
 
-      Symbol::~Symbol()
-        { }
-
       Symbol::Symbol(Symbol &&_mv)
         {
-          ::std::swap(_sym, _mv._sym);
-          ::std::swap(_dis_fun, _mv._dis_fun);
-          ::std::swap(_dis_info, _mv._dis_info);
-          ::std::swap(has_no_intructions, _mv.has_no_intructions);
-          ::std::swap(_size, _mv._size);
+          _sym = _mv._sym;
+          _dis_fun = _mv._dis_fun;
+          _dis_info = _mv._dis_info;
+          has_no_intructions = _mv.has_no_intructions;
+          _size = _mv._size;
         }
 
       Symbol &Symbol::operator=(Symbol &&_mv)
         {
-          ::std::swap(_sym, _mv._sym);
-          ::std::swap(_dis_fun, _mv._dis_fun);
-          ::std::swap(_dis_info, _mv._dis_info);
-          ::std::swap(has_no_intructions, _mv.has_no_intructions);
-          ::std::swap(_size, _mv._size);
+          _sym = _mv._sym;
+          _dis_fun = _mv._dis_fun;
+          _dis_info = _mv._dis_info;
+          has_no_intructions = _mv.has_no_intructions;
+          _size = _mv._size;
           return *this;
         }
 

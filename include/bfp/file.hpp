@@ -17,22 +17,31 @@ namespace bfp
       /** Binary file descriptor class
        * @brief has iterators and is instantiated via BFD singleton/factory
        */
-      class File
+      class File :
+          public Vector<
+              ForwardIterator<
+                  Section,
+                  File>>
         {
           /** So BFD may create instance of this or delete */
           friend class Parser;
 
-          /** For accessing private data */
-          friend class Section;
+          /** Base type of this class  */
+          typedef Vector<
+              ForwardIterator<
+                  Section,
+                  File>> _Base;
 
-          /** For accessing private data */
-          friend class Symbol;
+          /** Iterator type */
+          typedef typename _Base::iterator iterator;
+
+          /** Difference type */
+          typedef typename _Base::difference_type difference_type;
+
+          /** Value type (Section) */
+          typedef typename _Base::value_type value_type;
 
       public:
-          typedef ::bfp::ForwardIterator<
-              Section,
-              File> __iterator;
-
           typedef struct FFILE
             {
               const size_t base_size = 64;
@@ -42,12 +51,16 @@ namespace bfp
 
               FFILE();
 
-              /** Reallocates _buffer with desire size*/
+              /** Reallocates _buffer with desire size */
               void realloc(int size);
 
               ~FFILE();
 
-            } __ffile;
+            } ffile;
+
+          long getSymTableSize() const;
+
+          size_t getBufferSize() const;
 
           /** @return path to this file */
           const char *get_path() const;
@@ -59,36 +72,43 @@ namespace bfp
           ///       Vector operations       ///
           /////////////////////////////////////
 
-          __iterator begin();
+          virtual iterator begin();
 
-          __iterator end();
+          virtual iterator end();
 
-          void next(
-              Section *_sec,
-              __iterator::difference_type *offset);
+          /**
+           * @see Symbol::next
+           */
+          virtual void next(
+              value_type &_sec,
+              difference_type &offset);
 
-          __iterator::difference_type capacity();
+          virtual difference_type capacity();
 
-          __iterator::difference_type size();
+          virtual difference_type size();
 
-          __iterator::difference_type max_size();
+          virtual difference_type max_size();
 
-          __iterator::value_type operator[](
+          value_type operator[](
               int n);
 
-          /** Frees all sections and symbols when deleted
+          /**
+           * @details
+           *  Frees all sections and symbols when deleted
            *    By default it is done by BFD so ... don't do it
            */
           ~File();
 
       private:
-          /** File can't be created outside of BFD singleton/factory
+          /**
+           * @details
+           *  File can't be created outside of BFD singleton/factory
            *    This is opened by BFD and closed by BFD
            *      (May be accessed via vector of files in BFD)
-           *  @param fd is binary file descriptor representative
-           *  @param path to binary file (executable or dynamic library)
-           *  @param target architecture or format ie. elf64-x86-64
-           *  @see _target
+           * @param fd is binary file descriptor representative
+           * @param path to binary file (executable or dynamic library)
+           * @param target architecture or format ie. elf64-x86-64
+           * @see _target
            */
           File(
               bfd *fd,
@@ -119,16 +139,15 @@ namespace bfp
            */
           ATTRIBUTE_PRINTF_2
           static int ffprintf(
-              __ffile *f,
+              ffile *f,
               const char *format,
               ...);
 
-          /**
-           * @brief This prepares disassembler
-           */
+          /** @brief This prepares disassembler */
           disassembler_ftype getDisassembler();
 
-          ::std::vector<asymbol *> get_sym_from_sec(const asection *beg);
+          /** @return vector of symbols that belongs to section */
+          ::std::vector<asymbol *> get_sym_from_sec(const asection *sec);
 
           /** reads symbols from file */
           void retrieve_symbols();
@@ -154,6 +173,8 @@ namespace bfp
 
           /** File symbol table */
           asymbol **symbol_table;
+
+          /** Synthetic symbol table (extra symbols?) */
           asymbol *synthetic_symbol_table;
           long number_of_symbols;
           long number_of_dyn_sym;
@@ -168,12 +189,14 @@ namespace bfp
 
           /** Binary content of this file */
           uint8_t *_buffer;
+
+          /** buffer size */
           size_t buffer_size = 0;
 
           /** Static file that stores everything that will be written to it
            *  so we may access data later and clear it
            */
-          static __ffile _FFILE;
+          static ffile _FFILE;
         };
   }
 

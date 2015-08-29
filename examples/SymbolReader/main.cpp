@@ -23,30 +23,20 @@ int main(
     try
       {
         po::options_description desc("Allowed options");
-        desc.add_options()("help,h",
-                           "prints help"
-                          )("list-targets,l",
-                            "prints list of appropriate targets"
-                           )("list-symbols,s",
-                             "prints list of symbols"
-                            )("file,f",
-                              ::boost::program_options::value<::std::string>(),
-                              "binary file"
-                             )("target,t",
-                               ::boost::program_options::value<::std::string>(),
-                               "target of binary file (default is first appropriate found)"
-                              );
+        desc.add_options()("help,h", "prints help")("list-targets,l",
+                                                    "prints list of appropriate targets")(
+            "list-symbols,s", "prints list of symbols")("file,f",
+                                                        ::boost::program_options::value<::std::string>(),
+                                                        "binary file")(
+            "target,t", ::boost::program_options::value<::std::string>(),
+            "target of binary file (default is first appropriate found)");
         po::positional_options_description p;
-        p.add("file",
-              -1
-             );
+        p.add("file", -1);
 
         po::variables_map vm;
-        po::store(po::command_line_parser(argc,
-                                          argv
-                                         ).options(desc).positional(p).run(),
-                  vm
-                 );
+        po::store(po::command_line_parser(argc, argv).options(desc)
+                                                     .positional(p)
+                                                     .run(), vm);
         po::notify(vm);
 
         if (vm.count("help"))
@@ -62,8 +52,7 @@ int main(
 
         if (vm.count("list-targets"))
           for (auto &_tar : parser->getTargets(__file))
-            printf("%s\n",
-                   _tar.c_str());
+            printf("%s\n", _tar.c_str());
 
         if (vm.count("target"))
           __target = vm["target"].as<::std::string>();
@@ -73,9 +62,7 @@ int main(
 
         if (vm.count("list-symbols"))
           {
-            auto file = parser->Open(__file,
-                                     __target
-                                    );
+            auto file = parser->Open(__file, __target);
             if (file == nullptr)
               {
                 ::std::cerr << "Bad file target" << ::std::endl;
@@ -85,10 +72,10 @@ int main(
             for (auto &sec : *file)
               for (auto &sym : sec)
                 {
-                  printf("%016X %20s  %s\n",
-                         (unsigned) sym.getValue(),
-                         sec.getName().c_str(),
-                         sym.getName().c_str());
+                  printf("%016X %20s  %s\n", (unsigned) sym.getValue(),
+                         sec.getName()
+                            .c_str(), sym.getName()
+                                         .c_str());
                 }
           }
       }
