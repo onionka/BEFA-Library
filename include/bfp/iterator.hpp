@@ -332,7 +332,7 @@ namespace bfp
             RandomAccessIterator() = default;
 
             RandomAccessIterator(
-                Vector<ite_type> *owner,
+                owner *owner,
                 difference_type offset = 0)
               {
                 this->BidirectionalIterator(owner, offset);
@@ -409,7 +409,7 @@ namespace bfp
               }
 
         private:
-            Vector<ite_type> *_owner = nullptr;
+            owner *_owner = nullptr;
           };
   }
 #endif //__BFP_ITERATOR_HPP

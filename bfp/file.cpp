@@ -41,7 +41,7 @@ namespace bfp
 
       File::iterator File::begin()
         {
-          asection *_sec = _bfd_std_section;
+          asection *_sec = bfd_und_section_ptr;
           iterator _ite(this, 0);
           _ite->_sec = _sec;
           if (_ite->hasContent())
@@ -72,20 +72,28 @@ namespace bfp
           if ((offset += 1) == size())
             return;
           asection *_s;
-          if (offset < 4)
-            _s = _bfd_std_section + offset;
-          else
+          switch (offset)
             {
-              _s = _fd->sections;
-              for (difference_type i = 0;
-                   i < offset - 4 && i < size() && _s != nullptr;
-                   i++)
-                _s = _s->next;
-              if (_s == nullptr)
-                {
-                  offset = size();
-                  return;
-                }
+              case 1:
+                _s = bfd_abs_section_ptr;
+              break;
+              case 2:
+                _s = bfd_com_section_ptr;
+              break;
+              case 3:
+                _s = bfd_ind_section_ptr;
+              break;
+              default:
+                _s = _fd->sections;
+                for (difference_type i = 0;
+                     i < offset - 4 && i < size() && _s != nullptr;
+                     i++)
+                  _s = _s->next;
+                if (_s == nullptr)
+                  {
+                    offset = size();
+                    return;
+                  }
             }
           _sec._sec = _s;
           if (_sec.hasContent())
