@@ -112,5 +112,53 @@ namespace bfp
             return ret;
           }
 
+
+      template<
+          typename __Ite,
+          typename __S,
+          typename ...__Seq>
+        bool compare(
+            __Ite ite,
+            __S s)
+          {
+            return dereference(*ite) == s;
+          }
+
+      template<
+          typename __Ite,
+          typename __S,
+          typename ...__Seq>
+        bool compare(
+            __Ite ite,
+            __S s,
+            __Seq ...seq)
+          {
+            return dereference(*ite) == s ? compare(++ite, seq...) : false;
+          }
+
+
+      template<
+          typename __Ite,
+          typename ...__Seq>
+        __Ite find_seq(
+            __Ite begin,
+            __Ite end,
+            __Seq ...seq)
+          {
+            for (auto _bottom = begin;
+                 _bottom != end;
+                 _bottom++)
+              {
+                auto _upper = _bottom;
+                for (size_t i = 0;
+                     i < sizeof ...(seq);
+                     _upper++, i++)
+                  if (_upper == end)
+                    return end;
+                if (compare(_bottom, _upper, seq...))
+                  return _bottom;
+              }
+            return end;
+          }
   }
 #endif // __BFP_SUPPORT_TPP

@@ -275,10 +275,12 @@ namespace bfp
           _sym._sym = _symbols[offset];
           if (offset + 1 < size())
             {
-              for (auto _s: _symbols)
-                if (bfd_asymbol_value(_s) > _sym.getValue())
+              for (auto _s = _symbols.begin() + offset;
+                   _s != _symbols.end();
+                   _s++)
+                if (bfd_asymbol_value(*_s) > _sym.getValue())
                   {
-                    _sym._size = bfd_asymbol_value(_s) - _sym.getValue();
+                    _sym._size = bfd_asymbol_value(*_s) - _sym.getValue();
                     break;
                   }
             }

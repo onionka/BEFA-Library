@@ -31,11 +31,11 @@ namespace bfp
           return _address;
         }
 
-      Instruction::__signature_t Instruction::getBinary()
+      Instruction::__signature_t &Instruction::getBinary()
         {
-          char _buffer[6];
           if (_binary == "")
             {
+              char _buffer[6];
               for (size_t i = 0;
                    i < _size;
                    ++i)
@@ -47,7 +47,7 @@ namespace bfp
           return _binary;
         }
 
-      ::std::string Instruction::getName()
+      ::std::string &Instruction::getName()
         {
           if (_name == "")
             {
@@ -57,7 +57,7 @@ namespace bfp
           return _name;
         }
 
-      Instruction::__signature_t Instruction::getSignature()
+      Instruction::__signature_t &Instruction::getSignature()
         {
           return _s_signature;
         }

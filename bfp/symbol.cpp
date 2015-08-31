@@ -257,8 +257,8 @@ namespace bfp
 
       Symbol::iterator Symbol::begin()
         {
-          auto _file = (File::ffile *) _dis_info->stream;
-          _file->pos = 0;
+          auto _file = (File::_ffile *) _dis_info->stream;
+          _file->init();
           int _instr_size = _dis_fun(getValue(), _dis_info);
           if (_instr_size < 0 || _instr_size >= size())
             return end();
@@ -266,7 +266,7 @@ namespace bfp
           _out->_address = getValue();
           _out->_op_code = _dis_info->buffer;
           _out->_size = static_cast<size_t>(_instr_size);
-          _out->_s_signature = _file->buffer;
+          _out->_s_signature = _file->_buffer;
           _out->_binary = "";
           return _out;
         }
@@ -280,8 +280,8 @@ namespace bfp
           Symbol::value_type &instr,
           Symbol::difference_type &offset)
         {
-          auto _file = (File::ffile *) _dis_info->stream;
-          _file->pos = 0;
+          auto _file = (File::_ffile *) _dis_info->stream;
+          _file->init();
           int _instr_size = _dis_fun(getValue() + offset, _dis_info);
           if (_instr_size < 0 || _instr_size >= size() || offset > size())
             {
@@ -290,9 +290,9 @@ namespace bfp
             }
           instr._address = getValue() + offset;
           instr._op_code = _dis_info->buffer + getValue() -
-                            _dis_info->buffer_vma + offset;
+                           _dis_info->buffer_vma + offset;
           instr._size = static_cast<size_t>(_instr_size);
-          instr._s_signature = _file->buffer;
+          instr._s_signature = _file->_buffer;
           instr._binary = "";
           offset += _instr_size;
         }

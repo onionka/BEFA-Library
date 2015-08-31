@@ -54,6 +54,7 @@
 #include <string>                 // ::std::to_string, ::std::string
 #include <bfd.h>                  // binutils
 #include <dis-asm.h>              // disassembler
+#include <bfp/raw_vector.hpp>     // raw_vector class
 #include <bfp/exception.hpp>      // all bfp exceptions
 #include <bfp/support.hpp>        // support functions
 #include <bfp/iterator.hpp>       // Iterator classes

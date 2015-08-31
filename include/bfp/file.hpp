@@ -42,31 +42,33 @@ namespace bfp
           typedef typename _Base::value_type value_type;
 
       public:
-          typedef struct FFILE
+          struct _ffile
             {
-              const size_t base_size = 64;
-              char *buffer = (char *) "";
+              _ffile()
+                  :
+                  _buffer(42),
+                  pos(0)
+                { }
+
+              void init()
+                {
+                  pos = 0;
+                  _buffer.zero();
+                }
+
+              raw_vector<char> _buffer;
               size_t pos;
-              size_t alloc;
-
-              FFILE();
-
-              /** Reallocates _buffer with desire size */
-              void realloc(int size);
-
-              ~FFILE();
-
-            } ffile;
+            };
 
           long getSymTableSize() const;
 
           size_t getBufferSize() const;
 
           /** @return path to this file */
-          const char *get_path() const;
+          ::std::string get_path() const;
 
           /** @return with which target is this file opened @see BFD::targets */
-          const char *get_target() const;
+          ::std::string get_target() const;
 
           /////////////////////////////////////
           ///       Vector operations       ///
@@ -137,9 +139,8 @@ namespace bfp
            * @param ... formating info
            * @return number of written bytes to f (FFILE)
            */
-          ATTRIBUTE_PRINTF_2
-          static int ffprintf(
-              ffile *f,
+          ATTRIBUTE_PRINTF_2 static int ffprintf(
+              _ffile *f,
               const char *format,
               ...);
 
@@ -166,13 +167,13 @@ namespace bfp
           bfd *_fd;
 
           /** Path to executable */
-          const char *_path;
+          ::std::string _path;
 
           /** Target name ie. elf64-x86-64 */
-          const char *_target;
+          ::std::string _target;
 
           /** File symbol table */
-          asymbol **symbol_table;
+          raw_vector<asymbol *> symbol_table;
 
           /** Synthetic symbol table (extra symbols?) */
           asymbol *synthetic_symbol_table;
@@ -182,21 +183,18 @@ namespace bfp
           long table_count;
 
           /** Function that disassembles binary file */
-          disassembler_ftype _dis_asm = nullptr;
+          disassembler_ftype _dis_asm = 0;
 
           /** Here will be all info about instructions */
-          disassemble_info *_dis_asm_info = nullptr;
+          disassemble_info _dis_asm_info;
 
           /** Binary content of this file */
-          uint8_t *_buffer;
-
-          /** buffer size */
-          size_t buffer_size = 0;
+          raw_vector<uint8_t> _buffer;
 
           /** Static file that stores everything that will be written to it
            *  so we may access data later and clear it
            */
-          static ffile _FFILE;
+          static _ffile _FFILE;
         };
   }
 

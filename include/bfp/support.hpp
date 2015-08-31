@@ -121,6 +121,45 @@ namespace bfp
             __ite begin,
             __ite end,
             __predicate _func);
+
+
+      /**
+       * @brief Compares sequence of arguments with sequence of elements
+       *        after iterator
+       * @tparam __Ite is iterator type
+       * @tparam __S is Sequence type
+       * @tparam __Seq __Ite are sequence types
+       * @param ite is iterator from which comparing starts
+       * @param s is compared element of sequence
+       * @param seq is sequence template list
+       * @return true if sequence is found
+       */
+      template<
+          typename __Ite,
+          typename __S,
+          typename ...__Seq>
+        bool compare(
+            __Ite ite,
+            __S s,
+            __Seq ...seq);
+
+      /**
+       * @brief This is superstructure of compare. This finds
+       *        first occurrence of sequence between iterators
+       * @tparam __Ite is iterator type
+       * @tparam __Seq are sequence types
+       * @param begin - from which iterator this will start searching
+       * @param end - where it will end
+       * @param seq is sequence
+       * @return iterator on position of sequence
+       */
+      template<
+          typename __Ite,
+          typename ...__Seq>
+        __Ite find_seq(
+            __Ite begin,
+            __Ite end,
+            __Seq ...seq);
   }
 
 #include <bfp/support.tpp>        /// support template functions

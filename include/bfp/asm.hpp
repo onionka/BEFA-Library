@@ -32,10 +32,10 @@ namespace bfp
           typedef __byte *__ptr;
 
           /** @return string representation of instruction in Intel style */
-          __signature_t getSignature();
+          __signature_t &getSignature();
 
           /** @return name of instruction (first word) */
-          ::std::string getName();
+          ::std::string &getName();
 
           /** @return binary op_code */
           __ptr &getOpCode();
@@ -44,7 +44,7 @@ namespace bfp
           __address_t getAddress();
 
           /** @return string form of binary op_code */
-          __signature_t getBinary();
+          __signature_t &getBinary();
 
       private:
           /**

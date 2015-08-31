@@ -100,7 +100,9 @@ namespace bfp
                         __args... _args)
                       {
                         auto ret = func(*begin, _args...);
-                        for (auto _ite = begin + 1; _ite != end; _ite++)
+                        for (auto _ite = begin + 1;
+                             _ite != end;
+                             _ite++)
                           ret = ret + func(*_ite, _args...);
                         return ret;
                       }
@@ -125,7 +127,9 @@ namespace bfp
                         __func func,
                         __args... _args)
                       {
-                        for (auto _ite = begin; _ite != end; _ite++)
+                        for (auto _ite = begin;
+                             _ite != end;
+                             _ite++)
                           func(*_ite, _args...);
                       }
                 };
