@@ -42,23 +42,6 @@ namespace bfp
           typedef typename _Base::value_type value_type;
 
       public:
-          struct _ffile
-            {
-              _ffile()
-                  :
-                  _buffer(42),
-                  pos(0)
-                { }
-
-              void init()
-                {
-                  pos = 0;
-                  _buffer.zero();
-                }
-
-              raw_vector<char> _buffer;
-              size_t pos;
-            };
 
           long getSymTableSize() const;
 
@@ -132,18 +115,6 @@ namespace bfp
           /** Forbidden move assignment */
           File &operator=(File &&) = delete;
 
-          /**
-           * @brief Our custom fake printf that stores output from disassembler
-           * @param f our fake file
-           * @param format string
-           * @param ... formating info
-           * @return number of written bytes to f (FFILE)
-           */
-          ATTRIBUTE_PRINTF_2 static int ffprintf(
-              _ffile *f,
-              const char *format,
-              ...);
-
           /** @brief This prepares disassembler */
           disassembler_ftype getDisassembler();
 
@@ -173,7 +144,7 @@ namespace bfp
           ::std::string _target;
 
           /** File symbol table */
-          raw_vector<asymbol *> symbol_table;
+          raw_vector<asymbol *, 1024> symbol_table;
 
           /** Synthetic symbol table (extra symbols?) */
           asymbol *synthetic_symbol_table;
@@ -189,12 +160,12 @@ namespace bfp
           disassemble_info _dis_asm_info;
 
           /** Binary content of this file */
-          raw_vector<uint8_t> _buffer;
+          raw_vector<uint8_t, 32768> _buffer;
 
           /** Static file that stores everything that will be written to it
            *  so we may access data later and clear it
            */
-          static _ffile _FFILE;
+          static ffile _FFILE;
         };
   }
 

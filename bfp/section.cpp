@@ -275,14 +275,16 @@ namespace bfp
           _sym._sym = _symbols[offset];
           if (offset + 1 < size())
             {
-              for (auto _s = _symbols.begin() + offset;
-                   _s != _symbols.end();
-                   _s++)
-                if (bfd_asymbol_value(*_s) > _sym.getValue())
-                  {
-                    _sym._size = bfd_asymbol_value(*_s) - _sym.getValue();
-                    break;
-                  }
+              /* We are finding next nearest possible address *
+               * that is not the same with created symbol     */
+              auto _ite = _symbols.begin() + offset + 1;
+              while (_ite != _symbols.end() &&
+                     bfd_asymbol_value(*_ite) == _sym.getValue())
+                _ite++;
+              if (_ite == _symbols.end())
+                _sym._size = getContentSize();
+              else
+                _sym._size = bfd_asymbol_value(*_ite) - _sym.getValue();
             }
           else
             _sym._size = hasContent() ? getContentSize() : 0;
@@ -310,12 +312,14 @@ namespace bfp
             {
               /* We are finding next nearest possible address *
                * that is not the same with created symbol     */
-              for (auto _s: _symbols)
-                if (bfd_asymbol_value(_s) > _ite->getValue())
-                  {
-                    _ite->_size = bfd_asymbol_value(_s) - _ite->getValue();
-                    break;
-                  }
+              auto _i = _symbols.begin() + 1;
+              while (_i != _symbols.end() &&
+                     bfd_asymbol_value(*_i) == _ite->getValue())
+                _i++;
+              if (_i == _symbols.end())
+                _ite->_size = getContentSize();
+              else
+                _ite->_size = bfd_asymbol_value(*_i) - _ite->getValue();
             }
           else
             _ite->_size = getContentSize();
@@ -325,7 +329,7 @@ namespace bfp
 
       Section::iterator Section::end()
         {
-          return iterator(this, size() - 1);
+          return iterator(this, size());
         }
 
       Section::Section(

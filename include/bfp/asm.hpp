@@ -24,27 +24,27 @@ namespace bfp
 
           friend class Iterator;
 
-          typedef const char *c_string;
+          typedef ffile::buffer_t c_string;
       public:
-          typedef uint8_t __byte;
-          typedef uint64_t __address_t;
-          typedef ::std::string __signature_t;
-          typedef __byte *__ptr;
+          typedef uint8_t byte;
+          typedef uint64_t address_t;
+          typedef c_string signature_t;
+          typedef byte *pointer;
 
           /** @return string representation of instruction in Intel style */
-          __signature_t &getSignature();
+          char *getSignature();
 
           /** @return name of instruction (first word) */
           ::std::string &getName();
 
           /** @return binary op_code */
-          __ptr &getOpCode();
+          pointer &getOpCode();
 
           /** @return address of instruction */
-          __address_t getAddress();
+          address_t getAddress();
 
           /** @return string form of binary op_code */
-          __signature_t &getBinary();
+          char *getBinary();
 
       private:
           /**
@@ -59,7 +59,7 @@ namespace bfp
               uint8_t *op_code,
               size_t count,
               const char *signature,
-              __address_t address);
+              address_t address);
 
       public:
           Instruction();
@@ -70,16 +70,16 @@ namespace bfp
 
           Instruction(const Instruction &_cp);
 
-          Instruction & operator=(const Instruction &_cp);
+          Instruction &operator=(const Instruction &_cp);
 
           ~Instruction();
 
       private:
           /** array of bytes */
-          __ptr _op_code = nullptr;
-          __signature_t _s_signature;
-          __address_t _address = 0x0;
-          __signature_t _binary;
+          pointer _op_code = nullptr;
+          signature_t _s_signature;
+          address_t _address = 0x0;
+          signature_t _binary;
           size_t _size = 0x0;
           ::std::string _name;
         };

@@ -1,5 +1,3 @@
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -g -Wall -Wextra -pedantic")
-
 SET(SOURCE_FILES
     parser.cpp
     exception.cpp
@@ -20,6 +18,7 @@ SET(HEADER_FILES
     ${PROJECT_SOURCE_DIR}/include/bfp/asm.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/iterator.hpp
     ${PROJECT_SOURCE_DIR}/include/bfp/raw_vector.hpp
+    ${PROJECT_SOURCE_DIR}/include/bfp/stream.hpp
     )
 
 SET(TEMPLATE_FILES
@@ -31,7 +30,7 @@ ADD_LIBRARY(bfp SHARED
             ${SOURCE_FILES}
             ${HEADER_FILES}
             ${TEMPLATE_FILES}
-            )
+            stream.cpp)
 
 TARGET_LINK_LIBRARIES(bfp bfd opcodes ${Boost_LIBRARIES})
 

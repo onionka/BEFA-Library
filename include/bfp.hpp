@@ -58,6 +58,7 @@
 #include <bfp/exception.hpp>      // all bfp exceptions
 #include <bfp/support.hpp>        // support functions
 #include <bfp/iterator.hpp>       // Iterator classes
+#include <bfp/stream.hpp>         // ffile structure
 #include <bfp/asm.hpp>            // Instruction class
 #include <bfp/symbol.hpp>         // Symbol class
 #include <bfp/section.hpp>        // Section class

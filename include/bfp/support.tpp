@@ -48,11 +48,20 @@ namespace bfp
             __finder_type _val)
           {
             ::std::vector<__value> _ret;
+#define BLOCK_SIZE 64
+            _ret.reserve(BLOCK_SIZE);
+            size_t i = 1;
             for (__ite _ite = _begin;
                  _ite != _end;
                  ++_ite)
               if (dereference(*_ite) == _val)
-                _ret.push_back(*_ite);
+                {
+                  if (i % BLOCK_SIZE == 0)
+                    _ret.reserve((i / BLOCK_SIZE + 2) * BLOCK_SIZE);
+                  _ret.push_back(*_ite);
+                  ++i;
+                }
+#undef BLOCK_SIZE
             return _ret;
           }
 
@@ -104,11 +113,22 @@ namespace bfp
             __predicate _func)
           {
             __return ret;
+#define BLOCK_SIZE 64
+            ret.reserve(BLOCK_SIZE);
+            size_t i = 1;
             for (auto _ite = begin;
                  _ite != end;
                  ++_ite)
-              if (_func(*_ite))
-                ret.push_back(*_ite);
+              {
+                if (_func(*_ite))
+                  {
+                    if (i % BLOCK_SIZE == 0)
+                      ret.reserve((i / BLOCK_SIZE + 2) * BLOCK_SIZE);
+                    ret.push_back(*_ite);
+                    ++i;
+                  }
+              }
+#undef BLOCK_SIZE
             return ret;
           }
 
@@ -157,6 +177,34 @@ namespace bfp
                     return end;
                 if (compare(_bottom, _upper, seq...))
                   return _bottom;
+              }
+            return end;
+          }
+
+      template<
+          typename __Ite,
+          typename __Criterion>
+        __Ite binary_search(
+            __Ite begin,
+            __Ite end,
+            __Criterion &&func)
+          {
+            for (__Ite _beg = begin, _end = end, middle = begin +
+                                                          (_end - _beg) / 2;
+                 _beg <= _end;
+                 middle = begin + (_end - _beg) / 2)
+              {
+                auto _part = func(*middle);
+                if (_part < 0)
+                  {
+                    _beg = middle + 1;
+                  }
+                else if (_part > 0)
+                  {
+                    _end = middle - 1;
+                  }
+                else
+                  return middle;
               }
             return end;
           }

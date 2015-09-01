@@ -12,7 +12,7 @@
 #define DEFAULT_BUFFER_SIZE 2048
 namespace bfp
   {
-      File::_ffile File::_FFILE;
+      ffile File::_FFILE;
 
       File::File(
           bfd *fd,
@@ -238,35 +238,27 @@ namespace bfp
 
       ::std::vector<asymbol *> File::get_sym_from_sec(const asection *_sec)
         {
-          return ::bfp::filter(symbol_table.begin(), symbol_table.end(),
-                               [&_sec](asymbol *_sym)
-                                 {
-                                   return _sym->section == _sec;
-                                 });
-        }
-
-      int File::ffprintf(
-          File::_ffile *f,
-          const char *format,
-          ...)
-        {
-          int n = 0;
-          va_list args;
-          while (true)
-            {
-              size_t space = f->_buffer
-                              .size() - f->pos;
-              va_start (args, format);
-              n = vsnprintf(f->_buffer + f->pos, space, format, args);
-              va_end (args);
-              if (space > (size_t) n)
-                break;
-              f->_buffer
-               .resize((size_t) f->_buffer
-                                  .size() + n);
-            }
-          f->pos += n;
-          return n;
+          ::std::vector<asymbol *> _syms;
+          auto _pom = ::bfp::filter(symbol_table.begin(), symbol_table.end(),
+                                    [&_sec](asymbol *_sym)
+                                      {
+                                        if (_sym->name == NULL ||
+                                            _sym->name[0] == '\0')
+                                          return false;
+                                        if (_sym->flags &
+                                            (BSF_DEBUGGING | BSF_SECTION_SYM))
+                                          return false;
+                                        if (bfd_is_und_section (
+                                                _sym->section) ||
+                                            bfd_is_com_section (_sym->section))
+                                          return false;
+                                        return _sym->section == _sec;
+                                      });
+          _syms.reserve(_pom.size() + 1);
+          if (_sec->symbol != nullptr)
+            _syms.push_back(_sec->symbol);
+          _syms.insert(_syms.end(), _pom.begin(), _pom.end());
+          return _syms;
         }
 
       long File::getSymTableSize() const

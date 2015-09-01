@@ -17,6 +17,8 @@ namespace bfp
   {
       class Section;
 
+      class Instruction;
+
       class Symbol :
           public Vector<
               ForwardIterator<

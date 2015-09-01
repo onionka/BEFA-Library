@@ -155,7 +155,7 @@ namespace bfp
             ForwardIterator(
                 const ite_type &_cp)
               {
-                _data = _cp._data;
+                _data = value_type(_cp._data);
                 _owner = _cp._owner;
                 _offset = _cp._offset;
               }
@@ -163,7 +163,7 @@ namespace bfp
             ForwardIterator(
                 ite_type &&_mv)
               {
-                _data = _mv._data;
+                _data = ::std::move(_mv._data);
                 _owner = _mv._owner;
                 _offset = _mv._offset;
               }
@@ -171,7 +171,7 @@ namespace bfp
             ite_type &operator=(
                 const ite_type &_cp)
               {
-                _data = _cp._data;
+                _data = value_type(_cp._data);
                 _owner = _cp._owner;
                 _offset = _cp._offset;
                 return *this;
@@ -180,7 +180,7 @@ namespace bfp
             ite_type &operator=(
                 ite_type &&_mv)
               {
-                _data = _mv._data;
+                _data = ::std::move(_mv._data);
                 _owner = _mv._owner;
                 _offset = _mv._offset;
                 return *this;

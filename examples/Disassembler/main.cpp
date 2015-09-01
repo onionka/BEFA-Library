@@ -7,6 +7,7 @@
 #include <iostream>
 #include <bfp.hpp>
 #include <boost/program_options.hpp>
+#include <iomanip>
 
 
 using namespace std;
@@ -68,24 +69,24 @@ int main(
                 ::std::cerr << "Bad file target" << ::std::endl;
                 return EXIT_FAILURE;
               }
+            ::std::ios::sync_with_stdio(false);
+            ::std::cout << ::std::hex << ::std::setfill(' ');
             for (auto &sec : *file)
               {
-                printf("\n%s <0x%016X>:\n", sec.getName()
-                                               .c_str(),
-                       (unsigned) sec.getAddress());
+                ::std::cout << ::std::endl << sec.getName() << "<0x" <<
+                sec.getAddress() << ">:" << ::std::endl;
                 for (auto &sym : sec)
                   {
-                    printf("\n\t%s <0x%016X>\n", sym.getName()
-                                                    .c_str(),
-                           (unsigned) sym.getValue());
+                    ::std::cout << ::std::endl << "\t" << sym.getName() << " <0x" <<
+                    sym.getValue() << ">" << ::std::endl;
                     if (sec.hasCodeOnly())
                       for (auto &_instr : sym)
-                        printf("\t\t0x%016X %40s  %s\n", _instr.getAddress(),
-                               _instr.getBinary()
-                                     .c_str(), _instr.getSignature()
-                                                     .c_str());
+                        {
+                          ::std::cout << "\t\t" << "0x" << _instr.getAddress() <<
+                          " " << ::std::setw(40) << _instr.getBinary() <<
+                          _instr.getSignature() << ::std::endl;
+                        }
                   }
-
               }
           }
       }
