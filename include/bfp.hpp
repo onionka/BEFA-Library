@@ -54,16 +54,26 @@
 #include <string>                 // ::std::to_string, ::std::string
 #include <bfd.h>                  // binutils
 #include <dis-asm.h>              // disassembler
-#include <bfp/raw_vector.hpp>     // raw_vector class
-#include <bfp/exception.hpp>      // all bfp exceptions
-#include <bfp/support.hpp>        // support functions
-#include <bfp/iterator.hpp>       // Iterator classes
-#include <bfp/stream.hpp>         // ffile structure
-#include <bfp/asm.hpp>            // Instruction class
-#include <bfp/symbol.hpp>         // Symbol class
-#include <bfp/section.hpp>        // Section class
-#include <bfp/file.hpp>           // File class
-#include <bfp/parser.hpp>         // Parser class
+#include <memory>
+#include <iostream>
+#include <execinfo.h>
+#include <dlfcn.h>
+#include <cstring>
+#include <bits/stl_iterator_base_types.h>
+#include <utility>
+#include <type_traits>            /// ::std::remove_reference
+#include <tuple>
+
+#include "bfp/raw_vector.hpp"     // raw_vector class
+#include "bfp/exception.hpp"      // all bfp exceptions
+#include "bfp/support.hpp"        // support functions
+#include "bfp/iterator.hpp"       // Iterator classes
+#include "bfp/stream.hpp"         // ffile structure
+#include "bfp/asm.hpp"            // Instruction class
+#include "bfp/symbol.hpp"         // Symbol class
+#include "bfp/section.hpp"        // Section class
+#include "bfp/file.hpp"           // File class
+#include "bfp/parser.hpp"         // Parser class
 
 
 #endif //BINARY_FILE_PARSER_BFP_HPP

@@ -57,8 +57,6 @@ BOOST_AUTO_TEST_SUITE(base_file)
           BOOST_MESSAGE("Finding symbol '_start' in '.text'");
           auto _sym = ::bfp::find(_sec->begin(), _sec->end(), "_start");
           BOOST_CHECK(_sym != _sec->end());
-
-          delete _bfd;
         }
 
   BOOST_AUTO_TEST_SUITE_END()

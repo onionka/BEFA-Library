@@ -75,9 +75,6 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
-#include <bits/stl_iterator_base_types.h>
-#include <utility>
-
 
 namespace bfp
   {

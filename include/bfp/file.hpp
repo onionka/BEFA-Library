@@ -148,10 +148,6 @@ namespace bfp
 
           /** Synthetic symbol table (extra symbols?) */
           asymbol *synthetic_symbol_table;
-          long number_of_symbols;
-          long number_of_dyn_sym;
-          long synthetic_count;
-          long table_count;
 
           /** Function that disassembles binary file */
           disassembler_ftype _dis_asm = 0;

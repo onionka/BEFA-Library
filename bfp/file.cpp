@@ -4,7 +4,7 @@
  * @brief Here is executable File class implemented
  */
 
-#include <bfp.hpp>
+#include "../include/bfp.hpp"
 #include <algorithm>
 #include <cstdarg>
 
@@ -189,6 +189,11 @@ namespace bfp
         {
           long storage_needed;
           long dyn_storage_needed;
+          long synthetic_count;
+          long number_of_symbols;
+          long number_of_dyn_sym;
+          size_t i = 0;
+
           storage_needed = bfd_get_symtab_upper_bound (_fd);
           dyn_storage_needed = bfd_get_dynamic_symtab_upper_bound (_fd);
           if (storage_needed < 0)
@@ -220,7 +225,6 @@ namespace bfp
           symbol_table.resize(
               static_cast<size_t>(synthetic_count + number_of_symbols +
                                   number_of_dyn_sym));
-          size_t i = 0;
           for (asymbol **_sym = symbol_table.begin() + number_of_dyn_sym +
                                 number_of_symbols;
                _sym != symbol_table.end();
@@ -263,7 +267,7 @@ namespace bfp
 
       long File::getSymTableSize() const
         {
-          return table_count;
+          return symbol_table.size();
         }
 
       size_t File::getBufferSize() const

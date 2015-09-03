@@ -11,8 +11,6 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
-#include <memory>
-
 
 namespace bfp
   {

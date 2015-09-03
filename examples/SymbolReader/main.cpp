@@ -66,7 +66,6 @@ int main(
             if (file == nullptr)
               {
                 ::std::cerr << "Bad file target" << ::std::endl;
-                delete parser;
                 return EXIT_FAILURE;
               }
             for (auto &sec : *file)
@@ -82,9 +81,7 @@ int main(
     catch (std::exception &e)
       {
         std::cerr << e.what() << std::endl;
-        delete parser;
         return EXIT_FAILURE;
       }
-    delete parser;
     return EXIT_SUCCESS;
   }

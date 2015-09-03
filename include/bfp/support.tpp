@@ -7,8 +7,7 @@
 #ifndef __BFP_SUPPORT_TPP
 # define __BFP_SUPPORT_TPP
 
-#include <vector>
-#include <bfp/support_helpers.tpp>
+#include "support_helpers.tpp"
 
 
 #ifndef BINARY_FILE_PARSER_BFP_HPP

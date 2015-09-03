@@ -2,8 +2,7 @@
  *
  */
 
-#include <bfp/raw_vector.hpp>
-#include <bfp/stream.hpp>
+#include "../include/bfp.hpp"
 #include <stdarg.h>
 
 

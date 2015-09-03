@@ -4,7 +4,7 @@
  * @brief Symbol class
  */
 
-#include <bfp.hpp>
+#include "../include/bfp.hpp"
 
 
 namespace bfp

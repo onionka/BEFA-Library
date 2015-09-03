@@ -11,12 +11,6 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
-#include <iostream>
-#include <execinfo.h>
-#include <dlfcn.h>
-#include <cstring>
-#include <bfd.h>
-
 
 /** Use THIS instead of throw */
 #define RAISE(ex)\

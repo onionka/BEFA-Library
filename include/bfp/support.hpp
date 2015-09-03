@@ -12,8 +12,7 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
-#include <type_traits>            /// ::std::remove_reference
-#include <bfp/support_helpers.tpp>/// support template functions
+#include "support_helpers.tpp"/// support template functions
 
 
 namespace bfp
