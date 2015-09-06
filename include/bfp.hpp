@@ -64,9 +64,8 @@
 #include <type_traits>            /// ::std::remove_reference
 #include <tuple>
 
-#include "bfp/raw_vector.hpp"     // raw_vector class
+#include "bfp/raw_vector.hpp"     // raw_vector & sized_raw_vector
 #include "bfp/exception.hpp"      // all bfp exceptions
-#include "bfp/support.hpp"        // support functions
 #include "bfp/iterator.hpp"       // Iterator classes
 #include "bfp/stream.hpp"         // ffile structure
 #include "bfp/asm.hpp"            // Instruction class

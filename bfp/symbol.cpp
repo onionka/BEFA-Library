@@ -266,7 +266,7 @@ namespace bfp
           _out->_address = getValue();
           _out->_op_code = _dis_info->buffer;
           _out->_size = static_cast<size_t>(_instr_size);
-          _out->_s_signature = value_type::signature_t(_file->_buffer);
+          _out->_s_signature = _file->_buffer;
           return ::std::move(_out);
         }
 
@@ -292,7 +292,7 @@ namespace bfp
           instr._op_code = _dis_info->buffer + getValue() -
                            _dis_info->buffer_vma + offset;
           instr._size = static_cast<size_t>(_instr_size);
-          instr._s_signature = value_type::signature_t(_file->_buffer);
+          instr._s_signature = _file->_buffer;
           offset += _instr_size;
         }
 

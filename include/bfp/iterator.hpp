@@ -87,26 +87,65 @@ namespace bfp
           {
         public:
             typedef __iterator iterator;
-            typedef typename iterator::difference_type difference_type;
             typedef typename iterator::value_type value_type;
+            typedef value_type *pointer;
+            typedef value_type *const_pointer;
+            typedef value_type &reference;
+            typedef value_type &const_reference;
+            typedef Vector<
+                iterator> vector;
+            typedef const iterator const_iterator;
+            typedef size_t size_type;
+            typedef ::std::ptrdiff_t difference_type;
+            typedef typename __iterator::wrapper allocator_type;
+            /*
+            typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+            typedef std::reverse_iterator<iterator> reverse_iterator;
+             */
 
+            /** Should prepare begin of iteration
+             * @return iterator with first data and user defined offset
+             */
             virtual iterator begin() = 0;
 
+            /**
+             * @return iterator without data and last user defined offset
+             */
             virtual iterator end() = 0;
 
+            /**
+             * @brief Fills up value/data and moves up to the next offset
+             * @param data is object to be filled with next data
+             * @param offset is offset we are on - has to be moved to next
+             */
             virtual void next(
-                value_type &,
-                difference_type &) = 0;
+                value_type &data,
+                difference_type &offset) = 0;
 
+            /**
+             * @brief (This is optional) Fills up value/data and
+             *        moves down to the previous offset
+             * @param data is object to be filled with previous data
+             * @param offset is offset we are on - has to be moved to previous
+             */
             virtual void prev(
-                value_type &,
-                difference_type &)
+                value_type &data,
+                difference_type &offset)
               { }
 
+            /**
+             * @brief This returns capacity of vector (usually as size)
+             */
             virtual difference_type capacity() = 0;
 
+            /**
+             * @brief This retuns size of vector
+             */
             virtual difference_type size() = 0;
 
+            /**
+             * @brief this should be the same as size
+             */
             virtual difference_type max_size() = 0;
 
             virtual ~Vector()
@@ -227,6 +266,7 @@ namespace bfp
 
             ~ForwardIterator() noexcept
               { }
+
         private:
             owner *_owner = nullptr;
 

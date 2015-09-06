@@ -42,6 +42,8 @@ namespace bfp
 
           /** Value type (Section) */
           typedef typename _Base::value_type value_type;
+
+          typedef sized_raw_vector<asymbol *, 256 * sizeof(asymbol *)> sym_vector;
       public:
 
           // ************************************* //
@@ -247,7 +249,7 @@ namespace bfp
               asection *section,
               disassembler_ftype dis_asm,
               disassemble_info *dis_info,
-              ::std::vector<asymbol *> &&symbols);
+              sym_vector &&symbols);
 
       private:
           /** Section as BFD structure */
@@ -266,7 +268,7 @@ namespace bfp
           disassemble_info *_dis_info;
 
           /** BFD symbols at section */
-          ::std::vector<asymbol *> _symbols;
+          sym_vector _symbols;
         };
   }
 

@@ -25,8 +25,9 @@ BOOST_AUTO_TEST_SUITE(base_bfd)
           for (auto _tar : _targets)
             BOOST_MESSAGE(
                 (::std::string("Target of this file: ") + _tar).c_str());
-          BOOST_CHECK(::bfp::search(_targets.begin(), _targets.end(),
-                                    "elf64-x86-64").size() == 1);
+          BOOST_CHECK(
+              ::std::find(_targets.begin(), _targets.end(), "elf64-x86-64") !=
+              _targets.end());
           BOOST_CHECK(!_bfd->getAllTargets()
                            .empty());
         }

@@ -47,8 +47,12 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                            .back();
-          auto _sec = ::bfp::find(_file->begin(), _file->end(), ".text");
-          auto _start = ::bfp::find(_sec->begin(), _sec->end(), "_start");
+          auto _sec = ::std::find_if(_file->begin(), _file->end(),
+                                     [](const ::bfp::Section &_sec)
+                                       { return _sec == ".text"; });
+          auto _start = ::std::find_if(_sec->begin(), _sec->end(),
+                                       [](const ::bfp::Symbol &_sym)
+                                         { return _sym == "_start"; });
           __BOOST_MESSAGE_START(_start->getName());
           __BOOST_MESSAGE_START(_start->getValue());
           __BOOST_MESSAGE_START(_start->hasFileName());
@@ -73,8 +77,12 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                            .back();
-          auto _sec = ::bfp::find(_file->begin(), _file->end(), ".text");
-          auto _start = ::bfp::find(_sec->begin(), _sec->end(), "_start");
+          auto _sec = ::std::find_if(_file->begin(), _file->end(),
+                                     [](const ::bfp::Section &_sec)
+                                       { return _sec == ".text"; });
+          auto _start = ::std::find_if(_sec->begin(), _sec->end(),
+                                       [](const ::bfp::Symbol &_sym)
+                                         { return _sym == "_start"; });
           BOOST_CHECK(*_start == *_start);
           BOOST_CHECK(*_start == "_start");
           BOOST_CHECK(*_start == _start->getValue());

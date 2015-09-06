@@ -225,8 +225,8 @@ namespace bfp
           symbol_table.resize(
               static_cast<size_t>(synthetic_count + number_of_symbols +
                                   number_of_dyn_sym));
-          for (asymbol **_sym = symbol_table.begin() + number_of_dyn_sym +
-                                number_of_symbols;
+          for (auto _sym = symbol_table.begin() + number_of_dyn_sym +
+                           number_of_symbols;
                _sym != symbol_table.end();
                ++_sym, ++i)
             {
@@ -240,28 +240,25 @@ namespace bfp
             });
         }
 
-      ::std::vector<asymbol *> File::get_sym_from_sec(const asection *_sec)
+      File::symbol_vector File::get_sym_from_sec(const asection *_sec)
         {
-          ::std::vector<asymbol *> _syms;
-          auto _pom = ::bfp::filter(symbol_table.begin(), symbol_table.end(),
-                                    [&_sec](asymbol *_sym)
-                                      {
-                                        if (_sym->name == NULL ||
-                                            _sym->name[0] == '\0')
-                                          return false;
-                                        if (_sym->flags &
-                                            (BSF_DEBUGGING | BSF_SECTION_SYM))
-                                          return false;
-                                        if (bfd_is_und_section (
-                                                _sym->section) ||
-                                            bfd_is_com_section (_sym->section))
-                                          return false;
-                                        return _sym->section == _sec;
-                                      });
-          _syms.reserve(_pom.size() + 1);
+          symbol_vector _syms;
           if (_sec->symbol != nullptr)
             _syms.push_back(_sec->symbol);
-          _syms.insert(_syms.end(), _pom.begin(), _pom.end());
+          ::std::copy_if(symbol_table.begin(), symbol_table.end(),
+                         ::std::back_inserter(_syms),
+                         [_sec](const asymbol *_sym)
+                           {
+                             if (_sym->name == NULL || _sym->name[0] == '\0')
+                               return false;
+                             if (_sym->flags &
+                                 (BSF_DEBUGGING | BSF_SECTION_SYM))
+                               return false;
+                             if (bfd_is_und_section (_sym->section) ||
+                                 bfd_is_com_section (_sym->section))
+                               return false;
+                             return _sym->section == _sec;
+                           });
           return _syms;
         }
 

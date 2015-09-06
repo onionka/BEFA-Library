@@ -22,7 +22,8 @@ namespace bfp
 
           friend class Iterator;
 
-          typedef ffile::buffer_t c_string;
+          typedef char *c_string;
+          typedef sized_raw_vector<char, 32> buffer_t;
       public:
           typedef uint8_t byte;
           typedef uint64_t address_t;
@@ -62,9 +63,9 @@ namespace bfp
       public:
           Instruction();
 
-          Instruction(Instruction &&_mv);
+          Instruction(Instruction &&_mv) noexcept;
 
-          Instruction &operator=(Instruction &&_mv);
+          Instruction &operator=(Instruction &&_mv) noexcept;
 
           Instruction(const Instruction &_cp);
 
@@ -77,7 +78,7 @@ namespace bfp
           pointer _op_code = nullptr;
           signature_t _s_signature;
           address_t _address = 0x0;
-          signature_t _binary;
+          buffer_t _binary;
           size_t _size = 0x0;
           ::std::string _name;
         };

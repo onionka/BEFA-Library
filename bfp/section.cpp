@@ -336,7 +336,7 @@ namespace bfp
           asection *section,
           disassembler_ftype dis_asm,
           disassemble_info *dis_info,
-          ::std::vector<asymbol *> &&symbols)
+          sym_vector &&symbols)
           :
           _sec(section),
           _dis_asm(dis_asm),

@@ -41,6 +41,8 @@ namespace bfp
           /** Value type (Section) */
           typedef typename _Base::value_type value_type;
 
+          typedef typename Section::sym_vector symbol_vector;
+
       public:
 
           long getSymTableSize() const;
@@ -119,7 +121,7 @@ namespace bfp
           disassembler_ftype getDisassembler();
 
           /** @return vector of symbols that belongs to section */
-          ::std::vector<asymbol *> get_sym_from_sec(const asection *sec);
+          symbol_vector get_sym_from_sec(const asection *sec);
 
           /** reads symbols from file */
           void retrieve_symbols();
@@ -144,7 +146,7 @@ namespace bfp
           ::std::string _target;
 
           /** File symbol table */
-          raw_vector<asymbol *, 1024> symbol_table;
+          symbol_vector symbol_table;
 
           /** Synthetic symbol table (extra symbols?) */
           asymbol *synthetic_symbol_table;
@@ -156,7 +158,9 @@ namespace bfp
           disassemble_info _dis_asm_info;
 
           /** Binary content of this file */
-          raw_vector<uint8_t, 32768> _buffer;
+          sized_raw_vector<
+              uint8_t,
+              32768> _buffer;
 
           /** Static file that stores everything that will be written to it
            *  so we may access data later and clear it

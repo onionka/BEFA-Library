@@ -9,7 +9,7 @@ namespace bfp
   {
       struct ffile
         {
-          typedef raw_vector<
+          typedef sized_raw_vector<
               char,
               128> buffer_t;
 

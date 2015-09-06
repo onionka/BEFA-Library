@@ -52,12 +52,13 @@ BOOST_AUTO_TEST_SUITE(base_section)
             }
         }
 
-
       BOOST_AUTO_TEST_CASE(dot_text_attr)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                        .back();
-          auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
+                                                           .back();
+          auto _dot_text = ::std::find_if(_file->begin(), _file->end(),
+                                          [](const ::bfp::Section &_sec)
+                                            { return _sec == ".text"; });
           CHECK_VECTOR(*_dot_text);
           __BOOST_MESSAGE_DOT_TEXT((size_t) _dot_text->getContent());
           __BOOST_MESSAGE_DOT_TEXT(_dot_text->getIndex());
@@ -93,7 +94,9 @@ BOOST_AUTO_TEST_SUITE(base_section)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                            .back();
-          auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
+          auto _dot_text = ::std::find_if(_file->begin(), _file->end(),
+                                          [](const ::bfp::Section &_sec)
+                                            { return _sec == ".text"; });
           CHECK_VECTOR(*_dot_text);
         }
 
@@ -101,7 +104,9 @@ BOOST_AUTO_TEST_SUITE(base_section)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
                                                            .back();
-          auto _dot_text = ::bfp::find(_file->begin(), _file->end(), ".text");
+          auto _dot_text = ::std::find_if(_file->begin(), _file->end(),
+                                          [](const ::bfp::Section &_sec)
+                                            { return _sec == ".text"; });
           BOOST_CHECK(*_dot_text == *_dot_text);
           BOOST_CHECK(*_dot_text == ".text");
           BOOST_CHECK(!(*_dot_text == (asection *) 0));

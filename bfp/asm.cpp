@@ -17,7 +17,7 @@ namespace bfp
           Instruction::address_t address)
           :
           _op_code(op_code),
-          _s_signature(signature, strlen(signature) + 1),
+          _s_signature((char *)signature),
           _address(address),
           _size(count),
           _name("")
@@ -67,7 +67,7 @@ namespace bfp
           return _s_signature;
         }
 
-      Instruction::Instruction(Instruction &&_mv)
+      Instruction::Instruction(Instruction &&_mv) noexcept
         {
           _op_code = _mv._op_code;
           _s_signature = ::std::move(_mv._s_signature);
@@ -77,7 +77,7 @@ namespace bfp
           _name = ::std::move(_mv._name);
         }
 
-      Instruction &Instruction::operator=(Instruction &&_mv)
+      Instruction &Instruction::operator=(Instruction &&_mv) noexcept
         {
           _op_code = _mv._op_code;
           _s_signature = ::std::move(_mv._s_signature);

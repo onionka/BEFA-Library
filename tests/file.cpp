@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_SUITE(base_file)
       BOOST_AUTO_TEST_CASE(file_attr)
         {
           auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                        .back();
+                                                           .back();
           _file->get_path();
           _file->get_target();
         }
@@ -51,11 +51,11 @@ BOOST_AUTO_TEST_SUITE(base_file)
               "elf64-x86-64");
 
           BOOST_MESSAGE("Finding section '.text' in this executable");
-          auto _sec = ::bfp::find(_file->begin(), _file->end(), ".text");
+          auto _sec = ::std::find(_file->begin(), _file->end(), ".text");
           BOOST_CHECK(_sec != _file->end());
 
           BOOST_MESSAGE("Finding symbol '_start' in '.text'");
-          auto _sym = ::bfp::find(_sec->begin(), _sec->end(), "_start");
+          auto _sym = ::std::find(_sec->begin(), _sec->end(), "_start");
           BOOST_CHECK(_sym != _sec->end());
         }
 

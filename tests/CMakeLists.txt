@@ -6,7 +6,6 @@ ADD_EXECUTABLE(test_prog
                main.cpp
                base.cpp
                support.hpp
-               supp_functions.cpp
                section.cpp
                symbol.cpp
                file.cpp)
