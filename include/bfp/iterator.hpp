@@ -129,8 +129,8 @@ namespace bfp
              * @param offset is offset we are on - has to be moved to previous
              */
             virtual void prev(
-                value_type &data,
-                difference_type &offset)
+                value_type &data ATTRIBUTE_UNUSED,
+                difference_type &offset ATTRIBUTE_UNUSED)
               { }
 
             /**
@@ -409,15 +409,13 @@ namespace bfp
             ite_type operator-(
                 difference_type _n)
               {
-                ite_type tmp(*this);
-                return tmp += -_n;
+                return ite_type(*this) += -_n;
               }
 
             ite_type operator+(
                 difference_type _n)
               {
-                ite_type tmp(*this);
-                return tmp += _n;
+                return ite_type(*this) += _n;
               }
 
             value_type &operator[](int n)

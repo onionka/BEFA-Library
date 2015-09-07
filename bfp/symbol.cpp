@@ -257,6 +257,7 @@ namespace bfp
 
       Symbol::iterator Symbol::begin()
         {
+          if (_dis_info->buffer == nullptr) return end();
           auto _file = (ffile *) _dis_info->stream;
           _file->init();
           int _instr_size = _dis_fun(getValue(), _dis_info);

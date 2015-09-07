@@ -247,7 +247,7 @@ namespace bfp
             _syms.push_back(_sec->symbol);
           ::std::copy_if(symbol_table.begin(), symbol_table.end(),
                          ::std::back_inserter(_syms),
-                         [_sec](const asymbol *_sym)
+                         [&_sec](const asymbol *_sym)
                            {
                              if (_sym->name == NULL || _sym->name[0] == '\0')
                                return false;
