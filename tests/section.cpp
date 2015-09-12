@@ -14,12 +14,12 @@ BOOST_AUTO_TEST_SUITE(base_section)
 
       BOOST_AUTO_TEST_CASE(section_attr)
         {
-          auto _file = ::bfp::Parser::get_unique_instance()->Open(
+          auto _file = ::bfp::Parser::get_unique_instance().Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
 
           BOOST_MESSAGE("Checking section attributes");
-          for (auto &_sec : *_file)
+          for (auto &_sec : _file)
             {
               _sec.getName();
               _sec.getLineNO();
@@ -54,9 +54,10 @@ BOOST_AUTO_TEST_SUITE(base_section)
 
       BOOST_AUTO_TEST_CASE(dot_text_attr)
         {
-          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                           .back();
-          auto _dot_text = ::std::find_if(_file->begin(), _file->end(),
+          auto _file = ::bfp::Parser::get_unique_instance().Open(
+              *boost::unit_test::framework::master_test_suite().argv,
+              "elf64-x86-64");
+          auto _dot_text = ::std::find_if(_file.begin(), _file.end(),
                                           [](const ::bfp::Section &_sec)
                                             { return _sec == ".text"; });
           CHECK_VECTOR(*_dot_text);
@@ -92,9 +93,10 @@ BOOST_AUTO_TEST_SUITE(base_section)
 
       BOOST_AUTO_TEST_CASE(as_vector)
         {
-          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                           .back();
-          auto _dot_text = ::std::find_if(_file->begin(), _file->end(),
+          auto _file = ::bfp::Parser::get_unique_instance().Open(
+              *boost::unit_test::framework::master_test_suite().argv,
+              "elf64-x86-64");
+          auto _dot_text = ::std::find_if(_file.begin(), _file.end(),
                                           [](const ::bfp::Section &_sec)
                                             { return _sec == ".text"; });
           CHECK_VECTOR(*_dot_text);
@@ -102,9 +104,10 @@ BOOST_AUTO_TEST_SUITE(base_section)
 
       BOOST_AUTO_TEST_CASE(operators)
         {
-          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                           .back();
-          auto _dot_text = ::std::find_if(_file->begin(), _file->end(),
+          auto _file = ::bfp::Parser::get_unique_instance().Open(
+              *boost::unit_test::framework::master_test_suite().argv,
+              "elf64-x86-64");
+          auto _dot_text = ::std::find_if(_file.begin(), _file.end(),
                                           [](const ::bfp::Section &_sec)
                                             { return _sec == ".text"; });
           BOOST_CHECK(*_dot_text == *_dot_text);

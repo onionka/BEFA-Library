@@ -30,7 +30,7 @@ namespace bfp
            * @return static instance of BFD
            * @see BFD
            */
-          static Parser *get_unique_instance();
+          static Parser &get_unique_instance();
 
           /** Factory method that opens file with _file_name and _target
            * @param _file_name is name of file that will be loaded instantly.
@@ -41,8 +41,8 @@ namespace bfp
            *                If this is "" (empty), first of possible targets is chosen
            * @return instance of <tt>File</tt> that will be automaticly deallocate on deletion BFD instance
            */
-          File *Open(
-              ::std::string _file_name,
+          File Open(
+              const ::std::string _file_name,
               ::std::string _target);
 
           /**
@@ -52,6 +52,9 @@ namespace bfp
           ::std::vector<::std::string> getTargets(
               ::std::string _file_name);
 
+          /**
+           * @return string representation of all possible targets
+           */
           ::std::vector<::std::string> getAllTargets() const;
 
           /**
@@ -62,10 +65,18 @@ namespace bfp
            */
           bool checkTarget(
               const ::std::string _file_name,
-              const ::std::string _target);
+              ::std::string _target);
 
           /** Closes all opened Files in vector openedFiles */
           ~Parser();
+
+          Parser(const Parser &_cp);
+
+          Parser(Parser &&_mv);
+
+          Parser &operator=(const Parser &_cp);
+
+          Parser &operator=(Parser &&_mv);
 
       private:
           /** It is forbidden to create instance anywhere but in this class only
@@ -73,28 +84,12 @@ namespace bfp
            */
           Parser();
 
-          /** Forbidden copy constructor */
-          Parser(const Parser &) = delete;
-
-          /** Forbidden move constructor */
-          Parser(Parser &&) = delete;
-
-          /** Forbidden copy assignment */
-          Parser &operator=(const Parser &) = delete;
-
-          /** Forbidden move assignment */
-          Parser &operator=(Parser &&) = delete;
-
-      public:
-          /** This is public so everyone may use this
-           *      Feel free to deallocate whatever file when needed but has to be
-           *      erased from this vector afterwards (SIGSEGV - double free/delete)
-           */
-          ::std::vector<File *> openedFiles;
-
       private:
           /** vector of all possible targets */
           ::std::vector<::std::string> _targets;
+
+          /** Unique instance of this class */
+          static Parser instance;
         };
   }
 

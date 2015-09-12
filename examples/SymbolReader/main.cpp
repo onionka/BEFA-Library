@@ -51,24 +51,17 @@ int main(
           throw po::required_option("file");
 
         if (vm.count("list-targets"))
-          for (auto &_tar : parser->getTargets(__file))
+          for (auto &_tar : parser.getTargets(__file))
             printf("%s\n", _tar.c_str());
 
         if (vm.count("target"))
           __target = vm["target"].as<::std::string>();
         else
-          __target = parser->getTargets(__file)[0];
-
+          __target = parser.getTargets(__file)[0];
 
         if (vm.count("list-symbols"))
           {
-            auto file = parser->Open(__file, __target);
-            if (file == nullptr)
-              {
-                ::std::cerr << "Bad file target" << ::std::endl;
-                return EXIT_FAILURE;
-              }
-            for (auto &sec : *file)
+            for (auto &sec : parser.Open(__file, __target))
               for (auto &sym : sec)
                 {
                   printf("%016X %20s  %s\n", (unsigned) sym.getValue(),

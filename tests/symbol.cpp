@@ -14,12 +14,12 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
 
       BOOST_AUTO_TEST_CASE(symbol_attr)
         {
-          auto _file = ::bfp::Parser::get_unique_instance()->Open(
+          auto _file = ::bfp::Parser::get_unique_instance().Open(
               *boost::unit_test::framework::master_test_suite().argv,
               "elf64-x86-64");
 
           BOOST_MESSAGE("Checking symbol attributes");
-          for (auto &_sec : *_file)
+          for (auto &_sec : _file)
             for (auto &_sym : _sec)
               {
                 _sym.hasFlags();
@@ -45,9 +45,10 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
 
       BOOST_AUTO_TEST_CASE(_start_attr)
         {
-          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                           .back();
-          auto _sec = ::std::find_if(_file->begin(), _file->end(),
+          auto _file = ::bfp::Parser::get_unique_instance().Open(
+              *boost::unit_test::framework::master_test_suite().argv,
+              "elf64-x86-64");
+          auto _sec = ::std::find_if(_file.begin(), _file.end(),
                                      [](const ::bfp::Section &_sec)
                                        { return _sec == ".text"; });
           auto _start = ::std::find_if(_sec->begin(), _sec->end(),
@@ -75,9 +76,10 @@ BOOST_AUTO_TEST_SUITE(base_symbol)
 
       BOOST_AUTO_TEST_CASE(operators)
         {
-          auto _file = ::bfp::Parser::get_unique_instance()->openedFiles
-                                                           .back();
-          auto _sec = ::std::find_if(_file->begin(), _file->end(),
+          auto _file = ::bfp::Parser::get_unique_instance().Open(
+              *boost::unit_test::framework::master_test_suite().argv,
+              "elf64-x86-64");
+          auto _sec = ::std::find_if(_file.begin(), _file.end(),
                                      [](const ::bfp::Section &_sec)
                                        { return _sec == ".text"; });
           auto _start = ::std::find_if(_sec->begin(), _sec->end(),

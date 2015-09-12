@@ -9,35 +9,44 @@
 
 namespace bfp
   {
-      Parser *Parser::get_unique_instance()
+      Parser Parser::instance;
+
+      Parser &Parser::get_unique_instance()
         {
-          static Parser instance;
-          return &instance;
+          return instance;
         }
 
-      File *Parser::Open(
+      File Parser::Open(
           const ::std::string _file_name,
-          const ::std::string _target)
+          ::std::string _target)
         {
           bfd *fd;
-          ::std::string _t = _target;
           if (_target == "")
-            _t = getTargets(_file_name)[0];
+            {
+              auto targets = getTargets(_file_name);
+              if (targets.size() > 1)
+                _target = targets.front();
+              else
+                throw ::std::runtime_error("File not exists!");
+            }
           else if (!checkTarget(_file_name, _target))
             {
-              bfd_set_error(bfd_error::bfd_error_invalid_target);
-              return nullptr;
+              throw ::std::runtime_error(
+                  ::std::string("Bad target for '") + _file_name + "' (" +
+                  _target + ")\n");
             }
-          if ((fd = bfd_openr(_file_name.c_str(), _t.c_str())) == NULL)
-            return nullptr;
+          if ((fd = bfd_openr(_file_name.c_str(), _target.c_str())) == NULL)
+            throw ::std::runtime_error(
+                ::std::string("Cannot open '") + _file_name + "' with target " +
+                _target + "\n");
           if (!bfd_check_format(fd, bfd_object))
             {
               bfd_close(fd);
-              return nullptr;
+              throw ::std::runtime_error(
+                  ::std::string("Cannot open '") + _file_name +
+                  "' as object binary file\n");
             }
-          openedFiles.push_back(
-              new File(fd, _file_name.c_str(), _target.c_str()));
-          return openedFiles.back();
+          return File(fd, _file_name.c_str(), _target.c_str());
         }
 
       Parser::Parser()
@@ -52,11 +61,7 @@ namespace bfp
         }
 
       Parser::~Parser()
-        {
-          for (auto f : openedFiles)
-            delete f;
-          openedFiles.clear();
-        }
+        { }
 
       ::std::vector<::std::string> Parser::getTargets(const ::std::string _file_name)
         {
@@ -69,7 +74,7 @@ namespace bfp
 
       bool Parser::checkTarget(
           const ::std::string _file_name,
-          const ::std::string _target)
+          ::std::string _target)
         {
           bfd *fd;
           if ((fd = bfd_openr(_file_name.c_str(), _target.c_str())) != NULL)
@@ -83,5 +88,27 @@ namespace bfp
       ::std::vector<::std::string> Parser::getAllTargets() const
         {
           return _targets;
+        }
+
+      Parser::Parser(const Parser &_cp)
+        {
+          _targets = _cp._targets;
+        }
+
+      Parser::Parser(Parser &&_mv)
+        {
+          _targets = ::std::move(_mv._targets);
+        }
+
+      Parser &Parser::operator=(const Parser &_cp)
+        {
+          _targets = _cp._targets;
+          return *this;
+        }
+
+      Parser &Parser::operator=(Parser &&_mv)
+        {
+          _targets = ::std::move(_mv._targets);
+          return *this;
         }
   }

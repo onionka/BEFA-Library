@@ -41,12 +41,10 @@ namespace bfp
           _ite->_sec = _sec;
           if (_ite->hasContent())
             {
-              size_t _size = static_cast<size_t>(_ite->getContentSize());
+              size_t _size = _ite->getContentSize();
               if (_buffer.size() < _size)
                 {
-                  size_t reserve = _buffer.size();
-                  while (reserve < _size) reserve += DEFAULT_BUFFER_SIZE;
-                  _buffer.resize(reserve);
+                  _buffer.resize(_size);
                 }
               bfd_get_section_contents(_fd, _sec, _buffer, 0, _size);
               _ite->_data = _buffer;
@@ -97,9 +95,7 @@ namespace bfp
               size_t _size = _sec.getContentSize();
               if (_buffer.size() < _size)
                 {
-                  size_t reserve = _buffer.size();
-                  while (reserve < _size) reserve += DEFAULT_BUFFER_SIZE;
-                  _buffer.resize(reserve);
+                  _buffer.resize(_size);
                 }
               bfd_get_section_contents(_fd, _s, _buffer, 0, _size);
               _sec._data = _buffer;
@@ -270,5 +266,30 @@ namespace bfp
       size_t File::getBufferSize() const
         {
           return _buffer.size();
+        }
+
+      File &File::operator=(File &&_mv)
+        {
+          ::std::swap(_fd, _mv._fd);
+          ::std::swap(_path, _mv._path);
+          ::std::swap(_target, _mv._target);
+          ::std::swap(symbol_table, _mv.symbol_table);
+          ::std::swap(synthetic_symbol_table, _mv.synthetic_symbol_table);
+          ::std::swap(_dis_asm, _mv._dis_asm);
+          ::std::swap(_dis_asm_info, _mv._dis_asm_info);
+          _buffer = ::std::move(_buffer);
+          return *this;
+        }
+
+      File::File(File &&_mv)
+        {
+          ::std::swap(_fd, _mv._fd);
+          ::std::swap(_path, _mv._path);
+          ::std::swap(_target, _mv._target);
+          ::std::swap(symbol_table, _mv.symbol_table);
+          ::std::swap(synthetic_symbol_table, _mv.synthetic_symbol_table);
+          ::std::swap(_dis_asm, _mv._dis_asm);
+          ::std::swap(_dis_asm_info, _mv._dis_asm_info);
+          _buffer = ::std::move(_buffer);
         }
   }

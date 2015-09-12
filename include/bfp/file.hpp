@@ -86,6 +86,10 @@ namespace bfp
            */
           ~File();
 
+          File(File &&_mv);
+
+          File &operator=(File &&_mv);
+
       private:
           /**
            * @details
@@ -108,14 +112,8 @@ namespace bfp
           /** Forbidden copy constructor */
           File(const File &) = delete;
 
-          /** Forbidden move constructor */
-          File(File &&) = delete;
-
           /** Forbidden copy assignment */
           File &operator=(const File &) = delete;
-
-          /** Forbidden move assignment */
-          File &operator=(File &&) = delete;
 
           /** @brief This prepares disassembler */
           disassembler_ftype getDisassembler();
