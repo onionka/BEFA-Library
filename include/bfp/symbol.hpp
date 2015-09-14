@@ -169,6 +169,8 @@ namespace bfp
           /** @return gets address of symbol/or value */
           symvalue getValue() const;
 
+          uint8_t *getRawData() const;
+
           ///////////////////////////////////////////////
           //             Symbol attributes             //
           ///////////////////////////////////////////////
