@@ -149,6 +149,11 @@ namespace bfp
           return bfd_asymbol_value(_sym);
         }
 
+      uint8_t *Symbol::getRawData() const
+        {
+          return (uint8_t *)_dis_info->buffer;
+        }
+
       bool Symbol::hasFlags() const
         {
           return static_cast<bool>(_sym->flags == BSF_NO_FLAGS);

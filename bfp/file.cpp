@@ -40,19 +40,16 @@ namespace bfp
           iterator _ite(this, 0);
           _ite->_sec = _sec;
           if (_ite->hasContent())
-            {
-              size_t _size = _ite->getContentSize();
-              if (_buffer.size() < _size)
-                {
-                  _buffer.resize(_size);
-                }
-              bfd_get_section_contents(_fd, _sec, _buffer, 0, _size);
-              _ite->_data = _buffer;
-            }
+            _ite->_get_content = [&](asection *_sec) -> uint8_t *
+              {
+                size_t _size = bfd_get_section_size(_sec);
+                _buffer.resize(_size);
+                bfd_get_section_contents(_fd, _sec, _buffer, 0, _size);
+                return _buffer;
+              };
           else
-            {
-              _ite->_data = nullptr;
-            }
+            _ite->_get_content = [](asection *) -> uint8_t *
+              { return nullptr; };
           _ite->_symbols = get_sym_from_sec(_sec);
           _ite->_dis_asm = getDisassembler();
           _ite->_dis_info = &_dis_asm_info;
@@ -60,7 +57,7 @@ namespace bfp
         }
 
       void File::next(
-          Section &_sec,
+          File::value_type &_sec,
           File::difference_type &offset)
         {
           if ((offset += 1) == size())
@@ -91,19 +88,16 @@ namespace bfp
             }
           _sec._sec = _s;
           if (_sec.hasContent())
-            {
-              size_t _size = _sec.getContentSize();
-              if (_buffer.size() < _size)
-                {
-                  _buffer.resize(_size);
-                }
-              bfd_get_section_contents(_fd, _s, _buffer, 0, _size);
-              _sec._data = _buffer;
-            }
+            _sec._get_content = [&](asection *_sec) -> uint8_t *
+              {
+                size_t _size = bfd_get_section_size(_sec);
+                _buffer.resize(_size);
+                bfd_get_section_contents(_fd, _sec, _buffer, 0, _size);
+                return _buffer;
+              };
           else
-            {
-              _sec._data = nullptr;
-            }
+            _sec._get_content = [](asection *) -> uint8_t *
+              { return nullptr; };
           _s->vma = bfd_get_section_vma(_fd, _s);
           _sec._symbols = get_sym_from_sec(_s);
           _sec._dis_asm = getDisassembler();

@@ -42,6 +42,7 @@
 
 
 #ifdef M_C_SEMANTIC_LOG
+
 #include <typeinfo>
 #include <execinfo.h>
 
@@ -74,6 +75,7 @@ static inline ::std::string backtrace()
     free(strings);
     return msg;
   }
+
 #endif //M_C_SEMANTIC_LOG
 
 namespace bfp
@@ -125,7 +127,7 @@ namespace bfp
 
             virtual inline size_type size_to_block(size_type size) = 0;
 
-            virtual void set(value_type elem) = 0;
+            virtual void set(value_type &elem) = 0;
 
             virtual void zero() = 0;
 
@@ -151,8 +153,9 @@ namespace bfp
               {
                 if (_cp.get() == nullptr)
                   return *this;
-                resize(_cp.size());
-                memcpy(get(), _cp.get(), size());
+                resize(0);
+                for (auto &_ref : (vector &) _cp)
+                  push_back(_ref);
                 return *this;
               }
 
@@ -286,19 +289,22 @@ namespace bfp
                 return move(_mv);
               }
 
-            sized_raw_vector &clone(const sized_raw_vector &_cp) noexcept
+            inline sized_raw_vector &clone(const sized_raw_vector &_cp) noexcept
               {
                 if (_cp.get() == nullptr)
                   return *this;
-                resize(_cp.size());
-                memcpy(get(), _cp.get(), size());
+                  //throw ::std::runtime_error("Cannot copy nullpointer!");
+                resize(0);
+                for (auto &_ref : (sized_raw_vector &) _cp)
+                  push_back(_ref);
                 return *this;
               }
 
-            sized_raw_vector &move(sized_raw_vector &_mv) noexcept
+            inline sized_raw_vector &move(sized_raw_vector &_mv) noexcept
               {
                 if (_mv.get() == nullptr)
                   return *this;
+                  //throw ::std::runtime_error("Cannot move nullpointer!");
                 if (get() != nullptr)
                   free(get());
                 set_data(_mv.get());
@@ -346,13 +352,10 @@ namespace bfp
                     sizeof(value_type));
               }
 
-            virtual void set(value_type elem)
+            virtual void set(value_type &elem)
               {
-                pointer _elem = get();
-                for (size_t i = 0;
-                     i < size();
-                     ++i, ++_elem)
-                  *_elem = elem;
+                for (auto &_elem : *this)
+                  _elem = elem;
               }
 
             virtual void zero()
@@ -376,20 +379,15 @@ namespace bfp
 
             virtual void init(size_type size)
               {
-                _size = size;
                 if (_data != nullptr)
-                  {
-                    _size = 0;
-                    _alloc = 0;
-                    free(_data);
-                  }
-                if (size == 0)
+                  nullify();
+                if ((_size = size) == 0)
                   return;
                 _alloc = size_to_block(size);
                 if ((_data = (value_type *) malloc(_alloc)) == nullptr)
-                  {
-                    // TODO: throw exception
-                  }
+                  throw ::std::runtime_error(::std::string(
+                      "Malloc failed of initializing vector of ") +
+                                             typeid(value_type).name());
               }
 
             virtual size_type alloc() const
@@ -412,7 +410,7 @@ namespace bfp
               }
 
         private:
-            void _resize(size_type size)
+            inline void _resize(size_type size)
               {
                 if (_data == nullptr)
                   {
@@ -423,9 +421,9 @@ namespace bfp
                   return;
                 _alloc = size_to_block(size);
                 if ((_data = (value_type *) realloc(_data, _alloc)) == nullptr)
-                  {
-                    // TODO: throw exception ...
-                  }
+                  throw ::std::runtime_error(::std::string(
+                      "Realloc failed of initializing vector of ") +
+                                             typeid(value_type).name());
               }
 
         private:

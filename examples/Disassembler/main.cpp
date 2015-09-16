@@ -16,22 +16,20 @@ int main(
       {
         if (argc == 1) throw ::std::runtime_error("File argument needed");
         auto parser = ::bfp::Parser::get_unique_instance();
-        for (auto &sec : parser.Open(argv[1], ""))
+        for (::bfp::Section &sec : parser.Open(argv[1], ""))
           {
             printf("%s <0x%08X>:\n", sec.getName()
                                         .c_str(), (unsigned) sec.getAddress());
-            for (auto &sym : sec)
+            for (::bfp::Symbol &sym : sec)
               {
                 printf("    %s <0x%08X>:\n", sym.getName()
                                                 .c_str(),
                        (unsigned) sym.getValue());
                 if (sec.hasCodeOnly())
-                  for (auto &_instr : sym)
-                    {
-                      printf("        <0x%08X>: %-50.50s %s\n",
+                  for (::bfp::Instruction &_instr : sym)
+                      printf("        <0x%08X>: %-80.80s %s\n",
                              (unsigned) _instr.getAddress(),
                              _instr.getSignature(), _instr.getBinary());
-                    }
               }
           }
       }

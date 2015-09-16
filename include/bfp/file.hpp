@@ -32,6 +32,8 @@ namespace bfp
                   Section,
                   File>> _Base;
 
+      public:
+
           /** Iterator type */
           typedef typename _Base::iterator iterator;
 
@@ -42,8 +44,6 @@ namespace bfp
           typedef typename _Base::value_type value_type;
 
           typedef typename Section::sym_vector symbol_vector;
-
-      public:
 
           long getSymTableSize() const;
 
@@ -135,7 +135,7 @@ namespace bfp
       private:
 
           /** File descriptor */
-          bfd *_fd;
+          bfd *_fd = nullptr;
 
           /** Path to executable */
           ::std::string _path;
@@ -147,10 +147,10 @@ namespace bfp
           symbol_vector symbol_table;
 
           /** Synthetic symbol table (extra symbols?) */
-          asymbol *synthetic_symbol_table;
+          asymbol *synthetic_symbol_table = nullptr;
 
           /** Function that disassembles binary file */
-          disassembler_ftype _dis_asm = 0;
+          disassembler_ftype _dis_asm = nullptr;
 
           /** Here will be all info about instructions */
           disassemble_info _dis_asm_info;
