@@ -13,6 +13,7 @@
 # error "Don't include this file directly, use #include <bfp.hpp> instead"
 #endif
 
+
 namespace bfp
   {
       class File;
@@ -43,7 +44,9 @@ namespace bfp
           /** Value type (Section) */
           typedef typename _Base::value_type value_type;
 
-          typedef sized_raw_vector<asymbol *, 256 * sizeof(asymbol *)> sym_vector;
+          typedef sized_raw_vector<
+              asymbol *,
+              256 * sizeof(asymbol *)> sym_vector;
       public:
 
           // ************************************* //
@@ -258,9 +261,6 @@ namespace bfp
           /** Vector of line numbers - TODO: findout for what is this */
           ::std::vector<alent> _line_numbers;
 
-          /** Binary content of this file */
-          uint8_t *_data;
-
           /** BFD disassembler*/
           disassembler_ftype _dis_asm;
 
@@ -269,6 +269,8 @@ namespace bfp
 
           /** BFD symbols at section */
           sym_vector _symbols;
+
+          ::std::function<uint8_t *(asection *)> _get_content;
         };
   }
 

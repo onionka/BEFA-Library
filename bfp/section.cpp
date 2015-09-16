@@ -101,7 +101,7 @@ namespace bfp
 
       uint8_t *Section::getContent()
         {
-          return _data;
+          return _get_content(_sec);
         }
 
       size_t Section::getContentSize()
@@ -268,8 +268,11 @@ namespace bfp
           Symbol &_sym,
           Section::difference_type &offset)
         {
-          if ((offset += 1) == size())
-            return;
+          if ((offset += 1) > size())
+            {
+              offset = size();
+              return;
+            }
           _sym._dis_fun = _dis_asm;
           _sym._dis_info = getDisassembleInfo();
           _sym._sym = _symbols[offset];
@@ -361,30 +364,30 @@ namespace bfp
         {
           _sec = _cp._sec;
           _line_numbers = _cp._line_numbers;
-          _data = _cp._data;
           _dis_asm = _cp._dis_asm;
           _dis_info = _cp._dis_info;
           _symbols = _cp._symbols;
+          _get_content = _cp._get_content;
         }
 
       Section::Section(Section &&_mv)
         {
           ::std::swap(_sec, _mv._sec);
           ::std::swap(_line_numbers, _mv._line_numbers);
-          ::std::swap(_data, _mv._data);
           ::std::swap(_dis_asm, _mv._dis_asm);
           ::std::swap(_dis_info, _mv._dis_info);
           ::std::swap(_symbols, _mv._symbols);
+          ::std::swap(_get_content, _mv._get_content);
         }
 
       Section &Section::operator=(const Section &_cp)
         {
           _sec = _cp._sec;
           _line_numbers = _cp._line_numbers;
-          _data = _cp._data;
           _dis_asm = _cp._dis_asm;
           _dis_info = _cp._dis_info;
           _symbols = _cp._symbols;
+          _get_content = _cp._get_content;
           return *this;
         }
 
@@ -392,10 +395,10 @@ namespace bfp
         {
           ::std::swap(_sec, _mv._sec);
           ::std::swap(_line_numbers, _mv._line_numbers);
-          ::std::swap(_data, _mv._data);
           ::std::swap(_dis_asm, _mv._dis_asm);
           ::std::swap(_dis_info, _mv._dis_info);
           ::std::swap(_symbols, _mv._symbols);
+          ::std::swap(_get_content, _mv._get_content);
           return *this;
         }
   }
