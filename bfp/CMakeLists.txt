@@ -24,7 +24,7 @@ SET(HEADER_FILES
 ADD_LIBRARY(bfp SHARED
             ${SOURCE_FILES}
             ${HEADER_FILES}
-            )
+            ../include/bfp/line_info.hpp)
 
 TARGET_LINK_LIBRARIES(bfp bfd opcodes ${Boost_LIBRARIES})
 

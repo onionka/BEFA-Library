@@ -24,12 +24,32 @@ namespace bfp
         {
           setDisassembleInfo();
           retrieve_symbols();
+          _get_line = [&](
+              asection *sec,
+              bfd_vma offset) -> LineInfo
+            {
+              const char *filename = nullptr, *functionname = nullptr;
+              unsigned int linenumber = 0, discriminator = 0;
+              if (!bfd_find_nearest_line_discriminator(_fd, sec, symbol_table,
+                                                       offset, &filename,
+                                                       &functionname,
+                                                       &linenumber,
+                                                       &discriminator))
+                return LineInfo();
+              if (filename != NULL && *filename == '\0')
+                filename = NULL;
+              if (functionname != NULL && *functionname == '\0')
+                functionname = NULL;
+              return LineInfo(filename, functionname, linenumber,
+                              discriminator);
+            };
         }
 
       File::~File()
         {
           bfd_close(_fd);
-          free(synthetic_symbol_table);
+          if (synthetic_symbol_table)
+            free(synthetic_symbol_table);
         }
 
       File::iterator File::begin()
@@ -51,6 +71,7 @@ namespace bfp
           _ite->_symbols = get_sym_from_sec(_sec);
           _ite->_dis_asm = getDisassembler();
           _ite->_dis_info = &_dis_asm_info;
+          _ite->_get_line = _get_line;
           return _ite;
         }
 
@@ -100,6 +121,7 @@ namespace bfp
           _sec._symbols = get_sym_from_sec(_s);
           _sec._dis_asm = getDisassembler();
           _sec._dis_info = &_dis_asm_info;
+          _sec._get_line = _get_line;
         }
 
       File::iterator File::end()
@@ -180,8 +202,6 @@ namespace bfp
           long synthetic_count;
           long number_of_symbols;
           long number_of_dyn_sym;
-          size_t i = 0;
-
           storage_needed = bfd_get_symtab_upper_bound (_fd);
           dyn_storage_needed = bfd_get_dynamic_symtab_upper_bound (_fd);
           if (storage_needed < 0)
@@ -194,8 +214,9 @@ namespace bfp
             BFP_ASSERT();
           if (dyn_storage_needed == 0)
             return;
-          symbol_table.set_bytes(
-              static_cast<size_t>(storage_needed + dyn_storage_needed));
+          symbol_table.resize(
+              static_cast<size_t>(storage_needed + dyn_storage_needed) /
+              sizeof(asymbol *));
           if ((number_of_symbols = bfd_canonicalize_symtab (_fd,
                                                             symbol_table)) < 0)
             BFP_ASSERT();
@@ -210,15 +231,18 @@ namespace bfp
                                                      symbol_table +
                                                      number_of_symbols,
                                                      &synthetic_symbol_table);
-          symbol_table.resize(
-              static_cast<size_t>(synthetic_count + number_of_symbols +
-                                  number_of_dyn_sym));
-          for (auto _sym = symbol_table.begin() + number_of_dyn_sym +
-                           number_of_symbols;
-               _sym != symbol_table.end();
-               ++_sym, ++i)
+          if (synthetic_count <= 0)
+            synthetic_count = 0;
+          else
+            symbol_table.resize(
+                static_cast<size_t>(synthetic_count + number_of_symbols +
+                                    number_of_dyn_sym));
+          for (int i = 0;
+               i < synthetic_count;
+               ++i)
             {
-              *_sym = synthetic_symbol_table + i;
+              symbol_table[number_of_symbols + number_of_dyn_sym + i] =
+                  synthetic_symbol_table + i;
             }
           ::std::sort(symbol_table.begin(), symbol_table.end(), [](
               const asymbol *_1,

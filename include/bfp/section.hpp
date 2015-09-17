@@ -130,7 +130,7 @@ namespace bfp
           /**
            * @return numbers of line
            */
-          const ::std::vector<alent> getLineNO() const;
+          alent *getLineNO() const;
 
 
           // ***************************** //
@@ -271,6 +271,11 @@ namespace bfp
           sym_vector _symbols;
 
           ::std::function<uint8_t *(asection *)> _get_content;
+
+          ::std::function<
+              LineInfo(
+                  asection *,
+                  bfd_vma)> _get_line;
         };
   }
 

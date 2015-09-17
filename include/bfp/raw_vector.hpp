@@ -314,6 +314,11 @@ namespace bfp
                 return *this;
               }
 
+            value_type &operator[](difference_type n) const noexcept
+              {
+                return _data[n];
+              }
+
             virtual iterator begin()
               { return iterator(_data); }
 
@@ -372,22 +377,23 @@ namespace bfp
 
             virtual vector &resize(size_type size)
               {
-                _size = size;
                 _resize(size);
                 return *this;
               }
 
             virtual void init(size_type size)
               {
+                _size = size;
                 if (_data != nullptr)
                   nullify();
                 if ((_size = size) == 0)
                   return;
-                _alloc = size_to_block(size);
+                _alloc = size_to_block(size + 1);
                 if ((_data = (value_type *) malloc(_alloc)) == nullptr)
                   throw ::std::runtime_error(::std::string(
                       "Malloc failed of initializing vector of ") +
                                              typeid(value_type).name());
+                _data[size] = static_cast<value_type>(0);
               }
 
             virtual size_type alloc() const
@@ -412,18 +418,21 @@ namespace bfp
         private:
             inline void _resize(size_type size)
               {
+                if (_size == size) return;
+                _size = size;
                 if (_data == nullptr)
                   {
                     init(size);
                     return;
                   }
-                if (_alloc >= (size * sizeof(value_type)))
+                if (_alloc >= ((size + 1) * sizeof(value_type)))
                   return;
-                _alloc = size_to_block(size);
+                _alloc = size_to_block(size + 1);
                 if ((_data = (value_type *) realloc(_data, _alloc)) == nullptr)
                   throw ::std::runtime_error(::std::string(
                       "Realloc failed of initializing vector of ") +
                                              typeid(value_type).name());
+                _data[size] = static_cast<value_type>(0);
               }
 
         private:

@@ -37,6 +37,8 @@ namespace bfp
                   Instruction,
                   Symbol>> _Base;
 
+      public:
+
           /** Iterator type */
           typedef typename _Base::iterator iterator;
 
@@ -46,7 +48,6 @@ namespace bfp
           /** Value type (Section) */
           typedef typename _Base::value_type value_type;
 
-      public:
           /**
            * @brief this is needed by iterator because he doesn't know
            *        what is next element in row so he invoke this method
@@ -265,6 +266,10 @@ namespace bfp
 
           /** size of symbols - bytes */
           difference_type _size = -1;
+
+          ::std::function<
+              LineInfo(
+                  bfd_vma)> _get_line;
         };
   }
 

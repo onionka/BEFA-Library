@@ -23,7 +23,9 @@ namespace bfp
           friend class Iterator;
 
           typedef char *c_string;
-          typedef sized_raw_vector<char, 32> buffer_t;
+          typedef sized_raw_vector<
+              char,
+              32> buffer_t;
       public:
           typedef uint8_t byte;
           typedef uint64_t address_t;
@@ -44,6 +46,11 @@ namespace bfp
 
           /** @return string form of binary op_code */
           char *getBinary();
+
+          const LineInfo getLineInfo() const noexcept
+            {
+              return _get_line();
+            }
 
       private:
           /**
@@ -81,6 +88,8 @@ namespace bfp
           buffer_t _binary;
           size_t _size = 0x0;
           ::std::string _name;
+          ::std::function<
+              LineInfo()> _get_line;
         };
   }
 
