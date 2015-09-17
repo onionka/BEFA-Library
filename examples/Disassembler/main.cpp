@@ -16,7 +16,9 @@ int main(
       {
         if (argc == 1) throw ::std::runtime_error("File argument needed");
         auto parser = ::bfp::Parser::get_unique_instance();
-        for (::bfp::Section &sec : parser.Open(argv[1], ""))
+        auto file = parser.Open(argv[1], "");
+        file.hasFlags();
+        for (::bfp::Section &sec : file)
           {
             printf("%s <0x%08X>:\n", sec.getName()
                                         .c_str(), (unsigned) sec.getAddress());

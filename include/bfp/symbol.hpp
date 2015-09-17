@@ -265,6 +265,10 @@ namespace bfp
 
           /** size of symbols - bytes */
           difference_type _size = -1;
+
+          ::std::function<
+              LineInfo(
+                  bfd_vma)> _get_line;
         };
   }
 

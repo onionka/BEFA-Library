@@ -119,9 +119,9 @@ namespace bfp
           return _sec->vma + getContentSize();
         }
 
-      const ::std::vector<alent> Section::getLineNO() const
+      alent *Section::getLineNO() const
         {
-          return _line_numbers;
+          return _sec->lineno;
         }
 
       bool Section::hasFlags() const
@@ -265,7 +265,7 @@ namespace bfp
         }
 
       void Section::next(
-          Symbol &_sym,
+          Section::value_type &_sym,
           Section::difference_type &offset)
         {
           if ((offset += 1) > size())
@@ -292,6 +292,8 @@ namespace bfp
           else
             _sym._size = hasContent() ? getContentSize() : 0;
           _sym.has_no_intructions = false;
+          _sym._get_line = [&](bfd_vma _offset) -> LineInfo
+            { return _get_line(_sec, _offset); };
         }
 
       Symbol Section::operator[](int n)
@@ -327,6 +329,8 @@ namespace bfp
           else
             _ite->_size = getContentSize();
           _ite->has_no_intructions = false;
+          _ite->_get_line = [&](bfd_vma _offset) -> LineInfo
+            { return _get_line(_sec, _offset); };
           return _ite;
         }
 
@@ -368,6 +372,7 @@ namespace bfp
           _dis_info = _cp._dis_info;
           _symbols = _cp._symbols;
           _get_content = _cp._get_content;
+          _get_line = _cp._get_line;
         }
 
       Section::Section(Section &&_mv)
@@ -378,6 +383,7 @@ namespace bfp
           ::std::swap(_dis_info, _mv._dis_info);
           ::std::swap(_symbols, _mv._symbols);
           ::std::swap(_get_content, _mv._get_content);
+          ::std::swap(_get_line, _mv._get_line);
         }
 
       Section &Section::operator=(const Section &_cp)
@@ -388,6 +394,7 @@ namespace bfp
           _dis_info = _cp._dis_info;
           _symbols = _cp._symbols;
           _get_content = _cp._get_content;
+          _get_line = _cp._get_line;
           return *this;
         }
 
@@ -399,6 +406,7 @@ namespace bfp
           ::std::swap(_dis_info, _mv._dis_info);
           ::std::swap(_symbols, _mv._symbols);
           ::std::swap(_get_content, _mv._get_content);
+          ::std::swap(_get_line, _mv._get_line);
           return *this;
         }
   }

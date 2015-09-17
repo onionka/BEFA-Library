@@ -34,6 +34,95 @@ namespace bfp
 
       public:
 
+          // ****************************** //
+          //            Getters             //
+          // ****************************** //
+
+          bool hasFlags() const noexcept
+            {
+              return _fd->flags == 0x00;
+            }
+
+          bool hasReloc() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & HAS_RELOC);
+            }
+
+          bool isDirectExe() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & EXEC_P);
+            }
+
+          bool hasLineNo() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & HAS_LINENO);
+            }
+
+          bool hasDebugInfo() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & HAS_DEBUG);
+            }
+
+          bool hasSymbols() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & HAS_SYMS);
+            }
+
+          bool hasLocalSymbols() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & HAS_LOCALS);
+            }
+
+          bool isDynamicObject() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & DYNAMIC);
+            }
+
+          bool hasWriteProtText() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & WP_TEXT);
+            }
+
+          bool isDynamicPaged() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & D_PAGED);
+            }
+
+          bool isRelaxable() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & BFD_IS_RELAXABLE);
+            }
+
+          bool isTraditional() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & BFD_TRADITIONAL_FORMAT);
+            }
+
+          bool isInMemory() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & BFD_IN_MEMORY);
+            }
+
+          bool wasCreatedByLinker() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & BFD_LINKER_CREATED);
+            }
+
+          bool hasDeterministicOutput() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & BFD_DETERMINISTIC_OUTPUT);
+            }
+
+          bool hasCompressSection() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & BFD_COMPRESS);
+            }
+
+          bool isDummy() const noexcept
+            {
+              return static_cast<bool>(_fd->flags & BFD_PLUGIN);
+            }
+
           /** Iterator type */
           typedef typename _Base::iterator iterator;
 
@@ -55,9 +144,9 @@ namespace bfp
           /** @return with which target is this file opened @see BFD::targets */
           ::std::string get_target() const;
 
-          /////////////////////////////////////
-          ///       Vector operations       ///
-          /////////////////////////////////////
+          // ****************************** //
+          //        Vector operations       //
+          // ****************************** //
 
           virtual iterator begin();
 
@@ -159,6 +248,12 @@ namespace bfp
           sized_raw_vector<
               uint8_t,
               32768> _buffer;
+
+          ::std::function<
+              LineInfo(
+                  asection *,
+                  bfd_vma)> _get_line;
+
 
           /** Static file that stores everything that will be written to it
            *  so we may access data later and clear it

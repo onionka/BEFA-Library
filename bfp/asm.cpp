@@ -75,6 +75,7 @@ namespace bfp
           _binary = ::std::move(_mv._binary);
           _size = _mv._size;
           _name = ::std::move(_mv._name);
+          _get_line = _mv._get_line;
         }
 
       Instruction &Instruction::operator=(Instruction &&_mv) noexcept
@@ -85,6 +86,8 @@ namespace bfp
           _binary = ::std::move(_mv._binary);
           _size = _mv._size;
           _name = ::std::move(_mv._name);
+          _get_line = _mv._get_line;
+
           return *this;
         }
 
@@ -96,6 +99,7 @@ namespace bfp
           _binary = _cp._binary;
           _size = _cp._size;
           _name = _cp._name;
+          _get_line = _cp._get_line;
         }
 
       Instruction &Instruction::operator=(const Instruction &_cp)
@@ -106,6 +110,7 @@ namespace bfp
           _binary = _cp._binary;
           _size = _cp._size;
           _name = _cp._name;
+          _get_line = _cp._get_line;
           return *this;
         }
 

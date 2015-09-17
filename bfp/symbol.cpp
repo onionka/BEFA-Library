@@ -151,12 +151,12 @@ namespace bfp
 
       uint8_t *Symbol::getRawData() const
         {
-          return (uint8_t *)_dis_info->buffer;
+          return (uint8_t *) _dis_info->buffer;
         }
 
       bool Symbol::hasFlags() const
         {
-          return static_cast<bool>(_sym->flags == BSF_NO_FLAGS);
+          return static_cast<bool>(_sym->flags != BSF_NO_FLAGS);
         }
 
       bool Symbol::isLocal() const
@@ -268,11 +268,13 @@ namespace bfp
           int _instr_size = _dis_fun(getValue(), _dis_info);
           if (_instr_size < 0 || _instr_size >= size())
             return end();
-          iterator _out (this, _instr_size);
+          iterator _out(this, _instr_size);
           _out->_address = getValue();
           _out->_op_code = _dis_info->buffer;
           _out->_size = static_cast<size_t>(_instr_size);
           _out->_s_signature = _file->_buffer;
+          _out->_get_line = [_off = getValue() - _dis_info->buffer_vma, self = this]()
+          { return self->_get_line(_off); };
           return ::std::move(_out);
         }
 
@@ -299,6 +301,8 @@ namespace bfp
                            _dis_info->buffer_vma + offset;
           instr._size = static_cast<size_t>(_instr_size);
           instr._s_signature = _file->_buffer;
+          instr._get_line = [_off = getValue() + offset - _dis_info->buffer_vma, self = this]()
+            { return self->_get_line(_off); };
           offset += _instr_size;
         }
 
@@ -319,6 +323,7 @@ namespace bfp
           _dis_info = _mv._dis_info;
           has_no_intructions = _mv.has_no_intructions;
           _size = _mv._size;
+          _get_line = _mv._get_line;
         }
 
       Symbol &Symbol::operator=(Symbol &&_mv)
@@ -328,6 +333,7 @@ namespace bfp
           _dis_info = _mv._dis_info;
           has_no_intructions = _mv.has_no_intructions;
           _size = _mv._size;
+          _get_line = _mv._get_line;
           return *this;
         }
 
@@ -338,6 +344,7 @@ namespace bfp
           _dis_info = _cp._dis_info;
           has_no_intructions = _cp.has_no_intructions;
           _size = _cp._size;
+          _get_line = _cp._get_line;
         }
 
       Symbol &Symbol::operator=(const Symbol &_cp)
@@ -347,6 +354,7 @@ namespace bfp
           _dis_info = _cp._dis_info;
           has_no_intructions = _cp.has_no_intructions;
           _size = _cp._size;
+          _get_line = _cp._get_line;
           return *this;
         }
   }
