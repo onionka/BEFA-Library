@@ -10,13 +10,29 @@
 
 namespace befa {
 
+
+struct aliased_string : public std::string {
+  bool operator==(const std::string &rhs) {
+    return (rhs == *this) ||
+        (std::find(aliases.cbegin(), aliases.cend(), rhs) != aliases.cend());
+  }
+
+  void add_alias(std::string alias) {
+    aliases.push_back(alias);
+  }
+
+ private:
+  std::vector<std::string> aliases;
+};
+
+
 template<typename SectionT>
 struct Symbol {
   /**
    * Copy bfd information (so we bind lifetime to this object)
    * @param origin
    */
-  Symbol(const asymbol *origin, std::shared_ptr<SectionT> &parent) : origin(origin), parent(parent) {}
+  Symbol(const asymbol *origin, const std::weak_ptr<SectionT> &parent) : origin(origin), parent(parent) {}
 
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
   Symbol(Symbol<SectionT> &&rhs)
@@ -66,6 +82,37 @@ struct Symbol {
   }
 
   flagword getFlags() const { return getOrigin()->flags; }
+
+  bool hasFlags(const flagword &flag) const {
+    return getFlags() & flag ||
+        std::find_if(aliases.cbegin(), aliases.cend(), [&flag] (const asymbol *alias) {
+          return alias->flags & flag;
+        }) != aliases.cend();
+  }
+
+  template<typename _FuncT>
+  void iter_aliases(_FuncT &&pred) const {
+    std::for_each(aliases.cbegin(), aliases.cend(), [&pred] (const auto &alias) { pred(Symbol<SectionT>(alias)); });
+  }
+
+  std::vector<Symbol> getAliases() const {
+    return ::map(aliases, [&] (const auto &alias) { return Symbol<SectionT>(alias, parent); });
+  }
+
+  void addAlias(asymbol *alias) {
+    aliases.push_back(alias);
+  }
+
+  bool operator==(const std::string &name) const {
+    return getName() == name ||
+        std::find_if(aliases.cbegin(), aliases.cend(), [&name] (const asymbol *alias) {
+          return name == alias->name;
+        }) != aliases.cend();
+  }
+
+  bool operator!=(const std::string &name) const {
+    return !(*this == name);
+  }
  private:
   /**
    * BFD asymbol -> this is just an adapter
@@ -83,6 +130,8 @@ struct Symbol {
    * Section to which this symbol belongs to
    */
   std::weak_ptr<SectionT> parent;
+
+  std::vector<asymbol *> aliases;
 };
 }  // namespace befa
 

@@ -54,27 +54,32 @@ ExecutableFile ExecutableFile::open(
 }
 
 std::vector<std::weak_ptr<ExecutableFile::symbol_type>> ExecutableFile::getSymbolTable() {
-  if (!symbol_buffer.empty()) return map(symbol_buffer, [](auto &shared_s) { return std::weak_ptr<symbol_type>(shared_s); });
-
-  for_each(fetchSymbolTable(), [&](auto &sym_ite) {
-    auto &sym = *sym_ite;
-    if (!contains_if(symbol_buffer, [&](auto &shared_s) { return shared_s->getAddress() == bfd_asymbol_value(sym); })) {
-      // if symbol doesn't exists, create new one
-      // Firstly find section in section_buffer that symbol is pointing to
-      auto sec_ite = std::find_if(
-          section_buffer.begin(), section_buffer.end(),
-          [&sym](std::shared_ptr<section_type> &sec) { return sec->getOrigin() == sym->section; }
-      );
-      // if section has been buffered, just use it
-      if (sec_ite != section_buffer.end()) {
-        symbol_buffer.push_back(std::make_shared<symbol_type>(sym, *sec_ite));
+  if (symbol_buffer.empty())
+    for_each(fetchSymbolTable(), [&](auto &sym_ite) {
+      auto &sym = *sym_ite;
+      ExecutableFile::symbol_type *existing_sym = nullptr;
+      if (!contains_if(symbol_buffer, [&](auto &shared_s) {
+        existing_sym = shared_s.get();
+        return shared_s->getAddress() == bfd_asymbol_value(sym);
+      })) {
+        // if symbol doesn't exists, create new one
+        // Firstly find section in section_buffer that symbol is pointing to
+        auto sec_ite = std::find_if(
+            section_buffer.begin(), section_buffer.end(),
+            [&sym](std::shared_ptr<section_type> &sec) { return sec->getOrigin() == sym->section; }
+        );
+        // if section has been buffered, just use it
+        if (sec_ite != section_buffer.end()) {
+          symbol_buffer.push_back(std::make_shared<symbol_type>(sym, *sec_ite));
+        } else {
+          // else create it
+          section_buffer.emplace_back(std::make_shared<section_type>(sym->section));
+          symbol_buffer.push_back(std::make_shared<symbol_type>(sym, section_buffer.back()));
+        }
       } else {
-        // else create it
-        section_buffer.emplace_back(std::make_shared<section_type>(sym->section));
-        symbol_buffer.push_back(std::make_shared<symbol_type>(sym, section_buffer.back()));
+        existing_sym->addAlias(sym);
       }
-    }
-  });
+    });
 
   // guard to prevent multi-sort
   if (!symbols_sorted) {

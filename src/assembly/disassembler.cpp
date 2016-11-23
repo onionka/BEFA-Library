@@ -21,7 +21,9 @@ struct SymbolDataLoader {
 
   void fetch(RxSubject<basic_block_ptr> &subj, bfd *_fd) {
     // TODO: Firstly, prefetch basic blocks
-    printf("%s: %lu\n", ptr->getName().c_str(), ptr->getAddress());
+    printf("%s: %lx\n", ptr->getName().c_str(), ptr->getAddress());
+    for (const auto &alias: ptr->getAliases())
+      printf("%s: %lx\n", alias.getName().c_str(), alias.getAddress());
 
     // TODO: Than decode basic blocks
     subj.update(std::make_shared<basic_block_type>(0, ptr));
@@ -47,7 +49,6 @@ struct BasicBlockDecoder {
   ) {
     // TODO: Decode instructions
     { // file related work
-      instruction_type i;
       auto f_lock = ptr_lock(f);
       auto sym_lock = ptr_lock(ptr->getParent());
       auto sec_lock = ptr_lock(sym_lock->getParent());
@@ -55,7 +56,7 @@ struct BasicBlockDecoder {
       f_lock->reset();
 
       disassembler_ftype _dis_asm = disassembler(_fd);
-      assert(_dis_asm && "Should not be null");
+      assert(_dis_asm && "should not be null");
 
       bfd_vma sym_address = sym_lock->getAddress();
       int i_size = _dis_asm(sym_address, &d_info);
@@ -70,12 +71,11 @@ struct BasicBlockDecoder {
                &d_info
            )
           ) {
-        i = std::move(instruction_type(
+        // create instruction, and pass it into subject
+        subj.update(instruction_type(
             array_view<uint8_t>(d_info.buffer + offset, i_size),
             ptr, f_lock->buffer, i_address
         ));
-        // create instruction, and pass it into subject
-        subj.update(i);
         offset += i_size;
       }
     }
@@ -98,8 +98,11 @@ void ExecutableFile::runDisassembler() {
     auto sym_lock = ptr_lock(sym);
 
     // we doesn't care about non-function symbols
-    if (!(sym_lock->getFlags() & BSF_FUNCTION))
+    if (!(sym_lock->hasFlags(BSF_FUNCTION)))
       return;
+
+    auto section_lock = ptr_lock(sym_lock->getParent());
+    RxSubject<SymbolDataLoader::basic_block_ptr> bb_subj;
 
     auto closest_ite = std::find_if(
         sym_ite, sym_table.cend(),
@@ -114,19 +117,17 @@ void ExecutableFile::runDisassembler() {
                        ? sym_lock->getDistance(_fd)
                        : sym_lock->getDistance(*closest_ite);
 
-    auto section_lock = ptr_lock(sym_lock->getParent());
-
     d_info.buffer_vma = section_lock->getAddress(_fd);
     d_info.buffer_length = section_lock->getSize(_fd);
 
     // create shared buffer for section (user of this will get weak_ptr, so lifetime is the same as this file)
-    shared_buffer.emplace_back(new uint8_t[d_info.buffer_length]);
-    d_info.buffer = shared_buffer.back().get();
+    auto memory = new uint8_t[d_info.buffer_length];
+    assert(memory && "not enough memory");
+    shared_buffer.emplace_back(memory);
+    d_info.buffer = memory;
 
     // loads content into shared data
-    bfd_get_section_contents(_fd, (asection *)section_lock->getOrigin(), d_info.buffer, 0, d_info.buffer_length);
-
-    RxSubject<SymbolDataLoader::basic_block_ptr> bb_subj;
+    bfd_get_section_contents(_fd, (asection *) section_lock->getOrigin(), d_info.buffer, 0, d_info.buffer_length);
 
     bb_subj.subscribe([&](const SymbolDataLoader::basic_block_ptr &bb_ptr) {
       // decode instructions

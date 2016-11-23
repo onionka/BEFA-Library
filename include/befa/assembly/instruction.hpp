@@ -12,6 +12,21 @@
 #include "../utils/byte_array_view.hpp"
 
 namespace befa {
+static const ::pcrecpp::RE parse_regex = std::string(
+    ",?(?|"
+        // 'DWORD PTR [rip+0x9421596]' ... '# 0x00000(2156113)'
+        // result will be ('2156113', )
+        "\\w+\\sPTR\\s\\[rip\\+[^\\],]+\\](?=.*#\\s0x0*([a-f0-9]+))" "|"
+        // '(DWORD PTR [...])'
+        // result will be ('DWORD PTR [...]', )
+        "(\\w+\\sPTR\\s\\[[^\\],]+\\])" "|"
+        // '0x000000(542312)'
+        // result will be ('542312', )
+        "(?<!#\\s)0x0*([a-f0-9]+)" "|"
+        // the rest ... (ie. registers)
+        "(?<!#\\s)(\\w+)"
+    "),?"
+);
 
 template<typename BasicBlockT>
 struct Instruction {
@@ -78,25 +93,6 @@ struct Instruction {
   }
 
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
-
- protected:
-
-  ::pcrecpp::RE parse_regex = std::string(
-      ",?(?|"
-          // 'DWORD PTR [rip+0x9421596]' ... '# 0x00000(2156113)'
-          // result will be ('2156113', )
-          "\\w+\\sPTR\\s\\[rip\\+[^\\],]+\\](?=.*#\\s0x0*([a-f0-9]+))" "|"
-          // '(DWORD PTR [...])'
-          // result will be ('DWORD PTR [...]', )
-          "(\\w+\\sPTR\\s\\[[^\\],]+\\])" "|"
-          // '0x000000(542312)'
-          // result will be ('542312', )
-          "(?<!#\\s)0x0*([a-f0-9]+)" "|"
-          // the rest ... (ie. registers)
-          "(?<!#\\s)(\\w+)"
-      "),?"
-  );
-
  private:
   // ~~~~~~~~~~~~~~ Fields ~~~~~~~~~~~~~~
 

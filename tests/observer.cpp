@@ -33,11 +33,11 @@ TEST(ObservableTest, SubjectAsObservable) {
     subj.update(10);
 }
 
-TEST(ObservableTest, SubscriptionTest) {
-  typedef RxSubject<std::string> rx_subject_t;
-  typedef rx_subject_t::subscription_type subscription_t;
-  typedef rx_subject_t::observable_type observable_t;
+typedef RxSubject<std::string> rx_subject_t;
+typedef rx_subject_t::subscription_type subscription_t;
+typedef rx_subject_t::observable_type observable_t;
 
+TEST(ObservableTest, SubscriptionTest) {
   rx_subject_t subj;
   observable_t o$(subj);
 
@@ -58,10 +58,6 @@ TEST(ObservableTest, SubscriptionTest) {
 }
 
 TEST(ObservableTest, MoveTest) {
-  typedef RxSubject<std::string> rx_subject_t;
-  typedef rx_subject_t::subscription_type subscription_t;
-  typedef rx_subject_t::observable_type observable_t;
-
   auto create_subject = [] () {
     rx_subject_t subj;
     subj.update("Trololo");
