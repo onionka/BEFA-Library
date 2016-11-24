@@ -141,7 +141,13 @@ class ExecutableFile
    *
    * @return Observable of instructions
    */
-  RxObservable<instruction_type> &assembly() { return assembly_subject.asObservable(); }
+  RxObservable<instruction_type> &disassembly() { return assembly_subject.asObservable(); }
+
+  /**
+   *
+   * @return Observable of instructions
+   */
+  RxObservable<std::vector<instruction_type>> &basic_block() { return basic_block_subject.asObservable(); }
 
   /**
    *
@@ -189,7 +195,12 @@ class ExecutableFile
   /**
    * Subject of basic blocks (see reactive programming)
    */
-  RxSubject<std::shared_ptr<basic_block_type>> basic_block_subj;
+  RxSubject<std::weak_ptr<basic_block_type>> basic_block_subj;
+
+  /**
+   * Subject of the same basic block instructions
+   */
+  RxSubject<std::vector<instruction_type>> basic_block_subject;
 
   /**
    * Here are stored shared pointers at sections
@@ -200,6 +211,11 @@ class ExecutableFile
    * Here are stored shared pointers at sections
    */
   std::vector<std::shared_ptr<symbol_type>> symbol_buffer;
+
+  /**
+   * Here are stored shared pointers at sections
+   */
+  std::vector<std::shared_ptr<basic_block_type>> basic_block_buffer;
 
   /**
    * If this instance has valid file descriptor

@@ -52,7 +52,7 @@ TEST_F(SimpleFixture, SimpleTest) {
   typedef ExecutableFile::instruction_type i_type;
 
   bool seq_found = false;
-  auto &assembly$ = file.assembly();
+  auto &assembly$ = file.disassembly();
   assembly$.subscribe([&] (const i_type &instr) {
     if (instr_sequence[0] == instr.parse()[0]) {
       assembly$.subscribe(AssemblySequence(1, seq_found));

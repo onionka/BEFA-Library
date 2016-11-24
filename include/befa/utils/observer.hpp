@@ -109,7 +109,7 @@ struct RxObservable {
 
   template<typename CallbackT>
   subscription_type subscribe(CallbackT &&cllbck) {
-    callbacks->emplace_front(std::make_shared<callback_type>(cllbck));
+    callbacks->emplace_front(std::make_shared<callback_type>(std::forward<CallbackT>(cllbck)));
     return Subscription<callback_type>(callbacks, std::weak_ptr<callback_type>(callbacks->front()));
   }
 

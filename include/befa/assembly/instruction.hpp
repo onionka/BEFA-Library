@@ -35,7 +35,7 @@ struct Instruction {
 
   Instruction(
       ::array_view<uint8_t> bytes,
-      const std::weak_ptr<BasicBlockT> &parent,
+      std::shared_ptr<BasicBlockT> parent,
       std::string decoded,
       bfd_vma address
   ) : bytes(bytes),
@@ -78,7 +78,7 @@ struct Instruction {
 
   const std::string &getDecoded() const { return decoded; }
 
-  const std::weak_ptr<BasicBlockT> &getParent() const { return parent; }
+  const std::shared_ptr<BasicBlockT> &getParent() const { return parent; }
 
   const bfd_vma &getAddress() const { return address; }
 
@@ -109,7 +109,7 @@ struct Instruction {
   /**
    * Basic block to which instruction belongs
    */
-  std::weak_ptr<BasicBlockT> parent;
+  std::shared_ptr<BasicBlockT> parent;
 
   /**
    * Address relative to file

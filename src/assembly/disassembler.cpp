@@ -7,41 +7,54 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <sstream>
 #include "../../include/befa.hpp"
 
 struct BasicBlockDecoder;
 
+/**
+ *
+ * @param instr
+ * @return address that instruction is jumping to (else -1 which is FFFFFF...)
+ */
+uint64_t match_jump(std::string instr) {
+  static const ::pcrecpp::RE regex(
+      "(?:"
+          "ja|jae|jb|jbe|jc|jcxz|je|jecxz|jg|jge|jl|jle|jna|jnae|jnb|jnbe|"
+          "jnc|jne|jng|jnge|jnl|jnle|jno|jnp|jns|jnz|jo|jp|jpe|jpo|js|jz|jmp"
+      ")\\s+(?|"
+          "\\w+ PTR \\[rip[^\\]]+\\]\\s+# 0x0*([0-9a-f]+)" "|"
+          "0x0*([0-9a-f]+)"
+      ")"
+  );
+  uint64_t addr = 0;
+  ::std::string addr_str;
+  pcrecpp::StringPiece input(instr);
+  if (regex.FindAndConsume(&input, &addr_str)) {
+    ::std::stringstream ss;
+    ss << ::std::hex << addr_str;
+    ss >> addr;
+    return addr;
+  }
+  return (uint64_t) -1;
+}
+
+
 struct SymbolDataLoader {
   typedef ExecutableFile::basic_block_type basic_block_type;
-  typedef std::weak_ptr<basic_block_type> basic_block_ptr;
-
-  SymbolDataLoader(
-      const std::weak_ptr<ExecutableFile::symbol_type> &ptr
-  ) : ptr(ptr_lock(ptr)) {}
-
-  void fetch(RxSubject<basic_block_ptr> &subj, bfd *_fd) {
-    // TODO: Firstly, prefetch basic blocks
-    printf("%s: %lx\n", ptr->getName().c_str(), ptr->getAddress());
-    for (const auto &alias: ptr->getAliases())
-      printf("%s: %lx\n", alias.getName().c_str(), alias.getAddress());
-
-    // TODO: Than decode basic blocks
-    subj.update(std::make_shared<basic_block_type>(0, ptr));
-  }
-
- private:
-  std::shared_ptr<ExecutableFile::symbol_type> ptr;
-};
-
-struct BasicBlockDecoder {
+  typedef std::shared_ptr<basic_block_type> basic_block_ptr;
+  typedef std::weak_ptr<basic_block_type> basic_block_weak_ptr;
   typedef ExecutableFile::instruction_type instruction_type;
   typedef std::weak_ptr<instruction_type> instruction_ptr;
 
-  BasicBlockDecoder(const std::weak_ptr<ExecutableFile::basic_block_type> &ptr)
-      : ptr(ptr_lock(ptr)) {}
+  SymbolDataLoader(
+      const std::weak_ptr<ExecutableFile::symbol_type> &ptr
+  ) : ptr(ptr) {}
 
   void fetch(
-      RxSubject<instruction_type> &subj,
+      RxSubject<instruction_type> &instr_subj,
+      RxSubject<basic_block_weak_ptr> &basic_block_subj,
+      std::vector<basic_block_ptr> &basic_block_buffer,
       disassemble_info d_info,
       bfd *_fd,
       std::weak_ptr<disassembler_impl::ffile> f,
@@ -50,7 +63,7 @@ struct BasicBlockDecoder {
     // TODO: Decode instructions
     { // file related work
       auto f_lock = ptr_lock(f);
-      auto sym_lock = ptr_lock(ptr->getParent());
+      auto sym_lock = ptr_lock(ptr);
       auto sec_lock = ptr_lock(sym_lock->getParent());
 
       f_lock->reset();
@@ -63,6 +76,10 @@ struct BasicBlockDecoder {
       int offset = 0;
       int max_offset = (int) sym_size;
 
+      std::vector<std::tuple<array_view<uint8_t>, std::string, uint64_t>> instructions;
+      std::vector<uint64_t> addresses;
+
+      printf("%s: #%lx\n", sym_lock->getName().c_str(), sym_address);
       // clear fake file, load instruction, ...
       for (uint64_t i_address = sym_address + offset;
            (i_size > 0) && (offset < max_offset);
@@ -71,18 +88,33 @@ struct BasicBlockDecoder {
                &d_info
            )
           ) {
+        uint64_t address;
+        if ((address = match_jump(f_lock->buffer)) != (uint64_t) -1) {
+          addresses.push_back(address);
+          addresses.push_back(i_address + i_size);
+        }
         // create instruction, and pass it into subject
-        subj.update(instruction_type(
-            array_view<uint8_t>(d_info.buffer + offset, i_size),
-            ptr, f_lock->buffer, i_address
+        instructions.emplace_back(std::make_tuple(
+            array_view<uint8_t>(d_info.buffer + offset, i_size), f_lock->buffer, i_address
         ));
         offset += i_size;
+      }
+
+      int i = 0;
+      basic_block_buffer.push_back(std::make_shared<basic_block_type>(i++, sym_lock));
+      for (auto &instr : instructions) {
+        if (contains(addresses, std::get<2>(instr)))
+          basic_block_buffer.push_back(std::make_shared<basic_block_type>(i++, sym_lock));
+        basic_block_subj.update(basic_block_buffer.back());
+        instr_subj.update(instruction_type(
+            std::get<0>(instr), basic_block_buffer.back(), std::get<1>(instr), std::get<2>(instr)
+        ));
       }
     }
   }
 
  private:
-  std::shared_ptr<ExecutableFile::basic_block_type> ptr;
+  std::weak_ptr<ExecutableFile::symbol_type> ptr;
 };
 
 int ffprintf(struct disassembler_impl::ffile *f, const char *format, ...);
@@ -102,7 +134,6 @@ void ExecutableFile::runDisassembler() {
       return;
 
     auto section_lock = ptr_lock(sym_lock->getParent());
-    RxSubject<SymbolDataLoader::basic_block_ptr> bb_subj;
 
     auto closest_ite = std::find_if(
         sym_ite, sym_table.cend(),
@@ -129,16 +160,10 @@ void ExecutableFile::runDisassembler() {
     // loads content into shared data
     bfd_get_section_contents(_fd, (asection *) section_lock->getOrigin(), d_info.buffer, 0, d_info.buffer_length);
 
-    bb_subj.subscribe([&](const SymbolDataLoader::basic_block_ptr &bb_ptr) {
-      // decode instructions
-      BasicBlockDecoder instruction_decoder(bb_ptr);
-      instruction_decoder.fetch(
-          assembly_subject, d_info, _fd, fake_file, sym_size
-      );
-    });
-    SymbolDataLoader bb_decoder(sym);
     // decode basic blocks
-    bb_decoder.fetch(bb_subj, _fd);
+    SymbolDataLoader(sym).fetch(
+        assembly_subject, basic_block_subj, basic_block_buffer, d_info, _fd, fake_file, sym_size
+    );
   });
 }
 

@@ -7,18 +7,23 @@ SET(ASSEMBLY_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa/utils/observer.hpp)
 
 SET(ASSEMBLY_SOURCES
-        assembly/disassembler.cpp
-        assembly/executable_file.cpp)
+        ${PROJECT_SOURCE_DIR}/src/assembly/disassembler.cpp
+        ${PROJECT_SOURCE_DIR}/src/assembly/executable_file.cpp)
 
 SET(LLVM_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/llvm/instruction.hpp)
 
 SET(LLVM_SOURCES
-        llvm/decompiler.cpp)
+        ${PROJECT_SOURCE_DIR}/src/llvm/decompiler.cpp)
+
+SET(UTIL_HEADERS
+        ${PROJECT_SOURCE_DIR}/include/befa/utils/algorithms.hpp
+        ${PROJECT_SOURCE_DIR}/include/befa/utils/byte_array_view.hpp)
 
 ADD_LIBRARY(befa STATIC
         ${ASSEMBLY_SOURCES} ${ASSEMBLY_HEADERS}
-        ${LLVM_SOURCES} ${LLVM_HEADERS} ../include/befa/utils/algorithms.hpp ../include/befa/utils/byte_array_view.hpp)
+        ${LLVM_SOURCES} ${LLVM_HEADERS}
+        ${UTIL_HEADERS})
 
 TARGET_LINK_LIBRARIES(befa ${BFD_LIBRARIES} ${PCRECPP_LIBRARIES})

@@ -102,8 +102,37 @@ std::vector<std::string> ExecutableFile::getTargets() {
   return ret;
 }
 
+
+struct BasicBlockSubscriber {
+  BasicBlockSubscriber(
+      const RxSubject<std::vector<ExecutableFile::instruction_type>> &basic_block_subject
+  ) : basic_block_subject(basic_block_subject) {}
+
+  void operator()(const ExecutableFile::instruction_type &instr) {
+    auto &locked_bb = instr.getParent();
+    if (bb_id == -1)
+      bb_id = locked_bb->getId();
+    // if parent is different, than the first instruction
+    // send to the subject whole basic block vector of instructions
+    if (bb_id != locked_bb->getId()) {
+      basic_block_subject.update(buffer);
+      buffer.clear();
+      bb_id = locked_bb->getId();
+    } else
+      buffer.push_back(instr);
+  }
+
+ private:
+  RxSubject<std::vector<ExecutableFile::instruction_type>> basic_block_subject;
+  std::vector<ExecutableFile::instruction_type> buffer;
+  int bb_id = -1;
+};
+
+
 ExecutableFile::ExecutableFile(bfd *fd)
-    : disassembler_impl(fd), is_valid(fd != NULL) {}
+    : disassembler_impl(fd), is_valid(fd != NULL) {
+  assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+}
 
 std::vector<std::weak_ptr<ExecutableFile::section_type>> ExecutableFile::getSections() {
   // append missing sections into section buffer

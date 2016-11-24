@@ -6,7 +6,7 @@
 
 
 void ExecutableFile::runDecompiler() {
-  assembly().subscribe([](instruction_type i) {
+  disassembly().subscribe([](instruction_type i) {
     // parse instruction 'i'
   });
 
