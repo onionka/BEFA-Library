@@ -15,7 +15,7 @@ template<typename SymbolT>
 struct BasicBlock {
   BasicBlock(
       int id,
-      const std::shared_ptr<SymbolT> &parent
+      const std::weak_ptr<SymbolT> &parent
   ) : parent(parent),
       id(id) {}
 
@@ -44,6 +44,16 @@ struct BasicBlock {
     return *this;
   }
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
+
+  // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
+  bool operator==(const BasicBlock<SymbolT> &rhs) const noexcept {
+    return rhs.getId() == getId();
+  }
+
+  bool operator!=(const BasicBlock<SymbolT> &rhs) const noexcept {
+    return !(rhs == *this);
+  }
+  // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
 
   const std::weak_ptr<SymbolT> &getParent() const {
     return parent;

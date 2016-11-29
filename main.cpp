@@ -8,21 +8,44 @@ int main(int argc, const char **argv) {
 
   assert(file.isValid() && "file is not valid");
 
-  auto assembly$ = file.disassembly();
-  assembly$.subscribe([](ExecutableFile::instruction_type i) {
-    printf("\t%s\n", i.getDecoded().c_str());
-  });
-  printf("\n");
+//  file.disassembly().subscribe([](ExecutableFile::instruction_type i) {
+//    printf("\t%s\n", i.getDecoded().c_str());
+//  });
+//  printf("\n");
 
-  file.basic_block().subscribe([] (std::vector<ExecutableFile::instruction_type> instructions) {
-    std::shared_ptr<ExecutableFile::basic_block_type> bb = instructions.back().getParent();
-
-    printf("\tBlock #%d\n", bb->getId());
-    for (auto &instr : instructions) {
-      printf("\t\t%s\n", instr.getDecoded().c_str());
-    }
-  });
-
+//  file.symbols()
+//      .subscribe([](std::pair<
+//          ExecutableFile::symbol_type,
+//          std::vector<std::pair<
+//              std::shared_ptr<ExecutableFile::basic_block_type>,
+//              std::vector<ExecutableFile::instruction_type>
+//          >>
+//          > symbol) {
+//
+//      });
+  std::string old_symbol;
+  file.basic_block()
+      .subscribe([&old_symbol](std::pair<
+          std::shared_ptr<ExecutableFile::basic_block_type>,
+          std::vector<ExecutableFile::instruction_type>
+      > basic_block) {
+        auto bb = basic_block.first;
+        auto symbol = ptr_lock(bb->getParent());
+        if (symbol->getName() != old_symbol) {
+          printf("Symbol %s <0x%08x>:\n", symbol->getName().c_str(),
+                 symbol->getAddress());
+          old_symbol = symbol->getName();
+        }
+        printf("%3d. BasicBlock #0x%08lx\n", bb->getId(),
+               basic_block.second.back().getAddress());
+        for (auto &instr : basic_block.second) {
+          printf(
+              "    <%lX>: %s\n",
+              instr.getAddress(),
+              instr.getDecoded().c_str()
+          );
+        }
+      });
   file.runDisassembler();
   return 0;
 }

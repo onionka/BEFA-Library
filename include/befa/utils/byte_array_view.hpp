@@ -6,6 +6,8 @@
 #define BEFA_BYTE_ARRAY_VIEW_HPP
 
 #include <cassert>
+
+
 template<typename T>
 struct array_view {
   typedef unsigned size_type;
@@ -22,14 +24,15 @@ struct array_view {
   // null view
   array_view() = default;
 
-  // Copy & Move cons
+  // ~~~~~ Copy & Move cons ~~~~~
   array_view(const array_view &rhs) throw()
       : _p(rhs.get()), _s(rhs.size()) {}
 
   array_view(array_view &&rhs) throw()
       : _p(rhs.get()), _s(rhs.size()) {}
+  // ~~~~~ Copy & Move cons ~~~~~
 
-  // Copy & Move assignment
+  // ~~~~~ Copy & Move assignment ~~~~~
   array_view &operator=(const array_view &rhs) throw() {
     _p = rhs.get();
     _s = rhs.size();
@@ -41,6 +44,7 @@ struct array_view {
     _s = rhs.size();
     return *this;
   }
+  // ~~~~~ Copy & Move assignment ~~~~~
 
   const_reference operator[](size_type i) const
 #ifdef ARRAY_VIEW_CHECK_BORDERS

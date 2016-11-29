@@ -95,29 +95,9 @@ class ExecutableFile
       std::string target = ""
   );
 
-  ExecutableFile(ExecutableFile &&rhs)
-      : disassembler_impl(std::move(rhs)),
-        assembly_subject(std::move(rhs.assembly_subject)),
-        llvm_instructions(std::move(rhs.llvm_instructions)),
-        basic_block_subj(std::move(rhs.basic_block_subj)),
-        section_buffer(std::move(rhs.section_buffer)),
-        symbol_buffer(std::move(rhs.symbol_buffer)),
-        is_valid(std::move(rhs.is_valid)),
-        sections_sorted(std::move(rhs.sections_sorted)),
-        symbols_sorted(std::move(rhs.symbols_sorted)) {}
+  ExecutableFile(ExecutableFile &&rhs);
 
-  ExecutableFile &operator=(ExecutableFile &&rhs) {
-    disassembler_impl::operator=(std::move(rhs));
-    assembly_subject = std::move(rhs.assembly_subject);
-    llvm_instructions = std::move(rhs.llvm_instructions);
-    basic_block_subj = std::move(rhs.basic_block_subj);
-    section_buffer = std::move(rhs.section_buffer);
-    symbol_buffer = std::move(rhs.symbol_buffer);
-    is_valid = std::move(rhs.is_valid);
-    sections_sorted = std::move(rhs.sections_sorted);
-    symbols_sorted = std::move(rhs.symbols_sorted);
-    return *this;
-  }
+  ExecutableFile &operator=(ExecutableFile &&rhs);
 
   /**
    *
@@ -141,19 +121,25 @@ class ExecutableFile
    *
    * @return Observable of instructions
    */
-  RxObservable<instruction_type> &disassembly() { return assembly_subject.asObservable(); }
+  Observable<instruction_type> &disassembly() { return assembly_subject.asObservable(); }
 
   /**
    *
    * @return Observable of instructions
    */
-  RxObservable<std::vector<instruction_type>> &basic_block() { return basic_block_subject.asObservable(); }
+  auto &symbols() { return basic_block_subject.asObservable(); }
 
   /**
    *
    * @return Observable of instructions
    */
-  RxObservable<llvm::Instruction> &llvm() { return llvm_instructions.asObservable(); }
+  auto &basic_block() { return basic_block_subject.asObservable(); }
+
+  /**
+   *
+   * @return Observable of instructions
+   */
+  Observable<llvm::Instruction> &llvm() { return llvm_instructions.asObservable(); }
 
   /**
    * Executes disassembler
@@ -185,22 +171,28 @@ class ExecutableFile
   /**
    * Subject of instructions (see reactive programming)
    */
-  RxSubject<instruction_type> assembly_subject;
+  Subject<instruction_type> assembly_subject;
 
   /**
    * Subject of llvm instructions (see reactive programming)
    */
-  RxSubject<llvm::Instruction> llvm_instructions;
-
-  /**
-   * Subject of basic blocks (see reactive programming)
-   */
-  RxSubject<std::weak_ptr<basic_block_type>> basic_block_subj;
+  Subject<llvm::Instruction> llvm_instructions;
 
   /**
    * Subject of the same basic block instructions
    */
-  RxSubject<std::vector<instruction_type>> basic_block_subject;
+  Subject<std::pair<
+      std::shared_ptr<basic_block_type>,
+      std::vector<instruction_type>
+  >> basic_block_subject;
+
+  /**
+   * Subject of the same basic block instructions
+   */
+  Subject<std::pair<
+      std::shared_ptr<symbol_type>,
+      std::vector<instruction_type>
+  >> symbol_subject;
 
   /**
    * Here are stored shared pointers at sections
@@ -216,6 +208,11 @@ class ExecutableFile
    * Here are stored shared pointers at sections
    */
   std::vector<std::shared_ptr<basic_block_type>> basic_block_buffer;
+
+  /**
+   * So we can replace subscription (erase old)
+   */
+  Subject<instruction_type>::subscription_type basic_block_subscribe;
 
   /**
    * If this instance has valid file descriptor

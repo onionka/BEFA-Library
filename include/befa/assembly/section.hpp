@@ -18,6 +18,17 @@ struct Section {
   size_t getSize(ATTRIBUTE_UNUSED bfd *fd) const { return bfd_section_size(fd, getOrigin()); }
 
   bfd_vma getAddress(ATTRIBUTE_UNUSED bfd *fd) const { return bfd_get_section_vma(fd, getOrigin()); }
+
+
+  // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
+  bool operator==(const Section &rhs) const noexcept {
+    return rhs.getOrigin() == getOrigin();
+  }
+
+  bool operator!=(const Section &rhs) const noexcept {
+    return !(rhs == *this);
+  }
+  // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
  private:
   const asection *origin;
 };

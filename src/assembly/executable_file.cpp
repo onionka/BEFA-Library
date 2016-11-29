@@ -104,26 +104,31 @@ std::vector<std::string> ExecutableFile::getTargets() {
 
 
 struct BasicBlockSubscriber {
-  BasicBlockSubscriber(
-      const RxSubject<std::vector<ExecutableFile::instruction_type>> &basic_block_subject
-  ) : basic_block_subject(basic_block_subject) {}
+  typedef Subject<std::pair<
+      std::shared_ptr<ExecutableFile::basic_block_type>,
+      std::vector<ExecutableFile::instruction_type>
+  >> basic_block_subject_type;
 
-  void operator()(const ExecutableFile::instruction_type &instr) {
-    auto &locked_bb = instr.getParent();
+  BasicBlockSubscriber(basic_block_subject_type basic_block_subject)
+      : basic_block_subject(basic_block_subject) { }
+
+  void operator()(ExecutableFile::instruction_type instr) {
+    auto locked_bb = instr.getParent();
     if (bb_id == -1)
       bb_id = locked_bb->getId();
     // if parent is different, than the first instruction
     // send to the subject whole basic block vector of instructions
     if (bb_id != locked_bb->getId()) {
-      basic_block_subject.update(buffer);
+      if (!buffer.empty())
+        basic_block_subject.update(std::make_pair(locked_bb, buffer));
       buffer.clear();
       bb_id = locked_bb->getId();
     } else
-      buffer.push_back(instr);
+      buffer.push_back(std::move(instr));
   }
 
  private:
-  RxSubject<std::vector<ExecutableFile::instruction_type>> basic_block_subject;
+  basic_block_subject_type basic_block_subject;
   std::vector<ExecutableFile::instruction_type> buffer;
   int bb_id = -1;
 };
@@ -131,8 +136,38 @@ struct BasicBlockSubscriber {
 
 ExecutableFile::ExecutableFile(bfd *fd)
     : disassembler_impl(fd), is_valid(fd != NULL) {
-  assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+  basic_block_subscribe = assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+//  basic_block_subject.subscribe(SymbolSubscriber(symbol_subject));
 }
+
+ExecutableFile::ExecutableFile(ExecutableFile &&rhs)
+    : disassembler_impl(std::move(rhs)),
+      assembly_subject(std::move(rhs.assembly_subject)),
+      llvm_instructions(std::move(rhs.llvm_instructions)),
+      section_buffer(std::move(rhs.section_buffer)),
+      symbol_buffer(std::move(rhs.symbol_buffer)),
+      is_valid(std::move(rhs.is_valid)),
+      sections_sorted(std::move(rhs.sections_sorted)),
+      symbols_sorted(std::move(rhs.symbols_sorted)) {
+  // so reference into basic_block_subject will not be forgotten
+  if (basic_block_subscribe) basic_block_subscribe.unsubscribe();
+  basic_block_subscribe = assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+}
+
+ExecutableFile &ExecutableFile::operator=(ExecutableFile &&rhs) {
+  disassembler_impl::operator=(std::move(rhs));
+  assembly_subject = std::move(rhs.assembly_subject);
+  llvm_instructions = std::move(rhs.llvm_instructions);
+  section_buffer = std::move(rhs.section_buffer);
+  symbol_buffer = std::move(rhs.symbol_buffer);
+  is_valid = std::move(rhs.is_valid);
+  sections_sorted = std::move(rhs.sections_sorted);
+  symbols_sorted = std::move(rhs.symbols_sorted);
+  if (basic_block_subscribe) basic_block_subscribe.unsubscribe();
+  basic_block_subscribe = assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+  return *this;
+}
+
 
 std::vector<std::weak_ptr<ExecutableFile::section_type>> ExecutableFile::getSections() {
   // append missing sections into section buffer

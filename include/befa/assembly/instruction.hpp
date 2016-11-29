@@ -78,7 +78,7 @@ struct Instruction {
 
   const std::string &getDecoded() const { return decoded; }
 
-  const std::shared_ptr<BasicBlockT> &getParent() const { return parent; }
+  std::shared_ptr<BasicBlockT> getParent() const { return ptr_lock(parent); }
 
   const bfd_vma &getAddress() const { return address; }
 
@@ -91,8 +91,18 @@ struct Instruction {
     }
     return result;
   }
-
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
+
+  // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
+  bool operator==(const Instruction<BasicBlockT> &rhs) const noexcept {
+    return rhs.getAddress() == getAddress();
+  }
+
+  bool operator!=(const Instruction<BasicBlockT> &rhs) const noexcept {
+    return !(rhs == *this);
+  }
+  // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
+
  private:
   // ~~~~~~~~~~~~~~ Fields ~~~~~~~~~~~~~~
 
@@ -109,7 +119,7 @@ struct Instruction {
   /**
    * Basic block to which instruction belongs
    */
-  std::shared_ptr<BasicBlockT> parent;
+  std::weak_ptr<BasicBlockT> parent;
 
   /**
    * Address relative to file

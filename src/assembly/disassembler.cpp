@@ -8,6 +8,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sstream>
+#include <map>
+#include <iostream>
+#include <set>
 #include "../../include/befa.hpp"
 
 struct BasicBlockDecoder;
@@ -24,17 +27,28 @@ uint64_t match_jump(std::string instr) {
           "jnc|jne|jng|jnge|jnl|jnle|jno|jnp|jns|jnz|jo|jp|jpe|jpo|js|jz|jmp"
       ")\\s+(?|"
           "\\w+ PTR \\[rip[^\\]]+\\]\\s+# 0x0*([0-9a-f]+)" "|"
-          "0x0*([0-9a-f]+)"
+          "0x0*([0-9a-f]+)" "|"
+          "(.*)"
       ")"
   );
+  static const ::std::vector<::std::string> jumps{
+      "ja", "jae", "jb", "jbe", "jc", "jcxz", "je", "jecxz", "jg", "jge",
+      "jl", "jle", "jna", "jnae", "jnb", "jnbe", "jnc", "jne", "jng",
+      "jnge", "jnl", "jnle", "jno", "jnp", "jns", "jnz", "jo", "jp", "jpe",
+      "jpo", "js", "jz", "jmp"
+  };
+
+
   uint64_t addr = 0;
-  ::std::string addr_str;
+  std::string addr_str;
   pcrecpp::StringPiece input(instr);
   if (regex.FindAndConsume(&input, &addr_str)) {
-    ::std::stringstream ss;
-    ss << ::std::hex << addr_str;
-    ss >> addr;
-    return addr;
+    std::stringstream ss;
+    ss << std::hex << addr_str;
+    if (ss >> addr)
+      return addr;
+    else
+      return (uint64_t) -2;
   }
   return (uint64_t) -1;
 }
@@ -43,7 +57,6 @@ uint64_t match_jump(std::string instr) {
 struct SymbolDataLoader {
   typedef ExecutableFile::basic_block_type basic_block_type;
   typedef std::shared_ptr<basic_block_type> basic_block_ptr;
-  typedef std::weak_ptr<basic_block_type> basic_block_weak_ptr;
   typedef ExecutableFile::instruction_type instruction_type;
   typedef std::weak_ptr<instruction_type> instruction_ptr;
 
@@ -52,8 +65,7 @@ struct SymbolDataLoader {
   ) : ptr(ptr) {}
 
   void fetch(
-      RxSubject<instruction_type> &instr_subj,
-      RxSubject<basic_block_weak_ptr> &basic_block_subj,
+      Subject<instruction_type> &instr_subj,
       std::vector<basic_block_ptr> &basic_block_buffer,
       disassemble_info d_info,
       bfd *_fd,
@@ -77,9 +89,8 @@ struct SymbolDataLoader {
       int max_offset = (int) sym_size;
 
       std::vector<std::tuple<array_view<uint8_t>, std::string, uint64_t>> instructions;
-      std::vector<uint64_t> addresses;
+      std::set<uint64_t> basic_block_addresses{sym_address};
 
-      printf("%s: #%lx\n", sym_lock->getName().c_str(), sym_address);
       // clear fake file, load instruction, ...
       for (uint64_t i_address = sym_address + offset;
            (i_size > 0) && (offset < max_offset);
@@ -90,8 +101,8 @@ struct SymbolDataLoader {
           ) {
         uint64_t address;
         if ((address = match_jump(f_lock->buffer)) != (uint64_t) -1) {
-          addresses.push_back(address);
-          addresses.push_back(i_address + i_size);
+          basic_block_addresses.emplace(address);
+          basic_block_addresses.emplace(i_address + i_size);
         }
         // create instruction, and pass it into subject
         instructions.emplace_back(std::make_tuple(
@@ -99,15 +110,22 @@ struct SymbolDataLoader {
         ));
         offset += i_size;
       }
-
-      int i = 0;
-      basic_block_buffer.push_back(std::make_shared<basic_block_type>(i++, sym_lock));
+      // erase -1 (which is 0xFFFFFF)
+      auto bba_begin = basic_block_addresses.begin();
+      int bb_id = 0;
       for (auto &instr : instructions) {
-        if (contains(addresses, std::get<2>(instr)))
-          basic_block_buffer.push_back(std::make_shared<basic_block_type>(i++, sym_lock));
-        basic_block_subj.update(basic_block_buffer.back());
+        // if instruction has a border address, basic block is created
+        if (bba_begin != basic_block_addresses.end() &&
+            std::get<2>(instr) == *bba_begin) {
+          basic_block_buffer.emplace_back(
+              std::make_shared<basic_block_type>(bb_id++, ptr)
+          );
+          ++bba_begin;
+        }
+        assert(!basic_block_buffer.empty() && "basic_block_buffer cannot be empty");
         instr_subj.update(instruction_type(
-            std::get<0>(instr), basic_block_buffer.back(), std::get<1>(instr), std::get<2>(instr)
+           std::get<0>(instr), basic_block_buffer.back(),
+           std::get<1>(instr), std::get<2>(instr)
         ));
       }
     }
@@ -162,7 +180,7 @@ void ExecutableFile::runDisassembler() {
 
     // decode basic blocks
     SymbolDataLoader(sym).fetch(
-        assembly_subject, basic_block_subj, basic_block_buffer, d_info, _fd, fake_file, sym_size
+        assembly_subject, basic_block_buffer, d_info, _fd, fake_file, sym_size
     );
   });
 }
