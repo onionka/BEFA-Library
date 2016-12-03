@@ -14,7 +14,7 @@ namespace befa {
 template<typename SymbolT>
 struct BasicBlock {
   BasicBlock(
-      int id,
+      bfd_vma id,
       const std::weak_ptr<SymbolT> &parent
   ) : parent(parent),
       id(id) {}
@@ -55,6 +55,7 @@ struct BasicBlock {
   }
   // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
 
+  // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
   const std::weak_ptr<SymbolT> &getParent() const {
     return parent;
   }
@@ -63,16 +64,16 @@ struct BasicBlock {
     return successors;
   }
 
-  int getId() const {
-    return id;
-  }
+  /** AKA virtual memory address of first instruction */
+  bfd_vma getId() const { return id; }
+  // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
 
  private:
   std::weak_ptr<SymbolT> parent;
 
   std::vector<std::weak_ptr<BasicBlock<SymbolT>>> successors;
 
-  int id;
+  bfd_vma id;
 };
 }  // namespace befa
 

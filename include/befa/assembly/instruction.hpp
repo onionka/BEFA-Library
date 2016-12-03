@@ -10,32 +10,41 @@
 
 #include "../utils/algorithms.hpp"
 #include "../utils/byte_array_view.hpp"
+#include "instruction_decoder.hpp"
 
 namespace befa {
 static const ::pcrecpp::RE parse_regex = std::string(
-    ",?(?|"
-        // 'DWORD PTR [rip+0x9421596]' ... '# 0x00000(2156113)'
-        // result will be ('2156113', )
-        "\\w+\\sPTR\\s\\[rip\\+[^\\],]+\\](?=.*#\\s0x0*([a-f0-9]+))" "|"
-        // '(DWORD PTR [...])'
-        // result will be ('DWORD PTR [...]', )
-        "(\\w+\\sPTR\\s\\[[^\\],]+\\])" "|"
-        // '0x000000(542312)'
-        // result will be ('542312', )
-        "(?<!#\\s)0x0*([a-f0-9]+)" "|"
-        // the rest ... (ie. registers)
-        "(?<!#\\s)(\\w+)"
-    "),?"
+    "(?|" "(\\w*\\.\\w+)" "|"
+        "# 0x0*[0-9a-fA-F]+" "|"
+        "(\\w+ PTR (?:\\w+:)?\\[[^\\]]+\\])" "|"
+        "\\[([^]]+)\\]" "|"
+        "0x0*?([0-9a-fA-F]+)" "|"
+        "(\\w+\\w+\\w+)" "|"
+        "(\\w+)"
+        ")"
 );
 
+namespace details {
+inline std::vector<std::string> match(
+    const std::string &str,
+    const pcrecpp::RE &parse_regex
+);
+}  // namespace details
+
 template<typename BasicBlockT>
-struct Instruction {
+struct Instruction
+    : public instruction_decoder {
+  using basic_block = BasicBlockT;
+  using basic_block_weak = std::weak_ptr<basic_block>;
+  using basic_block_ptr = std::shared_ptr<basic_block>;
+  using byte_array = ::array_view<uint8_t>;
+
   // Dummy instruction
   Instruction() = default;
 
   Instruction(
-      ::array_view<uint8_t> bytes,
-      std::shared_ptr<BasicBlockT> parent,
+      byte_array bytes,
+      basic_block_ptr parent,
       std::string decoded,
       bfd_vma address
   ) : bytes(bytes),
@@ -74,7 +83,7 @@ struct Instruction {
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
 
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
-  const ::array_view<uint8_t> &getBytes() const { return bytes; }
+  const byte_array &getBytes() const { return bytes; }
 
   const std::string &getDecoded() const { return decoded; }
 
@@ -82,14 +91,8 @@ struct Instruction {
 
   const bfd_vma &getAddress() const { return address; }
 
-  ::std::vector<::std::string> parse() const {
-    ::std::vector<::std::string> result;
-    ::std::string temp;
-    pcrecpp::StringPiece input(getDecoded());
-    while (parse_regex.FindAndConsume(&input, &temp)) {
-      result.push_back(temp);
-    }
-    return result;
+  instruction_pieces parse() const override {
+    return details::match(getDecoded(), parse_regex);
   }
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
 
@@ -109,7 +112,7 @@ struct Instruction {
   /**
    * Raw data
    */
-  ::array_view<uint8_t> bytes;
+  byte_array bytes;
 
   /**
    * Decoded data in human readable representation (intel-syntax assembly language)
@@ -119,7 +122,7 @@ struct Instruction {
   /**
    * Basic block to which instruction belongs
    */
-  std::weak_ptr<BasicBlockT> parent;
+  basic_block_weak parent;
 
   /**
    * Address relative to file
@@ -127,6 +130,20 @@ struct Instruction {
   bfd_vma address;
   // ~~~~~~~~~~~~~~ Fields ~~~~~~~~~~~~~~
 };
+
+namespace details {
+std::vector<std::string> match(
+    const std::string &str,
+    const pcrecpp::RE &parse_regex
+) {
+  std::vector<std::string> result;
+  string temp;
+  pcrecpp::StringPiece input(str);
+  while (parse_regex.FindAndConsume(&input, &temp))
+    result.push_back(temp);
+  return result;
+}
+}  // namespace details
 }  // namespace befa
 
 #endif //BEFA_INSTRUCTION_HPP

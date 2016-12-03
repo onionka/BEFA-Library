@@ -38,14 +38,16 @@ ExecutableFile ExecutableFile::open(
 
   // open file for read
   if ((fd = bfd_openr(path.c_str(), target.c_str())) == NULL)
-    throw std::runtime_error(std::string("cannot open '") + path + "'!\nbfd_openr returned NULL");
+    throw std::runtime_error(
+        std::string("cannot open '") + path + "'!\nbfd_openr returned NULL");
 
   // this HAS TO be called, because bfd will get SIGSEGV otherwise
   // bfd - fuck the logic
   if (!bfd_check_format(fd, bfd_object)) {
     bfd_close(fd);
     throw std::runtime_error(
-        std::string("cannot open '") + path + "' as bfd_object\nbfd_check_format returned false"
+        std::string("cannot open '") + path
+            + "' as bfd_object\nbfd_check_format returned false"
     );
   }
 
@@ -53,7 +55,8 @@ ExecutableFile ExecutableFile::open(
   return std::move(ExecutableFile(fd));
 }
 
-std::vector<std::weak_ptr<ExecutableFile::symbol_type>> ExecutableFile::getSymbolTable() {
+std::vector<std::weak_ptr<ExecutableFile::symbol_type>>
+ExecutableFile::getSymbolTable() {
   if (symbol_buffer.empty())
     for_each(fetchSymbolTable(), [&](auto &sym_ite) {
       auto &sym = *sym_ite;
@@ -66,7 +69,9 @@ std::vector<std::weak_ptr<ExecutableFile::symbol_type>> ExecutableFile::getSymbo
         // Firstly find section in section_buffer that symbol is pointing to
         auto sec_ite = std::find_if(
             section_buffer.begin(), section_buffer.end(),
-            [&sym](std::shared_ptr<section_type> &sec) { return sec->getOrigin() == sym->section; }
+            [&sym](std::shared_ptr<section_type> &sec) {
+              return sec->getOrigin() == sym->section;
+            }
         );
         // if section has been buffered, just use it
         if (sec_ite != section_buffer.end()) {
@@ -74,7 +79,8 @@ std::vector<std::weak_ptr<ExecutableFile::symbol_type>> ExecutableFile::getSymbo
         } else {
           // else create it
           section_buffer.emplace_back(std::make_shared<section_type>(sym->section));
-          symbol_buffer.push_back(std::make_shared<symbol_type>(sym, section_buffer.back()));
+          symbol_buffer.push_back(std::make_shared<symbol_type>(sym,
+                                                                section_buffer.back()));
         }
       } else {
         existing_sym->addAlias(sym);
@@ -84,13 +90,17 @@ std::vector<std::weak_ptr<ExecutableFile::symbol_type>> ExecutableFile::getSymbo
   // guard to prevent multi-sort
   if (!symbols_sorted) {
     // sort section_buffer in descending
-    std::sort(symbol_buffer.begin(), symbol_buffer.end(), [&](auto &lsh, auto &rhs) {
-      return bfd_asymbol_value(lsh->getOrigin()) < bfd_asymbol_value(rhs->getOrigin());
-    });
+    std::sort(symbol_buffer.begin(),
+              symbol_buffer.end(),
+              [&](auto &lsh, auto &rhs) {
+                return bfd_asymbol_value(lsh->getOrigin())
+                    < bfd_asymbol_value(rhs->getOrigin());
+              });
     symbols_sorted = true;
   }
 
-  return map(symbol_buffer, [](auto &shared_s) { return std::weak_ptr<symbol_type>(shared_s); });
+  return map(symbol_buffer,
+             [](auto &shared_s) { return std::weak_ptr<symbol_type>(shared_s); });
 }
 
 std::vector<std::string> ExecutableFile::getTargets() {
@@ -102,7 +112,6 @@ std::vector<std::string> ExecutableFile::getTargets() {
   return ret;
 }
 
-
 struct BasicBlockSubscriber {
   typedef Subject<std::pair<
       std::shared_ptr<ExecutableFile::basic_block_type>,
@@ -110,40 +119,45 @@ struct BasicBlockSubscriber {
   >> basic_block_subject_type;
 
   BasicBlockSubscriber(basic_block_subject_type basic_block_subject)
-      : basic_block_subject(basic_block_subject) { }
+      : basic_block_subject(basic_block_subject) {}
 
   void operator()(ExecutableFile::instruction_type instr) {
     auto locked_bb = instr.getParent();
-    if (bb_id == -1)
+    if (bb_id == (bfd_vma) -1) {
       bb_id = locked_bb->getId();
+      last_bb = locked_bb;
+    }
     // if parent is different, than the first instruction
     // send to the subject whole basic block vector of instructions
     if (bb_id != locked_bb->getId()) {
       if (!buffer.empty())
-        basic_block_subject.update(std::make_pair(locked_bb, buffer));
-      buffer.clear();
+        basic_block_subject.update(std::make_pair(
+            buffer.back().getParent(), buffer));
       bb_id = locked_bb->getId();
-    } else
-      buffer.push_back(std::move(instr));
+      last_bb = locked_bb;
+      buffer.clear();
+    }
+    buffer.push_back(std::move(instr));
   }
 
  private:
+  std::shared_ptr<ExecutableFile::basic_block_type> last_bb;
   basic_block_subject_type basic_block_subject;
   std::vector<ExecutableFile::instruction_type> buffer;
-  int bb_id = -1;
+  bfd_vma bb_id = (bfd_vma) -1;
 };
-
 
 ExecutableFile::ExecutableFile(bfd *fd)
     : disassembler_impl(fd), is_valid(fd != NULL) {
-  basic_block_subscribe = assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+  basic_block_subscribe =
+      assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
 //  basic_block_subject.subscribe(SymbolSubscriber(symbol_subject));
 }
 
 ExecutableFile::ExecutableFile(ExecutableFile &&rhs)
     : disassembler_impl(std::move(rhs)),
       assembly_subject(std::move(rhs.assembly_subject)),
-      llvm_instructions(std::move(rhs.llvm_instructions)),
+//      llvm_instructions(std::move(rhs.llvm_instructions)),
       section_buffer(std::move(rhs.section_buffer)),
       symbol_buffer(std::move(rhs.symbol_buffer)),
       is_valid(std::move(rhs.is_valid)),
@@ -151,29 +165,33 @@ ExecutableFile::ExecutableFile(ExecutableFile &&rhs)
       symbols_sorted(std::move(rhs.symbols_sorted)) {
   // so reference into basic_block_subject will not be forgotten
   if (basic_block_subscribe) basic_block_subscribe.unsubscribe();
-  basic_block_subscribe = assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+  basic_block_subscribe =
+      assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
 }
 
 ExecutableFile &ExecutableFile::operator=(ExecutableFile &&rhs) {
   disassembler_impl::operator=(std::move(rhs));
   assembly_subject = std::move(rhs.assembly_subject);
-  llvm_instructions = std::move(rhs.llvm_instructions);
+//  llvm_instructions = std::move(rhs.llvm_instructions);
   section_buffer = std::move(rhs.section_buffer);
   symbol_buffer = std::move(rhs.symbol_buffer);
   is_valid = std::move(rhs.is_valid);
   sections_sorted = std::move(rhs.sections_sorted);
   symbols_sorted = std::move(rhs.symbols_sorted);
   if (basic_block_subscribe) basic_block_subscribe.unsubscribe();
-  basic_block_subscribe = assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
+  basic_block_subscribe =
+      assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
   return *this;
 }
-
 
 std::vector<std::weak_ptr<ExecutableFile::section_type>> ExecutableFile::getSections() {
   // append missing sections into section buffer
   for_each(fetchSections(), [&](auto &sec_ite) {
     auto sec = *sec_ite;
-    if (!contains_if(section_buffer, [&sec](auto &shared_s) { return shared_s->getOrigin() == sec; }))
+    if (!contains_if(section_buffer,
+                     [&sec](auto &shared_s) {
+                       return shared_s->getOrigin() == sec;
+                     }))
       // if section is not in section_buffer, create it!
       section_buffer.emplace_back(std::make_shared<section_type>(sec));
   });
@@ -185,12 +203,14 @@ std::vector<std::weak_ptr<ExecutableFile::section_type>> ExecutableFile::getSect
         section_buffer.end(), [&](
             const std::shared_ptr<section_type> &lsh,
             const std::shared_ptr<section_type> &rhs) {
-          return bfd_section_vma(_fd, lsh->getOrigin()) > bfd_section_vma(_fd, rhs->getOrigin());
+          return bfd_section_vma(_fd, lsh->getOrigin())
+              > bfd_section_vma(_fd, rhs->getOrigin());
         });
     sections_sorted = true;
   }
 
-  return map(section_buffer, [](auto &shared_s) { return std::weak_ptr<section_type>(shared_s); });
+  return map(section_buffer,
+             [](auto &shared_s) { return std::weak_ptr<section_type>(shared_s); });
 }
 // ~~~~~~~~~~~ ExecutableFile implementation ~~~~~~~~~~~
 
@@ -311,5 +331,28 @@ std::vector<asection *> &disassembler_impl::fetchSections() {
        sec_ptr = sec_ptr->next)
     sections.emplace_back(sec_ptr);
   return sections;
+}
+
+disassembler_impl::disassembler_impl(disassembler_impl &&rhs)
+    : sections(std::move(sections)),
+      symbol_table(std::move(symbol_table)),
+      synthetic_symbol_table(std::move(synthetic_symbol_table)),
+      _syn_sym_table(std::move(_syn_sym_table)),
+      _fd(rhs._fd),
+      fake_file(std::move(rhs.fake_file)),
+      shared_buffer(std::move(rhs.shared_buffer)) {
+  rhs._fd = nullptr;
+}
+
+disassembler_impl &disassembler_impl::operator=(disassembler_impl &&rhs) {
+  sections = std::move(sections);
+  symbol_table = std::move(symbol_table);
+  synthetic_symbol_table = std::move(synthetic_symbol_table);
+  _syn_sym_table = std::move(_syn_sym_table);
+  _fd = rhs._fd;
+  fake_file = std::move(rhs.fake_file);
+  shared_buffer = std::move(rhs.shared_buffer);
+  rhs._fd = nullptr;
+  return *this;
 }
 // ~~~~~~~~~~~ disassembler_impl implementation ~~~~~~~~~~~

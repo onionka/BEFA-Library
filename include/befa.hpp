@@ -8,8 +8,8 @@
 #include <memory>
 #include <vector>
 #include <bfd.h>
+
 #include "befa/utils/observer.hpp"
-#include "befa/llvm/instruction.hpp"
 #include "befa/assembly/instruction.hpp"
 #include "befa/assembly/basic_block.hpp"
 #include "befa/assembly/symbol.hpp"
@@ -23,34 +23,17 @@ class disassembler_impl {
   struct ffile {
     ffile();
     void reset();
-    ::std::string buffer;
+    std::string buffer;
     size_t pos;
   };
 
+  // ~~~~~ Copy & Move semantics ~~~~~
   disassembler_impl(const disassembler_impl &) = delete;
   disassembler_impl &operator=(const disassembler_impl &) = delete;
-  disassembler_impl(disassembler_impl &&rhs)
-      : sections(std::move(sections)),
-        symbol_table(std::move(symbol_table)),
-        synthetic_symbol_table(std::move(synthetic_symbol_table)),
-        _syn_sym_table(std::move(_syn_sym_table)),
-        _fd(rhs._fd),
-        fake_file(std::move(rhs.fake_file)),
-        shared_buffer(std::move(rhs.shared_buffer)) {
-    rhs._fd = nullptr;
-  }
+  disassembler_impl(disassembler_impl &&rhs);
 
-  disassembler_impl &operator=(disassembler_impl &&rhs) {
-    sections = std::move(sections);
-    symbol_table = std::move(symbol_table);
-    synthetic_symbol_table = std::move(synthetic_symbol_table);
-    _syn_sym_table = std::move(_syn_sym_table);
-    _fd = rhs._fd;
-    fake_file = std::move(rhs.fake_file);
-    shared_buffer = std::move(rhs.shared_buffer);
-    rhs._fd = nullptr;
-    return *this;
-  }
+  disassembler_impl &operator=(disassembler_impl &&rhs);
+  // ~~~~~ Copy & Move semantics ~~~~~
 
  private:
   std::vector<asection *> sections;
@@ -75,13 +58,12 @@ class disassembler_impl {
   std::vector<asymbol *> &fetchSymbolTable();
 };
 
-class ExecutableFile
-    : private disassembler_impl {
+class ExecutableFile : private disassembler_impl {
  public:
-  typedef befa::Section section_type;
-  typedef befa::Symbol<section_type> symbol_type;
-  typedef befa::BasicBlock<symbol_type> basic_block_type;
-  typedef befa::Instruction<basic_block_type> instruction_type;
+  using section_type = befa::Section;
+  using symbol_type = befa::Symbol<section_type>;
+  using basic_block_type = befa::BasicBlock<symbol_type>;
+  using instruction_type = befa::Instruction<basic_block_type>;
 
   /**
    * Opens a file to be disassebled (creates instance of this)
@@ -139,7 +121,7 @@ class ExecutableFile
    *
    * @return Observable of instructions
    */
-  Observable<llvm::Instruction> &llvm() { return llvm_instructions.asObservable(); }
+//  Observable<llvm::Instruction> &llvm() { return llvm_instructions.asObservable(); }
 
   /**
    * Executes disassembler
@@ -176,7 +158,7 @@ class ExecutableFile
   /**
    * Subject of llvm instructions (see reactive programming)
    */
-  Subject<llvm::Instruction> llvm_instructions;
+//  Subject<llvm::Instruction> llvm_instructions;
 
   /**
    * Subject of the same basic block instructions

@@ -1,7 +1,7 @@
 ADD_SUBDIRECTORY(c_prog)
 
 SET(TEST_FILES
-        main.cpp executable.cpp observer.cpp disassembler.cpp)
+        main.cpp executable.cpp observer.cpp disassembler.cpp visitor.cpp decoder.cpp)
 
 SET(TEST_HEADERS
         fixtures.hpp)

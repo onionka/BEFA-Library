@@ -25,11 +25,11 @@ uint64_t match_jump(std::string instr) {
       "(?:"
           "ja|jae|jb|jbe|jc|jcxz|je|jecxz|jg|jge|jl|jle|jna|jnae|jnb|jnbe|"
           "jnc|jne|jng|jnge|jnl|jnle|jno|jnp|jns|jnz|jo|jp|jpe|jpo|js|jz|jmp"
-      ")\\s+(?|"
+          ")\\s+(?|"
           "\\w+ PTR \\[rip[^\\]]+\\]\\s+# 0x0*([0-9a-f]+)" "|"
           "0x0*([0-9a-f]+)" "|"
           "(.*)"
-      ")"
+          ")"
   );
   static const ::std::vector<::std::string> jumps{
       "ja", "jae", "jb", "jbe", "jc", "jcxz", "je", "jecxz", "jg", "jge",
@@ -37,7 +37,6 @@ uint64_t match_jump(std::string instr) {
       "jnge", "jnl", "jnle", "jno", "jnp", "jns", "jnz", "jo", "jp", "jpe",
       "jpo", "js", "jz", "jmp"
   };
-
 
   uint64_t addr = 0;
   std::string addr_str;
@@ -52,7 +51,6 @@ uint64_t match_jump(std::string instr) {
   }
   return (uint64_t) -1;
 }
-
 
 struct SymbolDataLoader {
   typedef ExecutableFile::basic_block_type basic_block_type;
@@ -88,7 +86,8 @@ struct SymbolDataLoader {
       int offset = 0;
       int max_offset = (int) sym_size;
 
-      std::vector<std::tuple<array_view<uint8_t>, std::string, uint64_t>> instructions;
+      std::vector<std::tuple<array_view<uint8_t>, std::string, uint64_t>>
+          instructions;
       std::set<uint64_t> basic_block_addresses{sym_address};
 
       // clear fake file, load instruction, ...
@@ -106,26 +105,29 @@ struct SymbolDataLoader {
         }
         // create instruction, and pass it into subject
         instructions.emplace_back(std::make_tuple(
-            array_view<uint8_t>(d_info.buffer + offset, i_size), f_lock->buffer, i_address
+            array_view<uint8_t>(d_info.buffer + offset, i_size),
+            f_lock->buffer,
+            i_address
         ));
         offset += i_size;
       }
       // erase -1 (which is 0xFFFFFF)
       auto bba_begin = basic_block_addresses.begin();
-      int bb_id = 0;
+
       for (auto &instr : instructions) {
         // if instruction has a border address, basic block is created
         if (bba_begin != basic_block_addresses.end() &&
             std::get<2>(instr) == *bba_begin) {
           basic_block_buffer.emplace_back(
-              std::make_shared<basic_block_type>(bb_id++, ptr)
+              std::make_shared<basic_block_type>(*bba_begin, ptr)
           );
           ++bba_begin;
         }
-        assert(!basic_block_buffer.empty() && "basic_block_buffer cannot be empty");
+        assert(!basic_block_buffer.empty()
+                   && "basic_block_buffer cannot be empty");
         instr_subj.update(instruction_type(
-           std::get<0>(instr), basic_block_buffer.back(),
-           std::get<1>(instr), std::get<2>(instr)
+            std::get<0>(instr), basic_block_buffer.back(),
+            std::get<1>(instr), std::get<2>(instr)
         ));
       }
     }
@@ -176,7 +178,10 @@ void ExecutableFile::runDisassembler() {
     d_info.buffer = memory;
 
     // loads content into shared data
-    bfd_get_section_contents(_fd, (asection *) section_lock->getOrigin(), d_info.buffer, 0, d_info.buffer_length);
+    bfd_get_section_contents(
+        _fd, (asection *) section_lock->getOrigin(),
+        d_info.buffer, 0, d_info.buffer_length
+    );
 
     // decode basic blocks
     SymbolDataLoader(sym).fetch(
@@ -195,14 +200,18 @@ void disassembler_impl::ffile::reset() {
 int ffprintf(
     struct disassembler_impl::ffile *f,
     const char *format,
-    ...) {
+    ...
+) {
   /* Reserve two times as much as the length of the fmt_str */
   int printed, alloc = (int) strlen(format) * 2;
   va_list ap;
   while (1) {
     f->buffer.resize((size_t) alloc + f->pos);
     va_start(ap, format);
-    printed = vsnprintf((char *) f->buffer.data() + f->pos, (size_t) alloc, format, ap);
+    printed = vsnprintf((char *) f->buffer.data() + f->pos,
+                        (size_t) alloc,
+                        format,
+                        ap);
     va_end(ap);
     if (printed < 0 || printed >= alloc)
       alloc += abs(printed - alloc + 1);
@@ -213,7 +222,9 @@ int ffprintf(
   return printed;
 }
 
-disassemble_info create_disassemble_info(bfd *_fd, disassembler_impl::ffile *f) {
+disassemble_info create_disassemble_info(
+    bfd *_fd, disassembler_impl::ffile *f
+) {
   disassemble_info ret;
   init_disassemble_info(&ret, f, (fprintf_ftype) ffprintf);
 

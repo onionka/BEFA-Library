@@ -9,7 +9,9 @@ int main(int argc, const char **argv) {
   assert(file.isValid() && "file is not valid");
 
 //  file.disassembly().subscribe([](ExecutableFile::instruction_type i) {
-//    printf("\t%s\n", i.getDecoded().c_str());
+//    printf("%lx %d %s\n",
+//           ptr_lock(i.getParent()->getParent())->getAddress(),
+//           i.getParent()->getId(), i.getDecoded().c_str());
 //  });
 //  printf("\n");
 
@@ -32,15 +34,14 @@ int main(int argc, const char **argv) {
         auto bb = basic_block.first;
         auto symbol = ptr_lock(bb->getParent());
         if (symbol->getName() != old_symbol) {
-          printf("Symbol %s <0x%08x>:\n", symbol->getName().c_str(),
+          printf("Symbol %s <0x%08lx>:\n", symbol->getName().c_str(),
                  symbol->getAddress());
           old_symbol = symbol->getName();
         }
-        printf("%3d. BasicBlock #0x%08lx\n", bb->getId(),
-               basic_block.second.back().getAddress());
+        printf("    BasicBlock #0x%08lx\n", bb->getId());
         for (auto &instr : basic_block.second) {
           printf(
-              "    <%lX>: %s\n",
+              "      <%lX>: %s\n",
               instr.getAddress(),
               instr.getDecoded().c_str()
           );

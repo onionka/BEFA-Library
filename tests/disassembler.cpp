@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <befa/utils/observer.hpp>
 
-#include "../include/befa/utils/algorithms.hpp"
 #include "fixtures.hpp"
 
 #define CREATE_TEST_FIXTURE(name, filename)           \
@@ -42,16 +41,9 @@ struct AssemblySequenceFinder : Observer<
     ++seq_index;
   }
 
-  void register_subscription(subscription_type subscription) override {
-    std::cout << (subscription ? "true" : "false") << std::endl;
-    std::cout << (this->subscription ? "true" : "false") << std::endl;
-    if (!this->subscription)
-      this->subscription =
-          std::make_shared<subscription_type>(std::move(subscription));
-    else
-      *this->subscription = std::move(subscription);
-    std::cout << (this->subscription ? "true" : "false") << std::endl;
-  }
+  void register_subscription(
+      std::shared_ptr<subscription_type> subscription
+  ) override { this->subscription = subscription; }
  private:
   // in
   const std::vector<std::string> &instr_sequence;
@@ -66,8 +58,11 @@ struct AssemblySequenceFinder : Observer<
 };
 
 
-// =====================================================================================
-CREATE_TEST_FIXTURE(SimpleFixture, "test_cases/simple/simple")
+// ==========================================================================
+CREATE_TEST_FIXTURE(
+    SimpleFixture,
+    "test_cases/simple/simple"
+)
 
 TEST_F(SimpleFixture, SimpleTest) {
   typedef ExecutableFile::instruction_type i_type;
@@ -101,9 +96,11 @@ TEST_F(SimpleFixture, SimpleTest) {
 }
 
 
-// =====================================================================================
-CREATE_TEST_FIXTURE(GlobalFunctionFixture,
-                    "test_cases/global_function/global_function")
+// ==========================================================================
+CREATE_TEST_FIXTURE(
+    GlobalFunctionFixture,
+    "test_cases/global_function/global_function"
+)
 
 TEST_F(GlobalFunctionFixture, GlobalFunctionTest) {
   typedef ExecutableFile::instruction_type i_type;
@@ -133,4 +130,4 @@ TEST_F(GlobalFunctionFixture, GlobalFunctionTest) {
   EXPECT_GT(seq_found, 0);
 }
 
-// =====================================================================================
+// ==========================================================================

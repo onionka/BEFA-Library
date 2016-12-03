@@ -49,14 +49,19 @@ struct Observer {
   using subscription_type = typename Observable<
       typename std::remove_all_extents<T>::type
   >::subscription_type;
+  using value_type = T;
 
   /** All possible optional callbacks */
   virtual void operator()(T) {}
 
   /**
    * You can register subscription (if needed)
+   *
+   * <experimental>
    */
-  virtual void register_subscription(subscription_type) {}
+  virtual void register_subscription(std::shared_ptr<subscription_type>) {}
+
+  virtual ~Observer() {}
 };
 
 /**
@@ -121,6 +126,7 @@ struct Subscription {
 };
 
 namespace details {
+namespace observable {
 
 template<typename ObserverBase, typename ObserverT>
 struct check_observer_type_helper : std::is_base_of<
@@ -134,7 +140,9 @@ using check_observer_type = std::__or_<
     check_observer_type_helper<Observer<const T &>, ObserverT>,
     check_observer_type_helper<Observer<T &&>, ObserverT>
 >;
-}
+
+}  // namespace observable
+}  // namespace details
 
 /**
  * Observable in Reactive style
@@ -174,35 +182,32 @@ struct Observable {
   struct conditional_tag {};
 
   template<typename ObserverT>
-  auto subscribe_impl(
-      ObserverT &&cllbck
-  ) -> typename std::enable_if<
-      details::check_observer_type<T, ObserverT>::value,
+  typename std::enable_if<
+      (details::observable::check_observer_type<T, ObserverT>::value),
       subscription_type
-  >::type {
-    callbacks->emplace_front(std::make_shared<callback_type>(
-        std::forward<ObserverT>(cllbck)
-    ));
-    auto subscription = subscription_type(
-        callbacks, callbacks->front()
+  >::type subscribe_impl(
+      ObserverT &&observer
+  ) {
+    using callback_type = typename Observable<T>::callback_type;
+    auto subscription = std::make_shared<subscription_type>();
+    observer.register_subscription(subscription);
+    callbacks->emplace_front(
+        std::make_shared<callback_type>(std::forward<ObserverT>(observer))
     );
-    cllbck.register_subscription(subscription);
-    return subscription;
+    *subscription = subscription_type(callbacks, callbacks->front());
+    return *subscription;
   }
 
   template<typename ObserverT>
-  auto subscribe_impl(
-      ObserverT &&cllbck
-  ) -> typename std::enable_if<
-      (!details::check_observer_type<T, ObserverT>::value),
+  typename std::enable_if<
+      (!details::observable::check_observer_type<T, ObserverT>::value),
       subscription_type
-  >::type {
-    callbacks->emplace_front(std::make_shared<callback_type>(
-        std::forward<ObserverT>(cllbck)
-    ));
-    return subscription_type(
-        callbacks, callbacks->front()
+  >::type subscribe_impl(ObserverT &&observer) {
+    using callback_type = typename Observable<T>::callback_type;
+    callbacks->emplace_front(
+        std::make_shared<callback_type>(std::forward<ObserverT>(observer))
     );
+    return subscription_type(callbacks, callbacks->front());
   }
 
  public:
@@ -227,6 +232,13 @@ struct Observable {
   }
   // ~~~~~ Move & Copy semantics ~~~~~
 
+  /**
+   * Subscribes to the incoming data from Subject<T>
+   *
+   * @tparam CallbackT
+   * @param cllbck
+   * @return
+   */
   template<typename CallbackT>
   subscription_type subscribe(CallbackT &&cllbck) {
     return subscribe_impl(std::forward<CallbackT>(cllbck));
@@ -287,6 +299,20 @@ struct Observable {
     return Observable(*this, conv, conditional_tag());
   }
 
+  /**
+   * Just shortcut to subscribe
+   *
+   * @tparam ObserverT
+   * @param o
+   * @return
+   */
+  template<typename ObserverT>
+  subscription_type operator>>(ObserverT &&o) {
+    return subscribe(std::forward<ObserverT>(o));
+  }
+
+  virtual ~Observable() {}
+
  protected:
   template<typename>
   friend
@@ -314,6 +340,7 @@ struct Observable {
     });
   }
   // ~~~~~ Pipe helper functions ~~~~~
+
 
   /**
    * Call all bound callbacks

@@ -3,7 +3,7 @@
 //
 
 #include "../../include/befa.hpp"
-
+#include "../../include/befa/llvm/decompiler.hpp"
 
 void ExecutableFile::runDecompiler() {
   disassembly().subscribe([](instruction_type i) {
