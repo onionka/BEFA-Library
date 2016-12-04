@@ -4,7 +4,7 @@ SET(ASSEMBLY_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa/assembly/symbol.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/assembly/basic_block.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/assembly/section.hpp
-        ${PROJECT_SOURCE_DIR}/include/befa/assembly/instruction_decoder.hpp)
+        ${PROJECT_SOURCE_DIR}/include/befa/assembly/asm_arg_parser.hpp)
 
 SET(ASSEMBLY_SOURCES
         ${PROJECT_SOURCE_DIR}/src/assembly/disassembler.cpp

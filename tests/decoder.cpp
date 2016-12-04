@@ -9,7 +9,7 @@
 #define INSTRUCTION_TEST
 
 #include <befa/utils/visitor.hpp>
-#include <befa/assembly/instruction_decoder.hpp>
+#include <befa/assembly/asm_arg_parser.hpp>
 #include <befa/utils/factory.hpp>
 #include <befa/assembly/instruction.hpp>
 
@@ -37,14 +37,12 @@ struct NonPreparsedInstruction
 };
 
 TEST(DecoderTest, BasicInstruction) {
-  auto symbol_table = std::make_shared<SymbolTable>();
   SimpleInstruction simple_instr({"mov", "eax", "ebx"});
-  simple_instr.getArgs(symbol_table);
+  simple_instr.getArgs();
 }
 
 TEST(DecoderTest, WithoutPreparseInstruction) {
-  auto symbol_table = std::make_shared<SymbolTable>();
   NonPreparsedInstruction simple_instr("mov eax,ebx");
-  simple_instr.getArgs(symbol_table);
+  simple_instr.getArgs();
 }
 }

@@ -1,5 +1,13 @@
 #include <befa.hpp>
 
+
+struct ArgPrinter
+    : public symbol_table::VisitorBase {
+  VISIT_ALL(arg) {
+    if (arg) printf("%s, ", arg->getName().c_str());
+  }
+};
+
 int main(int argc, const char **argv) {
   assert(argc == 2 && "missing path parameter");
 
@@ -41,10 +49,14 @@ int main(int argc, const char **argv) {
         printf("    BasicBlock #0x%08lx\n", bb->getId());
         for (auto &instr : basic_block.second) {
           printf(
-              "      <%lX>: %s\n",
+              "      <%lX>: %s ",
               instr.getAddress(),
-              instr.getDecoded().c_str()
+              instr.parse()[0].c_str()
           );
+          ArgPrinter arg_printer;
+          for (auto &arg : instr.getArgs())
+            arg->accept(arg_printer);
+          printf("\n");
         }
       });
   file.runDisassembler();

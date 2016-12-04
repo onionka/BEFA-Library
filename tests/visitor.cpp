@@ -37,6 +37,8 @@ CREATE_VISITABLE_SAMPLE(44);
 struct VisitorSample : visitor_base {
   VisitorSample(int &visits) : visits(visits) {}
 
+#undef IMPLEMENT_VISIT
+
 #define IMPLEMENT_VISIT(num) \
   void visit(const VisitableSample##num *instr) override { \
     ASSERT_EQ(instr->return_##num(), num); ++visits; \

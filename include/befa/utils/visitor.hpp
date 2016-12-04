@@ -23,7 +23,7 @@ struct VisitableImpl;
 template<typename T>
 struct VisitorBase<T> {
   /** visits base instruction (no fucking way) */
-  virtual void visit(const T *) = 0;
+  virtual void visit(const T *) { }
 };
 
 
@@ -34,7 +34,7 @@ struct VisitorBase<T, Ts...> : public VisitorBase<Ts...> {
   using VisitorBase<Ts...>::visit;
 
   /** visits base instruction (no fucking way) */
-  virtual void visit(const T *) = 0;
+  virtual void visit(const T *) { }
 };
 
 

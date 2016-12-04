@@ -10,7 +10,7 @@
 
 #include "../utils/algorithms.hpp"
 #include "../utils/byte_array_view.hpp"
-#include "instruction_decoder.hpp"
+#include "asm_arg_parser.hpp"
 
 namespace befa {
 static const ::pcrecpp::RE parse_regex = std::string(
@@ -33,7 +33,7 @@ inline std::vector<std::string> match(
 
 template<typename BasicBlockT>
 struct Instruction
-    : public instruction_decoder {
+    : public asm_arg_parser {
   using basic_block = BasicBlockT;
   using basic_block_weak = std::weak_ptr<basic_block>;
   using basic_block_ptr = std::shared_ptr<basic_block>;
