@@ -67,7 +67,7 @@ TEST(DecoderTest, TestDereference) {
   NonPreparsedInstruction simple_instr("mov DWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
-  TestVisitor visitor("<DWORD>*(_eax*0x8+0x666)");
+  TestVisitor visitor("*(_eax*0x8+0x666)");
   args[0]->accept(visitor);
   visitor.param_name = "_ebx";
   args[1]->accept(visitor);
@@ -77,7 +77,7 @@ TEST(DecoderTest, TestXMM) {
   NonPreparsedInstruction simple_instr("mov XMMWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
-  TestVisitor visitor("<XMMWORD>*(_eax*0x8+0x666)");
+  TestVisitor visitor("*(_eax*0x8+0x666)");
   args[0]->accept(visitor);
   visitor.param_name = "_ebx";
   args[1]->accept(visitor);
@@ -98,7 +98,7 @@ struct DummySymbol : public ExecutableFile::symbol_type  {
     return "number_of_the_beast";
   }
 
-  std::shared_ptr<befa::Section> null_section = nullptr;
+  std::shared_ptr<befa::Section> null_section = std::make_shared<befa::Section>(nullptr);
 };
 
 TEST(DecoderTest, TestFunctionFeed) {
@@ -116,10 +116,4 @@ TEST(DecoderTest, TestFunctionFeed) {
   TestVisitor visitor("@number_of_the_beast");
   args[0]->accept(visitor);
 }
-
-TEST(InstructionUnittest, CallTest) {
-  NonPreparsedInstruction simple_instr("call    0x666");
-
-}
-
 }

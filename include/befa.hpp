@@ -64,6 +64,7 @@ class ExecutableFile : private disassembler_impl {
   using symbol_type = befa::Symbol<section_type>;
   using basic_block_type = befa::BasicBlock<symbol_type>;
   using instruction_type = befa::Instruction<basic_block_type>;
+  using symbol_map_type = instruction_type::symbol_map;
 
   /**
    * Opens a file to be disassebled (creates instance of this)

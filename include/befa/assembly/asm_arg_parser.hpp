@@ -366,8 +366,8 @@ struct Register
 struct Function
     : public Visitable<Function>,
       public Symbol {
-  using function_type = befa::Symbol<befa::Section>;
-  using function_ptr = std::shared_ptr<befa::Symbol<befa::Section>>;
+  using function_type = befa::Symbol<befa::Section> ;
+  using function_ptr = std::shared_ptr<function_type>;
 
   Function(const function_ptr &callee) : callee(callee) {}
 

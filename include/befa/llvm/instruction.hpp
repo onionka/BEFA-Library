@@ -30,9 +30,7 @@ namespace llvm {
   using vi = details::visitable_traits<__VA_ARGS__>::visitable_impl<DerivedT>; \
   using vb = details::visitable_traits<__VA_ARGS__>::visitable_base; \
   using vrb = details::visitable_traits<__VA_ARGS__>::visitor_base; \
-  namespace details { template<typename ...Is> \
-      struct fs : llvm::factories::Factory<Is>... {}; }\
-  struct insf : public details::fs<__VA_ARGS__> { };
+  struct insf : public llvm::factories::details::fs<__VA_ARGS__> { };
 
 namespace factories {
 /**
@@ -42,10 +40,52 @@ template<typename /*T*/>
 struct Factory {
 // No need for virtual method, specialization will do the trick
 //  Requirements:
-//  "virtual" std::shared_ptr<T> create(
-//      const std::vector<std::string> &input
+//  "virtual" shared_ptr<T> create(
+//      const vector<string> &input
 //  ) = 0;
+//  "virtual" vector<shared_ptr<T>> collect() = 0;
 };
+
+namespace details {
+/**
+ * Nasty hack to achieve partial, class, non-variable specialization
+ */
+template<typename ...>
+struct parameter_tag {};
+
+template<typename ...Is>
+struct fs : Factory<Is> ... {
+
+  using instruction_base_vector =
+      std::vector<std::shared_ptr<::VisitableBase<Is...>>>;
+
+  instruction_base_vector collect() {
+    instruction_base_vector result;
+    collect<Is...>(result, parameter_tag<Is...>());
+    return result;
+  }
+
+ private:
+  template<typename T, typename ...Ts>
+  instruction_base_vector collect
+      (instruction_base_vector &result,
+       parameter_tag<T, Ts...> &&) {
+    auto collected = Factory<T>::collect();
+    result.insert(result.end(), collected.begin(), collected.end());
+    return collect(result, parameter_tag<Ts...>());
+  }
+
+  /**
+   * Stop iteration
+   */
+  instruction_base_vector collect
+      (instruction_base_vector &result,
+       parameter_tag<> &&) {
+    return result;
+  }
+
+};
+}  // namespace details
 }  // namespace factories
 
 /** Predeclaration */
@@ -91,10 +131,18 @@ namespace mappers {
  * @tparam I type of instruction
  */
 struct InstructionMapperBase {
-  InstructionMapperBase(InstructionFactory &factory);
+  using visitable_type = std::shared_ptr<symbol_table::VisitableBase>;
+  using symbol_table_type = ExecutableFile::symbol_map_type;
+
+  InstructionMapperBase(
+      InstructionFactory &factory,
+      const symbol_table_type &sym_table
+  );
  protected:
   InstructionFactory &factory;
+  const symbol_table_type &symbol_table;
 };
+
 /**
  * Specializing this, instruction mapper will autoregister
  *
@@ -111,13 +159,24 @@ struct CallInstruction;
 /* TODO: */
 // ~~~~~ Instruction declarations ~~~~~
 
+#define LLVM_VISIT_ALL(visitable) \
+    VISIT_(llvm::CallInstruction, visit_##visitable) \
+    template<typename T> void visit_##visitable(const T *visitable)
+
 namespace factories {
 template<>
 struct Factory<CallInstruction> {
-  std::shared_ptr<CallInstruction> create(
+  std::shared_ptr<CallInstruction> &create(
       std::weak_ptr<ExecutableFile::symbol_type> target,
       const ExecutableFile::instruction_type &parent
   );
+
+  std::vector<std::shared_ptr<CallInstruction>> collect() {
+    return {instruction};
+  }
+
+ private:
+  std::shared_ptr<CallInstruction> instruction;
 };
 }  // namespace factories
 
@@ -143,8 +202,9 @@ template<>
 struct InstructionMapper<CallInstruction>
     : public InstructionMapperBase {
   InstructionMapper(
-      InstructionFactory &factory
-  ) : InstructionMapperBase(factory) {}
+      InstructionFactory &factory,
+      const ExecutableFile::symbol_map_type &sym_table = {}
+  ) : InstructionMapperBase(factory, sym_table) {}
 
   void operator()(const ExecutableFile::instruction_type &i);
 
@@ -153,7 +213,7 @@ struct InstructionMapper<CallInstruction>
     ASM_VISIT_ALL(arg) {
       throw std::runtime_error(
           std::string("AddressCheck: Type: '") + typeid(arg).name() +
-              "' is not valid parameter for Call (expecting Immidiate)"
+              "' is not valid parameter for Call (expecting Function)"
       );
     }
   };

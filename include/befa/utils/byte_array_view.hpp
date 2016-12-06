@@ -16,6 +16,11 @@ struct array_view {
   typedef item_type *const_pointer;
   typedef item_type &reference;
   typedef item_type &const_reference;
+  typedef std::vector<item_type> vector_type;
+
+  // cons
+  array_view(vector_type vector) throw()
+      : _p(vector.data()), _s((size_type) vector.size()) {}
 
   // cons
   array_view(const_pointer ptr, size_type size) throw()

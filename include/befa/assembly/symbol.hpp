@@ -15,7 +15,7 @@ struct Symbol {
    * Copy bfd information (so we bind lifetime to this object)
    * @param origin
    */
-  Symbol(const asymbol *origin, const std::weak_ptr<SectionT> &parent) : origin(
+  Symbol(const asymbol *origin, const std::shared_ptr<SectionT> &parent) : origin(
       origin), parent(parent) {}
 
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
@@ -67,7 +67,7 @@ struct Symbol {
 
   const std::weak_ptr<SectionT> &getParent() const { return parent; }
 
-  bfd_vma getAddress() const { return bfd_asymbol_value(origin); }
+  virtual bfd_vma getAddress() const { return bfd_asymbol_value(origin); }
 
   bfd_vma getDistance(const std::weak_ptr<Symbol> &rhs) const {
     return ptr_lock(rhs)->getAddress() - getAddress();
