@@ -212,6 +212,23 @@ std::vector<std::weak_ptr<ExecutableFile::section_type>> ExecutableFile::getSect
   return map(section_buffer,
              [](auto &shared_s) { return std::weak_ptr<section_type>(shared_s); });
 }
+
+std::map<
+    bfd_vma, std::shared_ptr<symbol_table::VisitableBase>
+> ExecutableFile::generate_table() {
+  std::map<bfd_vma, std::shared_ptr<symbol_table::VisitableBase>> result;
+  for (auto &symbol : getSymbolTable()) {
+    auto symbol_l = ptr_lock(symbol);
+    result.insert(std::make_pair<
+        bfd_vma,
+        std::shared_ptr<symbol_table::VisitableBase>
+    >(
+        symbol_l->getAddress(),
+        std::make_shared<symbol_table::Function>(symbol_l)
+    ));
+  }
+  return result;
+}
 // ~~~~~~~~~~~ ExecutableFile implementation ~~~~~~~~~~~
 
 // ~~~~~~~~~~~ disassembler_impl implementation ~~~~~~~~~~~
@@ -307,11 +324,11 @@ std::vector<asymbol *> &disassembler_impl::fetchSymbolTable() {
   /*
   for (auto sec_ptr = _fd->sections; sec_ptr != NULL; sec_ptr = sec_ptr->next)
     if (sec_ptr->symbol != nullptr)
-      symbol_table.push_back(sec_ptr->symbol);
+      symbol.push_back(sec_ptr->symbol);
       */
 
   // Needs to be sorted by address
-  //  ::std::sort(symbol_table.begin(), symbol_table.end(),
+  //  ::std::sort(symbol.begin(), symbol.end(),
   //              [](const asymbol *_1, const asymbol *_2) -> bool {
   //                return _1->value < _2->value;
   //              });

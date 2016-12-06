@@ -5,6 +5,22 @@
 #ifndef BEFA_VISITOR_HPP
 #define BEFA_VISITOR_HPP
 
+/**
+ * Implements visit method for certain type of visitable
+ *
+ * @param type is derivation from VisitableBase
+ * @param visitable is name of variable passed to you
+ */
+#define IMPLEMENT_VISIT(type, visitable) \
+    void visit(const type *visitable) override
+
+/**
+ * @param type is type of visitable you are wanna to visit
+ * @param visit_impl is method that will be called
+ */
+#define VISIT_(type, visit_impl) \
+    IMPLEMENT_VISIT(type, visitable) \
+      { visit_impl(visitable); } \
 
 // ~~~~~ Declarations ~~~~~
 template<typename ...Ts>
@@ -54,6 +70,11 @@ struct VisitableImpl : public VisitableBase<Ts...> {
     visitor.visit(static_cast<const Derived *>(this));
   }
 };
+
+template<typename Visitable, typename Visitor>
+void invoke_accept(Visitable &&visitable, Visitor &&visitor) {
+  visitable->accept(visitor);
+}
 
 namespace details {
 template<typename ...VisitablesT>

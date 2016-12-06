@@ -130,6 +130,15 @@ class ExecutableFile : private disassembler_impl {
   void runDisassembler();
 
   /**
+   * Feed this into getArgs, so it will know where (ie. call) want's to jump
+   *
+   * @return table of name of symbol and its visitable
+   */
+  std::map<
+      bfd_vma, std::shared_ptr<symbol_table::VisitableBase>
+  > generate_table();
+
+  /**
    *
    * @return
    */

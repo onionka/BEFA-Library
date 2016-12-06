@@ -11,6 +11,7 @@
 #include <regex>
 
 #include "../utils/visitor.hpp"
+#include "../utils/bucket_allocator.hpp"
 #include "section.hpp"
 #include "symbol.hpp"
 
@@ -19,12 +20,30 @@ namespace symbol_table {
  * Types of symbols
  */
 namespace types {
-using BIT = int8_t;
+struct BIT { uint8_t val:1; };
 using BYTE = uint8_t;
 using WORD = uint16_t;
 using DWORD = uint32_t;
 using QWORD = uint64_t;
 struct XMM { QWORD lower:64, higher:64; };
+
+// ~~~~~ NOT IMPLEMENTED TYPES ~~~~~
+struct YMM { XMM lower, higher; };
+struct ZMM { YMM lower, higher; };
+// ~~~~~ NOT IMPLEMENTED TYPES ~~~~~
+
+/**
+ * list of known data types
+ */
+#define ASM_KNOWN_TYPES \
+    symbol_table::types::BIT, \
+    symbol_table::types::BYTE, \
+    symbol_table::types::WORD, \
+    symbol_table::types::DWORD, \
+    symbol_table::types::QWORD, \
+    symbol_table::types::XMM, \
+    symbol_table::types::YMM, \
+    symbol_table::types::ZMM
 
 /**
  * @return size of type, but in bits, not bytes
@@ -43,7 +62,8 @@ struct type_trait {};
 template<>
 struct type_trait<BIT> {
   STATIC_CONST const char *name = "BIT";
-  STATIC_CONST size_t size = 1/*bit_sizeof(BIT)*/;
+  /** note that you cannot have (in c++) variable with size 1bit */
+  STATIC_CONST size_t size = 1 /*bit_sizeof(BIT)*/;
 };
 template<>
 struct type_trait<BYTE> {
@@ -70,10 +90,21 @@ struct type_trait<XMM> {
   STATIC_CONST const char *name = "XMMWORD";
   STATIC_CONST size_t size = bit_sizeof(XMM);
 };
+template<>
+struct type_trait<YMM> {
+  STATIC_CONST const char *name = "YMMWORD";
+  STATIC_CONST size_t size = bit_sizeof(YMM);
+};
+template<>
+struct type_trait<ZMM> {
+  STATIC_CONST const char *name = "ZMMWORD";
+  STATIC_CONST size_t size = bit_sizeof(ZMM);
+};
 
 #undef STATIC_CONST
 }  // namespace types
 
+// ~~~~~ Declaration of Visitables ~~~~~
 struct Symbol;
 
 struct Temporary;
@@ -87,9 +118,13 @@ struct Register;
 struct Function;
 
 struct Immidiate;
+// ~~~~~ Declaration of Visitables ~~~~~
 
 namespace details {
-#define VISITABLE_LIST \
+/**
+ * List of all visitable classes
+ */
+#define ASM_VISITABLE_LIST \
     Temporary, Function, Immidiate, \
     Register<types::BIT>, Register<types::BYTE>, Register<types::WORD>, \
     Register<types::DWORD>, Register<types::QWORD>, Register<types::XMM>, \
@@ -97,52 +132,95 @@ namespace details {
     SizedTemporary<types::DWORD>, SizedTemporary<types::QWORD>, \
     SizedTemporary<types::XMM>
 
-#define IMPLEMENT_VISIT(type, visitable) \
-    void visit(const type *visitable)
+/**
+ * Visit all registers
+ *
+ * @param visitable is name of parameter passed to you
+ */
+#define ASM_VISIT_REGISTERS(visitable) \
+    VISIT_( \
+      symbol_table::Register<symbol_table::types::BIT>, \
+      __visit_##visitable##_impl_registers \
+    ) \
+    VISIT_( \
+      symbol_table::Register<symbol_table::types::BYTE>, \
+      __visit_##visitable##_impl_registers \
+    ) \
+    VISIT_( \
+      symbol_table::Register<symbol_table::types::WORD>, \
+      __visit_##visitable##_impl_registers \
+    ) \
+    VISIT_( \
+      symbol_table::Register<symbol_table::types::DWORD>, \
+      __visit_##visitable##_impl_registers \
+    ) \
+    VISIT_( \
+      symbol_table::Register<symbol_table::types::QWORD>, \
+      __visit_##visitable##_impl_registers \
+    ) \
+    VISIT_( \
+      symbol_table::Register<symbol_table::types::XMM>, \
+      __visit_##visitable##_impl_registers \
+    ) \
+    private: template<typename T> \
+      void __visit_##visitable##_impl_registers(const T *visitable)
 
-#define VISIT_ALL(visitable) \
-    IMPLEMENT_VISIT(symbol_table::Temporary, visitable) \
-      { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT(symbol_table::Function, visitable) \
-      { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT(symbol_table::Immidiate, visitable) \
-      { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::Register<symbol_table::types::BIT>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::Register<symbol_table::types::BYTE>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::Register<symbol_table::types::WORD>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::Register<symbol_table::types::DWORD>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::Register<symbol_table::types::QWORD>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::Register<symbol_table::types::XMM>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::SizedTemporary<symbol_table::types::BYTE>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::SizedTemporary<symbol_table::types::WORD>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::SizedTemporary<symbol_table::types::DWORD>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::SizedTemporary<symbol_table::types::QWORD>, visitable \
-    ) { __visit_impl(visitable); } \
-    IMPLEMENT_VISIT( \
-      symbol_table::SizedTemporary<symbol_table::types::XMM>, visitable \
-    ) { __visit_impl(visitable); } \
+/**
+ *
+ */
+#define ASM_VISIT_SIZED_TEMPORARIES(visitable) \
+    VISIT_( \
+      symbol_table::SizedTemporary<symbol_table::types::BYTE>, \
+      __visit_##visitable##_impl_sized_temp \
+    ) \
+    VISIT_( \
+      symbol_table::SizedTemporary<symbol_table::types::WORD>, \
+      __visit_##visitable##_impl_sized_temp \
+    ) \
+    VISIT_( \
+      symbol_table::SizedTemporary<symbol_table::types::DWORD>, \
+      __visit_##visitable##_impl_sized_temp \
+    ) \
+    VISIT_( \
+      symbol_table::SizedTemporary<symbol_table::types::QWORD>, \
+      __visit_##visitable##_impl_sized_temp \
+    ) \
+    VISIT_( \
+      symbol_table::SizedTemporary<symbol_table::types::XMM>, \
+      __visit_##visitable##_impl_sized_temp \
+    ) \
+    private: template<typename T> \
+      void __visit_##visitable##_impl_sized_temp(const T *visitable)
+
+/**
+ * Implements all methods to visit temporaries into one
+ *
+ * @param visitable is name of parameter passed to you
+ */
+#define ASM_VISIT_TEMPORARIES(visitable) \
+    VISIT_( \
+      symbol_table::Temporary, \
+      __visit_##visitable##_impl_temp \
+    ) \
+    ASM_VISIT_SIZED_TEMPORARIES(visitable) { \
+      __visit_##visitable##_impl_temp(visitable); \
+    } \
+    private: template<typename T> \
+      void __visit_##visitable##_impl_temp(const T *visitable)
+
+/**
+ * Implements all visits in one
+ *
+ * @param visitable is with template type T
+ */
+#define ASM_VISIT_ALL(visitable) \
+    VISIT_(symbol_table::Function, __visit_impl) \
+    VISIT_(symbol_table::Immidiate, __visit_impl) \
+    ASM_VISIT_REGISTERS(visitable) { __visit_impl(visitable); } \
+    ASM_VISIT_TEMPORARIES(visitable) { __visit_impl(visitable); } \
     private: template<typename T> void __visit_impl(const T *visitable)
 
-using visitor_traits = ::details::visitable_traits<VISITABLE_LIST>;
+using visitor_traits = ::details::visitable_traits<ASM_VISITABLE_LIST >;
 
 }
 template<typename DerivedT>
@@ -150,6 +228,9 @@ using Visitable = details::visitor_traits::visitable_impl<DerivedT>;
 using VisitableBase = details::visitor_traits::visitable_base;
 using VisitorBase = details::visitor_traits::visitor_base;
 
+/**
+ * Base class for all Symbols
+ */
 struct Symbol {
   using symbol_ptr = std::shared_ptr<VisitableBase>;
   using temporary_ptr = std::shared_ptr<VisitableBase>;
@@ -157,40 +238,17 @@ struct Symbol {
   /**
    * @return name of this symbol (like eax or ebp)
    */
-  virtual std::string getName() const = 0;
-
-  /**
-   * Creates Temporary based on operation (like add or substract)
-   *
-   * @param lhs
-   * @param op
-   * @param rhs
-   * @return
-   */
-  static temporary_ptr perform_operation(
-      symbol_ptr lhs,
-      std::string op,
-      symbol_ptr rhs
-  );
-
-  /**
-   * Creates Temporary based on unary operation
-   *
-   * @param lhs
-   * @param op
-   * @param rhs
-   * @return
-   */
-  static temporary_ptr perform_operation(
-      std::string op,
-      symbol_ptr rhs
-  );
+  // std::string getName() const = 0;
 };
 
 /**
  * Static symbols in symbol table
  */
 extern const std::map<std::string, VisitableBase *> registers;
+
+/**
+ * Deleter for static registers
+ */
 constexpr auto register_deleter = [](const VisitableBase *) throw() {};
 
 /**
@@ -199,8 +257,10 @@ constexpr auto register_deleter = [](const VisitableBase *) throw() {};
  * @tparam SizeT
  */
 template<typename SizeT>
-struct SizedSymbol {
+struct SizedSymbol : private types::type_trait<SizeT> {
   using size_trait = types::type_trait<SizeT>;
+  const std::string type_name = types::type_trait<SizeT>::name;
+  const size_t type_size = types::type_trait<SizeT>::size;
 };
 
 /**
@@ -224,26 +284,13 @@ struct Temporary
 
   const symbol_ptr &getRight() const { return rhs; }
 
-  std::string getName() const override {
-    NameVisitor name_visitor;
-    std::string lhs_name, rhs_name;
-    name_visitor.bind(&lhs_name);
-    if (getLeft())
-      getLeft()->accept(name_visitor);
-    else
-      lhs_name = "";
+  /**
+   * When 'lhs' is not bound, this is unary operator
+   * @return
+   */
+  bool isUnary() const { return !(bool) getLeft(); }
 
-    name_visitor.bind(&rhs_name);
-    if (getRight())
-      getRight()->accept(name_visitor);
-    else
-      rhs_name = "";
-
-    // if it is unary () should be used
-    if (lhs_name == "")
-      rhs_name = "(" + rhs_name + ")";
-    return lhs_name + getOperator() + rhs_name;
-  }
+  std::string getName() const;
   // ~~~~~ Getters ~~~~~
 
  private:
@@ -253,7 +300,7 @@ struct Temporary
       this->output = output;
     }
 
-    VISIT_ALL(sym) {
+    ASM_VISIT_ALL(sym) {
       assert(output && "output cannot be null");
       if (sym) *output = sym->getName();
     }
@@ -273,7 +320,8 @@ struct Temporary
  */
 template<typename SizeT>
 struct SizedTemporary
-    : public Temporary, public SizedSymbol<SizeT> {
+    : public Temporary,
+      public SizedSymbol<SizeT> {
   SizedTemporary(
       const symbol_ptr &lhs,
       const std::string &op,
@@ -284,6 +332,11 @@ struct SizedTemporary
       const std::string &op,
       const symbol_ptr &rhs
   ) : Temporary(op, rhs) {}
+
+  std::string getName() const {
+    return "<" + std::string(SizedSymbol<SizeT>::size_trait::name) + ">"
+        + Temporary::getName();
+  }
 };
 
 /**
@@ -297,10 +350,12 @@ struct SizedTemporary
 template<typename size>
 struct Register
     : public Visitable<Register<size>>,
-      public Symbol {
-  static constexpr size_t bit_size = bit_sizeof(size);
+      public Symbol,
+      public SizedSymbol<size> {
   constexpr Register(std::string name) : name(name) {}
-  std::string getName() const override { return name; }
+
+  std::string getName() const { return name; }
+
  private:
   std::string name;
 };
@@ -311,14 +366,14 @@ struct Register
 struct Function
     : public Visitable<Function>,
       public Symbol {
-  using function_ptr = befa::Symbol<befa::Section>;
+  using function_type = befa::Symbol<befa::Section>;
+  using function_ptr = std::shared_ptr<befa::Symbol<befa::Section>>;
 
-  Function(const function_ptr &callee)
-      : callee(callee) {}
+  Function(const function_ptr &callee) : callee(callee) {}
 
-  std::string getName() const override {
-    return "@" + callee.getName() + "()";
-  }
+  std::string getName() const { return "@" + callee->getName(); }
+
+  function_ptr getCallee() const { return callee; }
 
  private:
   function_ptr callee;
@@ -330,247 +385,84 @@ struct Function
 struct Immidiate
     : public Visitable<Immidiate>,
       public Symbol {
-  Immidiate(std::string value)
-      : value(std::move(value)) {}
+  Immidiate(std::string value) : value(std::move(value)) {}
 
-  std::string getName() const override {
-    return value;
-  }
+  std::string getName() const { return value; }
 
   /**
    * @return value of this immidiate
    */
-  const std::string &getValue() const {
-    return value;
-  }
+  const std::string &getValue() const { return value; }
  private:
   std::string value;
 };
 }
 
-// ~~~~~ Standard Hash and EqualTo overloads for Symbol ~~~~~
-namespace std {
-/**
- * Our hash for symbols
- */
-template<>
-struct hash<std::shared_ptr<symbol_table::Symbol>> {
-  size_t operator()(const std::shared_ptr<symbol_table::Symbol> &s) const {
-    return std::hash<std::string>()(s->getName());
-  }
-};
-
-template<>
-struct equal_to<std::shared_ptr<symbol_table::Symbol>>
-    : public binary_function<
-        std::shared_ptr<symbol_table::Symbol>,
-        std::shared_ptr<symbol_table::Symbol>,
-        bool> {
-  bool operator()(
-      const std::shared_ptr<symbol_table::Symbol> &__x,
-      const std::shared_ptr<symbol_table::Symbol> &__y
-  ) const { return __x->getName() == __y->getName(); }
-};
-}  // namespace std
-// ~~~~~ Standard Hash and EqualTo overloads for Symbol ~~~~~
-
-struct SymbolTable {
-  using symbol_ptr = std::shared_ptr<symbol_table::Symbol>;
-  using symbol_table_type = std::unordered_set<symbol_ptr>;
-
-  /**
-   * Inserts symbol into the table
-   *
-   * @param sym symbol shared pointer
-   */
-  void addSymbol(const symbol_ptr &sym) {
-    assert(table.find(sym) != table.cend() && "symbol already exists");
-    table.insert(sym);
-  }
-
-  /**
-   * Find symbol in symbol table by its name
-   * @param name
-   * @return
-   */
-  symbol_ptr find(const std::string &name) {
-    auto sym_ite = std::find_if(
-        table.cbegin(), table.cend(),
-        [&name](const symbol_ptr &sym) {
-          return sym->getName() == name;
-        }
-    );
-    if (sym_ite != table.cend()) return *sym_ite;
-    else return nullptr;
-  }
-
-  /**
-   * @return table of symbols
-   */
-  const symbol_table_type &getTable() const {
-    return table;
-  }
-
- private:
-  symbol_table_type table;
-};
-
 struct asm_arg_parser {
   using instruction_pieces = std::vector<std::string>;
   using symbol_ptr = std::shared_ptr<symbol_table::VisitableBase>;
+  using symbol_map = std::map<bfd_vma, symbol_ptr>;
 
-  std::vector<symbol_ptr> getArgs() {
-    instruction_pieces arr = parse();
-    assert(!arr.empty() && "instruction pieces cannot be empty");
-    std::string name = arr[0];
-    std::vector<symbol_ptr> params;
+  /**
+   * Arguments are Immidiate, Expressions, Registers, ...
+   *
+   * @return vector of parameters
+   */
+  std::vector<symbol_ptr> getArgs(
+      const symbol_map &functions = {}
+  ) const throw(std::runtime_error);
 
-    for (auto ite = arr.begin() + 1,
-             end = arr.end();
-         ite != end;
-         ++ite) {
-      if (auto expr = handle_expression(*ite)) {
-        params.emplace_back(std::move(expr));
-      } else {
-        name += " " + *ite;
-      }
-    }
-    // so we could know which params were not parsed
-    name = "(" + name + ")";
-    return std::move(params);
-  }
-
+  /**
+   * Expects to return piecies of decoded instruction
+   *
+   * @return mov eax,ebx -> ["mov", "eax", "ebx"]
+   */
   virtual instruction_pieces parse() const = 0;
 
  private:
 
-  struct VarVisitor : public symbol_table::VisitorBase {
-#define DEFINE_REG_VISITOR(size) \
-    void visit(const symbol_table::Register<size> *reg) { \
-      printf("%s with size %lu\n", reg->getName().c_str(), reg->bit_size); \
-    }
-
-    DEFINE_REG_VISITOR(symbol_table::types::BIT)
-    DEFINE_REG_VISITOR(symbol_table::types::BYTE)
-    DEFINE_REG_VISITOR(symbol_table::types::WORD)
-    DEFINE_REG_VISITOR(symbol_table::types::DWORD)
-    DEFINE_REG_VISITOR(symbol_table::types::QWORD)
-
-#undef DEFINE_REG_VISITOR
-  };
-
   /**
    * This just parses argument, then returns newly created Symbol
+   *
    * @param expr
-   * @return
+   * @return Symbol as VisitableBase object
    */
   std::shared_ptr<symbol_table::VisitableBase> handle_expression(
-      std::string expr
-  ) {
-    { // if (possible) parameter is register
-      auto reg_symbol = symbol_table::registers.find(expr);
-      if (reg_symbol != symbol_table::registers.end()) {
-//      auto visitor = VarVisitor();
-//      params.back()->accept(visitor);
-        return std::shared_ptr<symbol_table::VisitableBase>(
-            reg_symbol->second, symbol_table::register_deleter
-        );
-      }
-    }
+      std::string expr, const symbol_map &functions = {}
+  ) const throw(std::runtime_error);
 
-    { // is it value?
-      std::smatch result;
-      std::regex regex("0x0*([0-9a-fA-F]+)");
-      if (std::regex_match(expr, result, regex)) {
-        return create_imm(result.str(1));
-      }
-    }
-
-    { // is it non hex value?
-      std::smatch result;
-      std::regex regex("([0-9]+)");
-      if (std::regex_match(expr, result, regex)) {
-        return create_imm(result.str(1));
-      }
-    }
-
-    { // it is dereference?
-      std::smatch result;
-      std::regex regex(
-          "(XMMWORD|BYTE|WORD|DWORD|QWORD) PTR (?:\\w+:)?\\[(.*)\\]"
-      );
-      // dereference
-      if (std::regex_match(expr, result, regex)) {
-        return create_dereference(
-            result.str(1), result.str(2)
-        );
-      }
-    }
-
-    { // is it operation?
-      std::smatch result;
-      std::regex regex("(.+)(\\*|\\+|\\-)(.+)");
-      if (std::regex_match(expr, result, regex)) {
-        return create_operation(result.str(1), result.str(2), result.str(3));
-      }
-    }
-
-    return nullptr;
-  }
-
+  /**
+   * creates immidiate variable
+   *
+   * @param value immidiate varaible's value
+   * @return Immidiate object
+   */
   std::shared_ptr<symbol_table::VisitableBase> create_imm(
       std::string value
-  ) {
-    return std::make_shared<symbol_table::Immidiate>(value);
-  }
+  ) const throw();
 
+  /**
+   * Creates Temporary object
+   *
+   * @param lhs left hand size expression
+   * @param op operation between lsh and rhs
+   * @param rhs right hand size expression
+   * @return newly created Temporary object with parsed expression
+   */
   std::shared_ptr<symbol_table::VisitableBase> create_operation(
-      std::string lhs,
-      std::string op,
-      std::string rhs
-  ) {
-    if (auto lhs_expr = handle_expression(lhs))
-      if (auto rhs_expr = handle_expression(rhs))
-        return std::make_shared<symbol_table::Temporary>(
-            lhs_expr, op, rhs_expr
-        );
-    throw std::runtime_error(
-        "'" + lhs + op + rhs + "' expression not implemented"
-    );
-  }
+      std::string lhs, std::string op, std::string rhs
+  ) const throw(std::runtime_error);
 
+  /**
+   * Parses expressions like DWORD PTR [<expr>]
+   *
+   * @param size is size type (DWORD|BYTE|...)
+   * @param expr is <expr> that will be parsed later
+   * @return newly created SizedTemporary
+   */
   std::shared_ptr<symbol_table::VisitableBase> create_dereference(
       std::string size, std::string expr
-  ) {
-    using namespace symbol_table::types;
-
-    using temp_byte = symbol_table::SizedTemporary<BYTE>;
-    using temp_word = symbol_table::SizedTemporary<WORD>;
-    using temp_dword = symbol_table::SizedTemporary<DWORD>;
-    using temp_qword = symbol_table::SizedTemporary<QWORD>;
-    using temp_xmm = symbol_table::SizedTemporary<XMM>;
-
-#define IMPLEMENT_TYPE_HANDLER(type) do {\
-  if (size == type::size_trait::name) { \
-    if (auto rhs = handle_expression(expr)) \
-      return std::make_shared<type>("*", rhs); \
-    else {}\
-      /*throw std::runtime_error(expr + " not implemented"); */\
-  } \
-} while (false)
-
-    IMPLEMENT_TYPE_HANDLER(temp_byte);
-    IMPLEMENT_TYPE_HANDLER(temp_word);
-    IMPLEMENT_TYPE_HANDLER(temp_dword);
-    IMPLEMENT_TYPE_HANDLER(temp_qword);
-    IMPLEMENT_TYPE_HANDLER(temp_xmm);
-
-#undef IMPLEMENT_TYPE_HANDLER
-
-    throw std::runtime_error(
-        "unknown type of parameter SIZE: " + size + " EXPR: " + expr);
-  }
-
+  ) const throw(std::runtime_error);
 };
 
 #endif //BEFA_INSTRUCTION_DECODER_HPP

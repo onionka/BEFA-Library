@@ -15,6 +15,8 @@
 #include <cassert>
 #include <type_traits>
 
+#include "bucket_allocator.hpp"
+
 template<typename>
 struct Observable;
 

@@ -2,8 +2,10 @@
 // Created by miro on 11/10/16.
 //
 
+#include "../../include/befa/llvm/instruction.hpp"
+#include "../../include/befa/llvm/unary.hpp"
 #include "../../include/befa.hpp"
-#include "../../include/befa/llvm/decompiler.hpp"
+
 
 void ExecutableFile::runDecompiler() {
   disassembly().subscribe([](instruction_type i) {
@@ -12,3 +14,39 @@ void ExecutableFile::runDecompiler() {
 
   runDisassembler();
 }
+
+namespace llvm {
+
+namespace factories {
+
+std::shared_ptr<CallInstruction> Factory<CallInstruction>::create(
+    std::weak_ptr<ExecutableFile::symbol_type> target,
+    const ExecutableFile::instruction_type &parent
+) { return std::make_shared<CallInstruction>(target, parent); }
+}  // namespace factories
+
+
+namespace mappers {
+InstructionMapperBase::InstructionMapperBase(
+    InstructionFactory &factory
+) : factory(factory) {}
+
+
+void InstructionMapper<CallInstruction>::operator()
+    (const ExecutableFile::instruction_type &i) {
+  auto parsed_i = i.parse();
+  std::vector<std::shared_ptr<symbol_table::VisitableBase>> args;
+  if (parsed_i[0] == "call" && (args = i.getArgs()).size() == 1) {
+    std::weak_ptr<symbol_table::Function::function_type> call_target;
+    invoke_accept(args[0], FunctionVisitor(call_target));
+    factory.create(
+        call_target, i
+    );
+  }
+}
+}  // namespace mappers
+
+
+}  // namespace llvm
+
+

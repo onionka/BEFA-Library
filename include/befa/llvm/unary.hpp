@@ -5,66 +5,49 @@
 #ifndef BEFA_LLVM_UNARY_HPP
 #define BEFA_LLVM_UNARY_HPP
 
-#include "befa/utils/factory.hpp"
 #include "instruction.hpp"
-
+#include "mapper.hpp"
+#include "../../befa.hpp"
 
 namespace llvm {
 struct CallInstruction final
     : public VisitableImpl<CallInstruction>,
-      // traits
+        // traits
       Instruction {
-  using function_type = ExecutableFile::symbol_type;
+  using symbol_type = ExecutableFile::symbol_type;
+  using instruction_type = ExecutableFile::instruction_type;
+  using basic_block_type = ExecutableFile::basic_block_type;
 
-  CallInstruction() {}
+  CallInstruction(
+      std::weak_ptr<symbol_type> target,
+      const instruction_type &assembly
+  ) : target(target), assembly(assembly) {}
 
-  std::shared_ptr<function_type> getTarget() const {
+  std::shared_ptr<symbol_type> getTarget() const {
     return ptr_lock(target);
   }
 
-  string getSignature() const override {
+  const instruction_type &getAssembly() const /*override*/ {
+    return assembly;
+  }
+
+  std::shared_ptr<basic_block_type> getParent() const /*override*/ {
+    return getAssembly().getParent();
+  }
+
+  string getSignature() const /*override*/ {
     return "call @" + getTarget()->getName() + "()";
   }
 
-  bfd_vma getAddress() const override {
-    return address;
-  }
-
-  std::shared_ptr<BasicBlock> getBasicBlock() override {
-    return nullptr;
+  bfd_vma getAddress() const /*override*/ {
+    return getTarget()->getAddress();
   }
 
  private:
-  std::weak_ptr<function_type> target;
-  std::weak_ptr<BasicBlock> bb;
-  bfd_vma address;
+  std::weak_ptr<symbol_type> target;
+  instruction_type assembly;
 };
 
-
-template<>
-struct Factory<CallInstruction> final {
-  std::shared_ptr<CallInstruction> create(
-      const std::vector<std::string> &input
-  ) {
-    return std::make_shared<CallInstruction>();
-  }
-};
-
-template<>
-struct InstructionMapper<CallInstruction> final
-    : public InstructionMapperBase<CallInstruction> {
-  InstructionMapper(
-      InstructionFactory &factory,
-      LLVMBuilder &builder
-  ) : InstructionMapperBase(factory, builder) { }
-
-  void operator() (const ExecutableFile::instruction_type &i) {
-    auto parsed_i = i.parse();
-    if (parsed_i[0] == "call")
-      builder.send_instruction(factory.create(parsed_i));
-  }
-};
-
-}
+}  // namespace llvm
 
 #endif //BEFA_LLVM_UNARY_HPP

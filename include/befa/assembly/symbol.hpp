@@ -56,7 +56,7 @@ struct Symbol {
 
 
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
-  /**
+  virtual /**
    * Every symbol have a name
    */
   std::string getName() const { return getOrigin()->name; }

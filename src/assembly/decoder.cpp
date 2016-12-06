@@ -251,15 +251,172 @@ const std::map<std::string, VisitableBase *> registers{
     {"xmm7", CAST_TO_VISITABLE(reg_xmm7)},
 };
 
-Symbol::temporary_ptr Symbol::perform_operation(
-    Symbol::symbol_ptr lhs,
-    std::string op,
-    Symbol::symbol_ptr rhs
-) { return std::make_shared<Temporary>(lhs, op, rhs); }
+std::string Temporary::getName() const {
+  NameVisitor name_visitor;
+  std::string lhs_name, rhs_name;
 
-Symbol::temporary_ptr Symbol::perform_operation(
-    std::string op,
-    Symbol::symbol_ptr rhs
-) { return std::make_shared<Temporary>(op, rhs); }
+  name_visitor.bind(&lhs_name);
+  if (getLeft())
+    getLeft()->accept(name_visitor);
+  else
+    lhs_name = "";
 
-}  // namespace symbol_table
+  name_visitor.bind(&rhs_name);
+  if (getRight())
+    getRight()->accept(name_visitor);
+  else
+    rhs_name = "";
+
+  // if it is unary () should be used
+  if (lhs_name == "")
+    rhs_name = "(" + rhs_name + ")";
+  return lhs_name + getOperator() + rhs_name;
+}
+}  // namespace symbol
+
+std::vector<asm_arg_parser::symbol_ptr> asm_arg_parser::getArgs(
+    const asm_arg_parser::symbol_map &functions
+) const throw(std::runtime_error) {
+  instruction_pieces arr = parse();
+  assert(!arr.empty() && "instruction pieces cannot be empty");
+  std::string name = arr[0];
+  std::vector<symbol_ptr> params;
+
+  for (auto ite = arr.begin() + 1,
+           end = arr.end();
+       ite != end;
+       ++ite) {
+    if (auto expr = handle_expression(*ite, functions)) {
+      params.emplace_back(std::move(expr));
+    } else {
+      name += " " + *ite;
+    }
+  }
+  // so we could know which params were not parsed
+  name = "(" + name + ")";
+  return std::move(params);
+}
+
+std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_dereference
+    (std::string size, std::string expr) const throw(std::runtime_error) {
+  using namespace symbol_table::types;
+
+  using temp_byte = symbol_table::SizedTemporary<BYTE>;
+  using temp_word = symbol_table::SizedTemporary<WORD>;
+  using temp_dword = symbol_table::SizedTemporary<DWORD>;
+  using temp_qword = symbol_table::SizedTemporary<QWORD>;
+  using temp_xmm = symbol_table::SizedTemporary<XMM>;
+
+#define IMPLEMENT_TYPE_HANDLER(type) do { \
+  if (size == type::size_trait::name) { \
+    if (auto rhs = handle_expression(expr)) { \
+      return std::make_shared<type>("*", rhs); \
+    } \
+  } \
+} while (false)
+
+  IMPLEMENT_TYPE_HANDLER(temp_byte);
+  IMPLEMENT_TYPE_HANDLER(temp_word);
+  IMPLEMENT_TYPE_HANDLER(temp_dword);
+  IMPLEMENT_TYPE_HANDLER(temp_qword);
+  IMPLEMENT_TYPE_HANDLER(temp_xmm);
+
+#undef IMPLEMENT_TYPE_HANDLER
+
+  return nullptr;
+//  throw std::runtime_error(
+//      "unknown type of parameter SIZE: " + size + " EXPR: " + expr);
+}
+
+std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_operation
+    (std::string lhs, std::string op,
+     std::string rhs) const throw(std::runtime_error) {
+  if (auto lhs_expr = handle_expression(lhs))
+    if (auto rhs_expr = handle_expression(rhs))
+      return std::make_shared<symbol_table::Temporary>(
+          lhs_expr, op, rhs_expr
+      );
+  return nullptr;
+//  throw std::runtime_error(
+//      "'" + lhs + op + rhs + "' expression not implemented"
+//  );
+}
+
+std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_imm
+    (std::string value) const throw() {
+  return std::make_shared<symbol_table::Immidiate>(value);
+}
+
+static std::regex multiplication("(.+)(\\*)(.+)");
+static std::regex add_or_substract("(.+)(\\+|\\-)(.+)");
+static std::regex dereference(
+    "(XMMWORD|BYTE|WORD|DWORD|QWORD) PTR (?:\\w+:)?\\[(.*)\\]"
+);
+static std::regex number("((?:0x0*)?[0-9a-fA-F]+)");
+static std::regex address("(?:0x)?0*([0-9a-fA-F]+)");
+
+std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::handle_expression(
+    std::string expr,
+    const asm_arg_parser::symbol_map &functions
+) const throw(std::runtime_error) {
+  std::smatch result;
+
+  { // if (possible) parameter is function
+    if (std::regex_match(expr, result, address)) {
+      std::stringstream ss;
+      bfd_vma address;
+      // write hex number
+      ss << std::hex << result.str(1);
+      // read hex number into decimal unsigned integer
+      ss >> std::hex >> address;
+      // find function by address
+      auto func_symbol = functions.find(address);
+      if (func_symbol != functions.cend()) {
+        return func_symbol->second;
+      }
+    }
+  }
+
+  { // if (possible) parameter is register
+    auto reg_symbol = symbol_table::registers.find(expr);
+    if (reg_symbol != symbol_table::registers.end()) {
+      return std::shared_ptr<symbol_table::VisitableBase>(
+          reg_symbol->second, symbol_table::register_deleter
+      );
+    }
+  }
+
+  { // is it value?
+    if (std::regex_match(expr, result, number)) {
+      return create_imm(result.str(1));
+    }
+  }
+
+  // note the predcedence of operators:
+  //  1. dereference
+  //  2. multiplication
+  //  3. add/subtraction
+
+  { // it is dereference?
+    if (std::regex_match(expr, result, dereference)) {
+      return create_dereference(
+          result.str(1), result.str(2)
+      );
+    }
+  }
+
+  { // is it multiplication operation?
+    if (std::regex_match(expr, result, multiplication)) {
+      return create_operation(result.str(1), result.str(2), result.str(3));
+    }
+  }
+
+  { // is it add or subtract operation?
+    if (std::regex_match(expr, result, add_or_substract)) {
+      return create_operation(result.str(1), result.str(2), result.str(3));
+    }
+  }
+
+  return nullptr;
+}
+//
