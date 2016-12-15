@@ -3,7 +3,8 @@
 //
 
 #include "../../include/befa/llvm/instruction.hpp"
-#include "../../include/befa/llvm/unary.hpp"
+#include "../../include/befa/llvm/call.hpp"
+#include "../../include/befa/llvm/cmp.hpp"
 #include "../../include/befa.hpp"
 
 void ExecutableFile::runDecompiler() {
@@ -29,6 +30,7 @@ std::shared_ptr<CallInstruction> &Factory<CallInstruction>::create(
 
 
 namespace mappers {
+
 InstructionMapperBase::InstructionMapperBase(
     InstructionFactory &factory,
     const symbol_table_type &symbol_table
@@ -41,8 +43,14 @@ void InstructionMapper<CallInstruction>::operator()
   if (parsed_i[0] == "call" && (args = i.getArgs(symbol_table)).size() == 1) {
     std::weak_ptr<symbol_table::Function::function_type> call_target;
     invoke_accept(args[0], FunctionVisitor(call_target));
-    factory.create(call_target, i);
+    static_cast<factories::Factory<CallInstruction> &>
+    (factory).create(call_target, i);
   }
+}
+
+void InstructionMapper<ICmpInstruction>::operator()
+    (const ExecutableFile::instruction_type &i) {
+  // TODO: create instruction
 }
 }  // namespace mappers
 

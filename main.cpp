@@ -3,12 +3,10 @@
 #include <befa.hpp>
 
 
-std::string output;
-
 struct NonRegisterArgPrinter
     : public symbol_table::VisitorBase {
   ASM_VISIT_ALL(arg) {
-    output += arg->getName();
+    printf("%s", arg->getName().c_str());
   }
 };
 
@@ -17,40 +15,33 @@ struct TemporaryPrinter
   ASM_VISIT_TEMPORARIES(arg) {
     auto left = arg->getLeft();
     if (left) left->accept(*this);
-    output += arg->getOperator();
+    printf("%s", arg->getOperator().c_str());
     if (!left)
-      output += "(";
+      printf("(");
     arg->getRight()->accept(*this);
     if (!left)
-      output += ")";
+      printf(")");
   }
 };
 
 struct ArgPrinter
     : public TemporaryPrinter {
   ASM_VISIT_REGISTERS(arg) {
-    output += " <" + arg->type_name + ">(" + arg->getName() + ")";
+    printf(" <%s>%s ", arg->type_name.c_str(), arg->getName().c_str());
   }
 
   ASM_VISIT_SIZED_TEMPORARIES(arg) {
-    output += " <" + arg->type_name + ">";
+    printf(" <%s>", arg->type_name.c_str());
     auto left = arg->getLeft();
     if (left) left->accept(*this);
-    output += arg->getOperator();
+    printf("%s", arg->getOperator().c_str());
     if (!left)
-      output += "(";
+      printf("(");
     arg->getRight()->accept(*this);
     if (!left)
-      output += ")";
+      printf(")");
   }
 };
-
-template<typename I>
-std::string asHex(I integral) {
-  std::stringstream ss;
-  ss << std::hex << integral;
-  return ss.str();
-}
 
 int main(int argc, const char **argv) {
   assert(argc == 2 && "missing path parameter");
@@ -70,23 +61,25 @@ int main(int argc, const char **argv) {
         auto bb = basic_block.first;
         auto symbol = ptr_lock(bb->getParent());
         if (symbol->getName() != old_symbol) {
-          output += "Symbol " + symbol->getName() +
-              " <0x" + asHex(symbol->getAddress()) + ">:\n";
+          printf("Symbol %s <0x%08lx>:\n", symbol->getName().c_str(),
+                 symbol->getAddress());
           old_symbol = symbol->getName();
         }
-        output += "    BasicBlock #0x" + asHex(bb->getId()) + "\n";
+        printf("    BasicBlock #0x%08lx\n", bb->getId());
         for (auto &instr : basic_block.second) {
-          output += std::string("      <") + asHex(instr.getAddress()) +
-              ">: " + instr.parse()[0] + " ";
+          printf(
+              "      <%lX>: %s ",
+              instr.getAddress(),
+              instr.parse()[0].c_str()
+          );
           ArgPrinter arg_printer;
           for (auto &arg : instr.getArgs(sym_table_symbols)) {
             arg->accept(arg_printer);
-            output += ", ";
+            printf(", ");
           }
-          output += "\n";
+          printf("\n");
         }
       });
   file.runDisassembler();
-  printf("%s\n", output.c_str());
   return 0;
 }

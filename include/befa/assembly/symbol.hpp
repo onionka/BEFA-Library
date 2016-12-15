@@ -15,30 +15,27 @@ struct Symbol {
    * Copy bfd information (so we bind lifetime to this object)
    * @param origin
    */
-  Symbol(const asymbol *origin, const std::shared_ptr<SectionT> &parent) : origin(
+  Symbol(const asymbol *origin, const std::shared_ptr<SectionT> &parent)
+      : origin(
       origin), parent(parent) {}
 
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
   Symbol(Symbol<SectionT> &&rhs)
       : origin(std::move(rhs.origin)),
-        callees(std::move(rhs.callees)),
         parent(std::move(rhs.parent)) {}
 
   Symbol &operator=(Symbol<SectionT> &&rhs) {
     origin = std::move(rhs.origin);
-    callees = std::move(rhs.callees);
     parent = std::move(rhs.parent);
     return *this;
   }
 
   Symbol(const Symbol<SectionT> &rhs)
       : origin(rhs.origin),
-        callees(rhs.callees),
         parent(rhs.parent) {}
 
   Symbol &operator=(const Symbol<SectionT> &rhs) {
     origin = rhs.origin;
-    callees = rhs.callees;
     parent = rhs.parent;
     return *this;
   }
@@ -63,8 +60,6 @@ struct Symbol {
 
   const asymbol *getOrigin() const { return origin; }
 
-  const std::vector<std::weak_ptr<Symbol<SectionT>>> &getCallees() const { return callees; }
-
   const std::weak_ptr<SectionT> &getParent() const { return parent; }
 
   virtual bfd_vma getAddress() const { return bfd_asymbol_value(origin); }
@@ -82,30 +77,29 @@ struct Symbol {
 
   bool hasFlags(const flagword &flag) const {
     return getFlags() & flag ||
-        std::find_if(aliases.cbegin(),
-                     aliases.cend(),
-                     [&flag](const asymbol *alias) {
-                       return alias->flags & flag;
-                     }) != aliases.cend();
+        (std::find_if(
+            aliases.cbegin(), aliases.cend(),
+            [&flag](const asymbol *alias)
+            { return alias->flags & flag; }
+        ) != aliases.cend());
   }
 
   // ~~~~~~~~~~~~~~ Aliases ~~~~~~~~~~~~~~
   std::vector<Symbol> getAliases() const {
-    return ::map(aliases,
-                 [&](const auto &alias) {
-                   return Symbol<SectionT>(alias,
-                                           parent);
-                 });
+    return ::map(
+        aliases, [&](const auto &alias)
+        { return Symbol<SectionT>(alias, ptr_lock(parent)); }
+    );
   }
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
 
-  template<typename _FuncT>
-  void iter_aliases(_FuncT &&pred) const {
+  template<typename LambdaT>
+  void iter_aliases(LambdaT &&pred) const {
     std::for_each(
         aliases.cbegin(), aliases.cend(),
-        [&pred](const auto &alias) {
-          pred(Symbol<SectionT>(alias));
-        });
+        [&pred](const auto &alias)
+        { pred(Symbol<SectionT>(alias)); }
+    );
   }
 
   void addAlias(asymbol *alias) {
@@ -137,15 +131,13 @@ struct Symbol {
   const asymbol *origin;
 
   /**
-   * Every symbol called from this
-   */
-  std::vector<std::weak_ptr<Symbol<SectionT>>> callees;
-
-  /**
    * Section to which this symbol belongs to
    */
   std::weak_ptr<SectionT> parent;
 
+  /**
+   * Alias holder
+   */
   std::vector<asymbol *> aliases;
 };
 }  // namespace befa

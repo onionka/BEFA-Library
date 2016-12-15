@@ -32,6 +32,8 @@ namespace llvm {
   using vrb = details::visitable_traits<__VA_ARGS__>::visitor_base; \
   struct insf : public llvm::factories::details::fs<__VA_ARGS__> { };
 
+#define ANONYMOUS_ENUM uint64_t
+
 namespace factories {
 /**
  * Template class for all factories
@@ -54,36 +56,35 @@ template<typename ...>
 struct parameter_tag {};
 
 template<typename ...Is>
-struct fs : Factory<Is> ... {
+struct fs : public Factory<Is> ... {
 
   using instruction_base_vector =
-      std::vector<std::shared_ptr<::VisitableBase<Is...>>>;
+  std::vector<std::shared_ptr<::VisitableBase<Is...>>>;
 
   instruction_base_vector collect() {
     instruction_base_vector result;
-    collect<Is...>(result, parameter_tag<Is...>());
+    collect(result, parameter_tag<Is...>());
     return result;
   }
 
  private:
   template<typename T, typename ...Ts>
-  instruction_base_vector collect
-      (instruction_base_vector &result,
-       parameter_tag<T, Ts...> &&) {
-    auto collected = Factory<T>::collect();
-    result.insert(result.end(), collected.begin(), collected.end());
-    return collect(result, parameter_tag<Ts...>());
+  void collect(
+      instruction_base_vector &result,
+      parameter_tag<T, Ts...> &&
+  ) {
+    for (auto collected : Factory<T>::collect())
+      result.emplace_back(collected);
+    collect(result, parameter_tag<Ts...>());
   }
 
   /**
    * Stop iteration
    */
-  instruction_base_vector collect
-      (instruction_base_vector &result,
-       parameter_tag<> &&) {
-    return result;
-  }
-
+  void collect(
+      instruction_base_vector &,
+      parameter_tag<> &&
+  ) {}
 };
 }  // namespace details
 }  // namespace factories
@@ -95,6 +96,30 @@ struct InstructionFactory;
  * Base of every instruction
  */
 struct Instruction {
+  using symbol_type = ExecutableFile::symbol_type;
+  using instruction_type = ExecutableFile::instruction_type;
+  using basic_block_type = ExecutableFile::basic_block_type;
+
+  Instruction(const std::vector<instruction_type> &assembly)
+      : assembly(assembly) {}
+
+  const std::vector<instruction_type> &getAssembly() const {
+    return assembly;
+  }
+
+  std::shared_ptr<basic_block_type> getParent() const {
+    return assembly[0].getParent();
+  }
+
+  bfd_vma getAddress() const {
+    return assembly[0].getAddress();
+  }
+
+ protected:
+  std::vector<instruction_type> &get_assembly() { return assembly; }
+
+ private:
+  std::vector<instruction_type> assembly;
 // No need for virtual functions ... because of visitor
 //
 // /** @return string representation of this LLVM instruction */
@@ -156,14 +181,29 @@ struct InstructionMapper {};
 // ~~~~~ Instruction declarations ~~~~~
 struct CallInstruction;
 
-/* TODO: */
+/** base for ICmp and FCmp */
+struct CmpInstruction;
+
+struct ICmpInstruction;
+
+struct FCmpInstruction;
 // ~~~~~ Instruction declarations ~~~~~
 
+
+#define LLVM_VISIT_CMPs(visitable) \
+    IMPLEMENT_VISIT(llvm::ICmpInstruction, visitable) \
+      { visit_cmps_##visitable(visitable); } \
+    IMPLEMENT_VISIT(llvm::FCmpInstruction, visitable) \
+      { visit_cmps_##visitable(visitable); } \
+  private: template<typename T> void visit_cmps_##visitable(const T *visitable)
+
 #define LLVM_VISIT_ALL(visitable) \
-    VISIT_(llvm::CallInstruction, visit_##visitable) \
-    template<typename T> void visit_##visitable(const T *visitable)
+    VISIT_(llvm::CallInstruction, visit_all_##visitable) \
+    LLVM_VISIT_CMPs(visitable) { visit_all_##visitable(visitable); } \
+  private: template<typename T> void visit_all_##visitable(const T *visitable)
 
 namespace factories {
+
 template<>
 struct Factory<CallInstruction> {
   std::shared_ptr<CallInstruction> &create(
@@ -172,16 +212,55 @@ struct Factory<CallInstruction> {
   );
 
   std::vector<std::shared_ptr<CallInstruction>> collect() {
-    return {instruction};
+    if (instruction)
+      return {instruction};
+    else
+      return {};
   }
 
  private:
   std::shared_ptr<CallInstruction> instruction;
 };
+
+template<>
+struct Factory<ICmpInstruction> {
+  std::shared_ptr<ICmpInstruction> &create(
+      std::weak_ptr<ExecutableFile::symbol_type> target,
+      const ExecutableFile::instruction_type &parent
+  );
+
+  std::vector<std::shared_ptr<ICmpInstruction>> collect() {
+    if (instruction)
+      return {instruction};
+    else
+      return {};
+  }
+
+ private:
+  std::shared_ptr<ICmpInstruction> instruction;
+};
+
+template<>
+struct Factory<FCmpInstruction> {
+  std::shared_ptr<FCmpInstruction> &create(
+      std::weak_ptr<ExecutableFile::symbol_type> target,
+      const ExecutableFile::instruction_type &parent
+  );
+
+  std::vector<std::shared_ptr<FCmpInstruction>> collect() {
+    if (instruction)
+      return {instruction};
+    else
+      return {};
+  }
+
+ private:
+  std::shared_ptr<FCmpInstruction> instruction;
+};
 }  // namespace factories
 
 
-/** REGISTER INTSRUCTIONS HERE!
+/** REGISTER INSTRUCTIONS HERE!
  *
  * visitable_impl Use this as a base class for every
  *                final instruction class
@@ -194,7 +273,7 @@ struct Factory<CallInstruction> {
  */
 REGISTER_VISITABLES(
     VisitableImpl, VisitableBase, VisitorBase, InstructionFactory,
-    CallInstruction
+    CallInstruction, ICmpInstruction, FCmpInstruction
 )
 
 namespace mappers {
@@ -226,12 +305,23 @@ struct InstructionMapper<CallInstruction>
     ) : symbol(symbol_table) {}
 
     IMPLEMENT_VISIT(symbol_table::Function, arg) {
-      symbol = arg->getCallee();
+      symbol = arg->getAsmSymbol();
     }
 
    private:
     symbol_ptr &symbol;
   };
+};
+
+template<>
+struct InstructionMapper<ICmpInstruction>
+    : public InstructionMapperBase {
+  InstructionMapper(
+      InstructionFactory &factory,
+      const ExecutableFile::symbol_map_type &sym_table = {}
+  ) : InstructionMapperBase(factory, sym_table) {}
+
+  void operator()(const ExecutableFile::instruction_type &i);
 };
 }  // namespace mappers
 

@@ -101,6 +101,82 @@ struct type_trait<ZMM> {
   STATIC_CONST size_t size = bit_sizeof(ZMM);
 };
 
+// ~~~~~ __is_integral implementation ~~~~~
+namespace details {
+template<typename T>
+struct __is_integral : std::false_type {};
+
+template<>
+struct __is_integral<BYTE> : std::true_type {};
+template<>
+struct __is_integral<WORD> : std::true_type {};
+template<>
+struct __is_integral<DWORD> : std::true_type {};
+template<>
+struct __is_integral<QWORD> : std::true_type {};
+}  // namespace details
+
+template<typename ...>
+struct is_integral : std::true_type {};
+
+template<typename T, typename ...Ts>
+struct is_integral<T, Ts...> : std::__and_<
+    details::__is_integral<
+        typename std::remove_all_extents_t<T>::type
+    >,
+    is_integral<Ts...>
+>::type {
+};
+// ~~~~~ __is_integral implementation ~~~~~
+
+// ~~~~~ __is_sse implementation ~~~~~
+namespace details {
+template<typename T>
+struct __is_sse : std::false_type {};
+
+template<>
+struct __is_sse<XMM> : std::true_type {};
+template<>
+struct __is_sse<ZMM> : std::true_type {};
+template<>
+struct __is_sse<YMM> : std::true_type {};
+}  // namespace details
+
+template<typename ...>
+struct is_sse : std::true_type {};
+
+template<typename T, typename ...Ts>
+struct is_sse<T, Ts...> : std::__and_<
+    details::__is_sse<
+        typename std::remove_all_extents_t<T>::type
+    >,
+    is_sse<Ts...>
+>::type {
+};
+// ~~~~~ __is_sse implementation ~~~~~
+
+// ~~~~~ __is_bit implementation ~~~~~
+namespace details {
+template<typename T>
+struct __is_bit : std::false_type {};
+
+template<>
+struct __is_bit<BIT> : std::true_type {};
+}  // namespace details
+
+template<typename ...>
+struct is_bit : std::true_type {};
+
+template<typename T, typename ...Ts>
+struct is_bit<T, Ts...> : std::__and_<
+    details::__is_bit<
+        typename std::remove_all_extents_t<T>::type
+    >,
+    is_bit<Ts...>
+>::type {
+};
+// ~~~~~ __is_bit implementation ~~~~~
+
 #undef STATIC_CONST
 }  // namespace types
 
@@ -254,14 +330,57 @@ constexpr auto register_deleter = [](const VisitableBase *) throw() {};
 /**
  * Symbol that has size
  *
- * @tparam SizeT
+ * @tparam SizeT is size of this symbol
+ * @tparam VisitableBaseT is VisitableBase or class that inherits from it
  */
-template<typename SizeT>
-struct SizedSymbol : private types::type_trait<SizeT> {
+template<typename SizeT, typename VisitableBaseT>
+struct SizedSymbol
+    : private types::type_trait<SizeT>,
+      public VisitableBaseT {
   using size_trait = types::type_trait<SizeT>;
   const std::string type_name = types::type_trait<SizeT>::name;
   const size_t type_size = types::type_trait<SizeT>::size;
+
+  using VisitableBaseT::VisitableBaseT;
 };
+
+namespace details {
+template<bool condition, typename BaseT>
+struct cast_helper {
+  static void __cast(BaseT &val) throw(std::runtime_error) {
+    throw std::runtime_error(
+        std::string("cannot convert '") + typeid(BaseT).name() +
+            "' into Visitable"
+    );
+  }
+};
+
+template<typename BaseT>
+struct cast_helper<true, BaseT> {
+  using visitable_type = typename std::conditional_t<
+      std::is_pointer<
+          typename std::remove_reference_t<BaseT>::type
+      >::value,
+      VisitableBase *,
+      VisitableBase &
+  >::type;
+  static visitable_type __cast(BaseT &val) throw() {
+    return static_cast<visitable_type>(val);
+  }
+};
+}  // namespace details
+
+/**
+ * No throw cast
+ * @tparam condition
+ * @tparam BaseT
+ * @tparam VisitableT
+ * @param val
+ */
+template<bool condition, typename BaseT>
+auto cast_sized_symbol_to_visitable(BaseT &&obj) {
+  return details::cast_helper<condition, BaseT>(obj);
+}
 
 /**
  * Result of some kind of operation
@@ -320,21 +439,24 @@ struct Temporary
  */
 template<typename SizeT>
 struct SizedTemporary
-    : public Temporary,
-      public SizedSymbol<SizeT> {
+    : public SizedSymbol<SizeT, Temporary> {
+  using size_trait = typename SizedSymbol<SizeT, Temporary>::size_trait;
+
+  using symbol_ptr = typename Temporary::symbol_ptr;
+
   SizedTemporary(
       const symbol_ptr &lhs,
       const std::string &op,
       const symbol_ptr &rhs
-  ) : Temporary(lhs, op, rhs) {}
+  ) : SizedSymbol<SizeT, Temporary>(lhs, op, rhs) {}
 
   SizedTemporary(
       const std::string &op,
       const symbol_ptr &rhs
-  ) : Temporary(op, rhs) {}
+  ) : SizedSymbol<SizeT, Temporary>(op, rhs) {}
 
   std::string getName() const {
-    return "<" + std::string(SizedSymbol<SizeT>::size_trait::name) + ">"
+    return "<" + std::string(size_trait::name) + ">"
         + Temporary::getName();
   }
 };
@@ -349,9 +471,10 @@ struct SizedTemporary
  */
 template<typename size>
 struct Register
-    : public Visitable<Register<size>>,
-      public Symbol,
-      public SizedSymbol<size> {
+    : public Symbol,
+      public SizedSymbol<size, Visitable<Register<size>>> {
+  using size_trait = typename SizedSymbol<size, Symbol>::size_trait;
+
   constexpr Register(std::string name) : name(name) {}
 
   std::string getName() const { return name; }
@@ -366,17 +489,17 @@ struct Register
 struct Function
     : public Visitable<Function>,
       public Symbol {
-  using function_type = befa::Symbol<befa::Section> ;
-  using function_ptr = std::shared_ptr<function_type>;
+  using asm_symbol_type = befa::Symbol<befa::Section>;
+  using asm_symbol_ptr = std::shared_ptr<asm_symbol_type>;
 
-  Function(const function_ptr &callee) : callee(callee) {}
+  Function(const asm_symbol_ptr &callee) : asm_symbol(callee) {}
 
-  std::string getName() const { return "@" + callee->getName(); }
+  std::string getName() const { return "@" + asm_symbol->getName(); }
 
-  function_ptr getCallee() const { return callee; }
+  asm_symbol_ptr getAsmSymbol() const { return asm_symbol; }
 
  private:
-  function_ptr callee;
+  asm_symbol_ptr asm_symbol;
 };
 
 /**

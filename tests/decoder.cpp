@@ -30,9 +30,9 @@ struct SimpleInstruction
   instruction_pieces pieces;
 };
 
-struct NonPreparsedInstruction
+struct InstructionTemplate
     : public befa::Instruction<dummy_parent> {
-  NonPreparsedInstruction(const string &decoded)
+  InstructionTemplate(const string &decoded)
       : befa::Instruction<dummy_parent>({}, nullptr, decoded, 0x666) {}
 };
 
@@ -54,7 +54,7 @@ struct TestVisitor
 };
 
 TEST(DecoderTest, WithoutPreparseInstruction) {
-  NonPreparsedInstruction simple_instr("mov eax,ebx");
+  InstructionTemplate simple_instr("mov eax,ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
   TestVisitor visitor("_eax");
@@ -64,7 +64,7 @@ TEST(DecoderTest, WithoutPreparseInstruction) {
 }
 
 TEST(DecoderTest, TestDereference) {
-  NonPreparsedInstruction simple_instr("mov DWORD PTR [eax*0x8+0x666],ebx");
+  InstructionTemplate simple_instr("mov DWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
   TestVisitor visitor("*(_eax*0x8+0x666)");
@@ -74,7 +74,7 @@ TEST(DecoderTest, TestDereference) {
 }
 
 TEST(DecoderTest, TestXMM) {
-  NonPreparsedInstruction simple_instr("mov XMMWORD PTR [eax*0x8+0x666],ebx");
+  InstructionTemplate simple_instr("mov XMMWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
   TestVisitor visitor("*(_eax*0x8+0x666)");
@@ -84,7 +84,7 @@ TEST(DecoderTest, TestXMM) {
 }
 
 TEST(DecoderTest, TestLEA) {
-  NonPreparsedInstruction simple_instr("jne    4009b0");
+  InstructionTemplate simple_instr("jne    4009b0");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 1);
   TestVisitor visitor("4009b0");
@@ -92,18 +92,17 @@ TEST(DecoderTest, TestLEA) {
 }
 
 struct DummySymbol : public ExecutableFile::symbol_type  {
-  DummySymbol()  : Symbol(nullptr, null_section) {}
+  DummySymbol()
+      : Symbol(nullptr, std::make_shared<befa::Section>(nullptr)) {}
 
   string getName() const override {
     return "number_of_the_beast";
   }
-
-  std::shared_ptr<befa::Section> null_section = std::make_shared<befa::Section>(nullptr);
 };
 
 TEST(DecoderTest, TestFunctionFeed) {
   auto dummy_function = std::make_shared<DummySymbol>();
-  NonPreparsedInstruction simple_instr("call    0x666");
+  InstructionTemplate simple_instr("call    0x666");
   std::map<
       bfd_vma, std::shared_ptr<symbol_table::VisitableBase>
   > sym_table {

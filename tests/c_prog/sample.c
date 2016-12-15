@@ -3,6 +3,9 @@
 //
 
 
+#include <stdio.h>
+#include <float.h>
+
 volatile int numeric = 1;
 volatile double floating = 0.1f;
 volatile const char string[] = "string";
@@ -30,5 +33,8 @@ void function_with_locals() {
 
 
 int main(int argc) {
+  double x = DBL_MAX;
+  x = x * x;
+  printf("%lf\n", x);
   return algorithm(argc);
 }

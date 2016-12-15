@@ -309,8 +309,9 @@ struct Observable {
    * @return
    */
   template<typename ObserverT>
-  subscription_type operator>>(ObserverT &&o) {
-    return subscribe(std::forward<ObserverT>(o));
+  Observable &operator>>(ObserverT &&o) {
+    subscribe(std::forward<ObserverT>(o));
+    return *this;
   }
 
   virtual ~Observable() {}

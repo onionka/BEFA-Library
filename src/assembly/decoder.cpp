@@ -3,6 +3,7 @@
 //
 
 #include "../../include/befa/assembly/asm_arg_parser.hpp"
+#include "../../include/befa.hpp"
 
 namespace symbol_table {
 #define DECLARE_REGISTER(name, size) \
@@ -363,14 +364,8 @@ std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::handle_expression(
 
   { // if (possible) parameter is function
     if (std::regex_match(expr, result, address)) {
-      std::stringstream ss;
-      bfd_vma address;
-      // write hex number
-      ss << std::hex << result.str(1);
-      // read hex number into decimal unsigned integer
-      ss >> std::hex >> address;
       // find function by address
-      auto func_symbol = functions.find(address);
+      auto func_symbol = functions.find(std::stoul(result.str(1), nullptr, 16));
       if (func_symbol != functions.cend()) {
         return func_symbol->second;
       }

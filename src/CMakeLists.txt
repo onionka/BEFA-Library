@@ -14,8 +14,8 @@ SET(ASSEMBLY_SOURCES
 SET(LLVM_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/llvm/instruction.hpp
-        ${PROJECT_SOURCE_DIR}/include/befa/llvm/unary.hpp
-        ../include/befa/llvm/mapper.hpp)
+        ${PROJECT_SOURCE_DIR}/include/befa/llvm/call.hpp
+        ../include/befa/llvm/cmp.hpp)
 
 SET(LLVM_SOURCES
         ${PROJECT_SOURCE_DIR}/src/llvm/decompiler.cpp)

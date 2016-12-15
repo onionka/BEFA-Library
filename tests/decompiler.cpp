@@ -9,30 +9,38 @@
 #include <befa/utils/visitor.hpp>
 #include <befa/assembly/asm_arg_parser.hpp>
 #include <befa/assembly/instruction.hpp>
+#include <befa/llvm/call.hpp>
+#include <befa/llvm/cmp.hpp>
 #include <befa.hpp>
-#include <befa/llvm/unary.hpp>
+
 
 namespace {
 struct dummy_parent {};
 
-struct NonPreparsedInstruction
+struct InstructionTemplate
     : public ExecutableFile::instruction_type {
-  NonPreparsedInstruction(const string &decoded)
+  InstructionTemplate(const string &decoded)
       : ExecutableFile::instruction_type({}, nullptr, decoded, 0x666) {}
-
 };
 
-struct TestVisitor
-    : public llvm::VisitorBase {
+template<typename LambdaT>
+struct TestVisitor : public llvm::VisitorBase {
 
-  std::string param_name;
-
-  TestVisitor(std::string param_name) : param_name(param_name) {}
+  TestVisitor(LambdaT &&check)
+      : check(std::forward<LambdaT>(check)) {}
 
   LLVM_VISIT_ALL(arg) {
-    ASSERT_EQ(arg->getSignature(), param_name);
+    check(arg);
   }
+
+ private:
+  LambdaT check;
 };
+
+template<typename LambdaT>
+TestVisitor<LambdaT> create_TestVisitor(LambdaT &&func) {
+  return TestVisitor<LambdaT>(std::forward<LambdaT>(func));
+}
 
 struct DummySymbol : public ExecutableFile::symbol_type {
   DummySymbol(std::string name, bfd_vma address)
@@ -56,54 +64,41 @@ void test_single_instruction(
     ExecutableFile::symbol_map_type symbol_map,
     std::string compare
 ) {
-  NonPreparsedInstruction simple_instr(signature);
+  InstructionTemplate simple_instr(signature);
+
   llvm::InstructionFactory factory;
   ExecutableFile::symbol_map_type symbol_table{
       symbol_map
   };
+
   llvm::mappers::InstructionMapper<llvm::CallInstruction> mapper
       (factory, symbol_table);
+
   mapper(simple_instr);
-  TestVisitor visitor(compare);
-  for (auto &vis: factory.collect()) {
+  auto visitor = create_TestVisitor([&compare] (auto *instr) {
+    ASSERT_EQ(instr->getSignature(), compare);
+  });
+  auto instr_vector = factory.collect();
+  ASSERT_GT(instr_vector.size(), 0);
+  for (auto &vis: instr_vector) {
     vis->accept(visitor);
   }
 }
 
 TEST(DecompilerTest, CallTest) {
   test_single_instruction(
-      "call    0x666",
+      "call    400800",
       {
-          {0x665,
+          {0x400800,
            std::make_shared<symbol_table::Function>(
                std::make_shared<DummySymbol>(
-                   "sample_callee_untrue",
-                   0x665
-               )
-           )
-          },
-          {0x666,
-           std::make_shared<symbol_table::Function>(
-               std::make_shared<DummySymbol>(
-                   "sample_callee",
-                   0x666
-               )
-           )
-          },
-          {0x667,
-           std::make_shared<symbol_table::Function>(
-               std::make_shared<DummySymbol>(
-                   "false",
-                   0x667
+                   "printf",
+                   0x400800
                )
            )
           }
       },
-      "call @sample_callee()"
+      "call @printf()"
   );
 }
-/**
- *
-
- */
 }  // namespace
