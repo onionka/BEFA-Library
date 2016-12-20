@@ -218,29 +218,5 @@ TEST(ObservableTest, OperatorTest) {
   for (int i = 0; i < 10; ++i, ++res)
     subj.next();
 }
-
-template<typename T>
-struct ConditionalObservable : public Observable<T> {
-  template<typename ConditionalT>
-  ConditionalObservable(ConditionalT &&cond, Observable<T> &o$) {
-    o$.subscribe([&](const T &val) {
-      if (cond(val)) this->notify(val);
-    });
-  }
-};
-
-TEST(ObservableTest, ConditionalObservableTest) {
-  int num = 0;
-  Subject<int> subj([&num] { return ++num; });
-
-  ConditionalObservable<int>(
-      [](const int &n) { return n == 2; },
-      subj.asObservable()
-  ) >> [](const int &n) { ASSERT_EQ(n, 2); };
-
-  for (int i = 0; i < 10; ++i)
-      subj.next();
-}
-
 }  // namespace
 

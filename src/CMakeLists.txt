@@ -25,7 +25,7 @@ SET(UTIL_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa/utils/algorithms.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/byte_array_view.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/observer.hpp
-        ${PROJECT_SOURCE_DIR}/include/befa/utils/bucket_allocator.hpp)
+        ${PROJECT_SOURCE_DIR}/include/befa/utils/bucket_allocator.hpp ../include/befa/utils/range.hpp)
 
 ADD_LIBRARY(befa STATIC
         ${ASSEMBLY_SOURCES} ${ASSEMBLY_HEADERS}

@@ -11,26 +11,12 @@ namespace llvm {
 
 struct CmpInstruction : public Instruction {
   enum types_e {
-    // greater than
-        GT, GE,
-
-    // lesser than
-        LT, LE,
-
-    // (not) equal
-        EQ, NE,
-  };
-
-  const std::vector<std::string> type_to_str{
-      ">", ">=", "<", "<=", "==", "!=", "jo"
-  };
-
-  const std::vector<std::string> type_to_jmp{
-
-      "ja", "jae", "jb", "jbe", "jc", "jcxz", "je", "jecxz", "jg", "jge",
-      "jl", "jle", "jna", "jnae", "jnb", "jnbe", "jnc", "jne", "jng",
-      "jnge", "jnl", "jnle", "jno", "jnp", "jns", "jnz", "jo", "jp", "jpe",
-      "jpo", "js", "jz", "jmp"
+      // greater than
+      GT, GE,
+      // lesser than
+      LT, LE,
+      // (not) equal
+      EQ, NE,
   };
 
   CmpInstruction(
@@ -41,6 +27,15 @@ struct CmpInstruction : public Instruction {
   ) : Instruction({parent}), lhs(lhs), op(op), rhs(rhs) {}
 
   std::string getSignature() const {
+    static std::map<types_e, std::string> type_to_str {
+        {GT, ">"},
+        {GE, ">="},
+        {LT, "<"},
+        {LE, "<="},
+        {EQ, "=="},
+        {NE, "!="}
+    };
+
     std::string signature;
     ArgVisitor arg_visitor(signature);
     lhs->accept(arg_visitor);
@@ -68,6 +63,31 @@ struct CmpInstruction : public Instruction {
 
 struct ICmpInstruction final
     : public CmpInstruction, public llvm::VisitableImpl<ICmpInstruction> {
+  const std::map<std::string, types_e> comparition_jumps {
+      {"ja", GT},
+      {"jg", GT},
+      {"jnbe", GT},
+      {"jnle", GT},
+
+      {"jae", GE},
+      {"jge", GE},
+      {"jnb", GE},
+      {"jnl", GE},
+
+      {"jb", LT},
+      {"jl", LT},
+      {"jnae", LT},
+      {"jnge", LT},
+
+      {"jbe", LE},
+      {"jle", LE},
+      {"jna", LE},
+      {"jng", LE},
+
+      {"je", EQ},
+      {"jne", NE},
+  };
+
   /**
    *
    * @param lhs is left hand size of int compare operation

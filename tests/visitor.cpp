@@ -10,7 +10,6 @@
 #include <befa/utils/visitor.hpp>
 #include <befa/llvm/instruction.hpp>
 
-
 namespace {
 
 struct VisitableSample42;
@@ -67,6 +66,55 @@ TEST(VisitorTest, BasicVisitor) {
   ASSERT_EQ(visits, 2);
   visitables[2]->accept(vi);
   ASSERT_EQ(visits, 3);
+}
+
+TEST(VisitorTest, OperatorShift) {
+  std::vector<std::shared_ptr<visitable_base>> visitables{
+      std::make_shared<VisitableSample42>(),
+      std::make_shared<VisitableSample43>(),
+      std::make_shared<VisitableSample44>(),
+  };
+  int i = 0;
+  auto VisitableSample42_visitor = [&](const VisitableSample42 *visitable) {
+    ++i;
+    ASSERT_TRUE(std::string(
+                    typeid(decltype(visitable)).name()
+                ).find(std::string("VisitableSample42")) != std::string::npos);
+  };
+  auto VisitableSample43_visitor = [&](const VisitableSample43 *visitable) {
+    ++i;
+    ASSERT_TRUE(std::string(
+                    typeid(decltype(visitable)).name()
+                ).find(std::string("VisitableSample43")) != std::string::npos);
+  };
+  *visitables[0] >> VisitableSample42_visitor;
+  ASSERT_EQ(1, i);
+  *visitables[1] >> VisitableSample42_visitor;
+  ASSERT_EQ(1, i);
+  *visitables[1] >> VisitableSample43_visitor;
+  ASSERT_EQ(2, i);
+  *visitables[2] >> VisitableSample43_visitor;
+  ASSERT_EQ(2, i);
+  *visitables[2]
+      >> [&](const VisitableSample43 *visitable) {
+        ++i;
+        ASSERT_TRUE(
+            std::string(typeid(decltype(visitable)).name())
+                .find(std::string("VisitableSample43")) != std::string::npos);
+      }
+      >> [&](const VisitableSample44 *visitable) {
+        ++i;
+        ASSERT_TRUE(
+            std::string(typeid(decltype(visitable)).name())
+                .find(std::string("VisitableSample44")) != std::string::npos);
+      }
+      >> [&](const VisitableSample44 *visitable) {
+        ++i;
+        ASSERT_TRUE(
+            std::string(typeid(decltype(visitable)).name())
+                .find(std::string("VisitableSample44")) != std::string::npos);
+      };
+  ASSERT_EQ(4, i);
 }
 
 }

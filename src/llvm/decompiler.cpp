@@ -41,7 +41,7 @@ void InstructionMapper<CallInstruction>::operator()
   auto parsed_i = i.parse();
   std::vector<std::shared_ptr<symbol_table::VisitableBase>> args;
   if (parsed_i[0] == "call" && (args = i.getArgs(symbol_table)).size() == 1) {
-    std::weak_ptr<symbol_table::Function::function_type> call_target;
+    std::weak_ptr<symbol_table::Function::asm_symbol_type> call_target;
     invoke_accept(args[0], FunctionVisitor(call_target));
     static_cast<factories::Factory<CallInstruction> &>
     (factory).create(call_target, i);

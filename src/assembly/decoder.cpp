@@ -4,6 +4,7 @@
 
 #include "../../include/befa/assembly/asm_arg_parser.hpp"
 #include "../../include/befa.hpp"
+#include "../../include/befa/utils/range.hpp"
 
 namespace symbol_table {
 #define DECLARE_REGISTER(name, size) \
@@ -280,21 +281,17 @@ std::vector<asm_arg_parser::symbol_ptr> asm_arg_parser::getArgs(
 ) const throw(std::runtime_error) {
   instruction_pieces arr = parse();
   assert(!arr.empty() && "instruction pieces cannot be empty");
+
   std::string name = arr[0];
   std::vector<symbol_ptr> params;
 
-  for (auto ite = arr.begin() + 1,
-           end = arr.end();
-       ite != end;
-       ++ite) {
-    if (auto expr = handle_expression(*ite, functions)) {
+  for (auto &arg : range(arr.begin() + 1, arr.end())) {
+    if (auto expr = handle_expression(arg, functions)) {
       params.emplace_back(std::move(expr));
     } else {
-      name += " " + *ite;
+      name += " (" + arg + ")";
     }
   }
-  // so we could know which params were not parsed
-  name = "(" + name + ")";
   return std::move(params);
 }
 

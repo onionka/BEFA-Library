@@ -298,7 +298,7 @@ struct InstructionMapper<CallInstruction>
   };
 
   struct FunctionVisitor : public AddressCheck {
-    using symbol_ptr = std::weak_ptr<symbol_table::Function::function_type>;
+    using symbol_ptr = std::weak_ptr<symbol_table::Function::asm_symbol_type>;
 
     FunctionVisitor(
         symbol_ptr &symbol_table
