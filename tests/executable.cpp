@@ -80,7 +80,8 @@ TEST_F(ExecutableFixture, TestInstruction) {
   //  std::string decoded,
   //  bfd_vma address
   std::shared_ptr<ExecutableFile::basic_block_type> dummy_parent = nullptr;
-  auto instruction = ExecutableFile::instruction_type(::array_view<uint8_t>(), dummy_parent, "mov eax, ebx", 500);
+  auto instruction = ExecutableFile::instruction_type(
+      ::array_view<uint8_t>(), dummy_parent, "mov eax, ebx", 500);
   auto arr = instruction.parse();
 
   EXPECT_EQ(arr[0], "mov");

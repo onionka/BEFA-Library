@@ -53,10 +53,10 @@ struct Symbol {
 
 
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
-  virtual /**
+  /**
    * Every symbol have a name
    */
-  std::string getName() const { return getOrigin()->name; }
+  virtual std::string getName() const { return getOrigin()->name; }
 
   const asymbol *getOrigin() const { return origin; }
 

@@ -253,34 +253,44 @@ const std::map<std::string, VisitableBase *> registers{
     {"xmm7", CAST_TO_VISITABLE(reg_xmm7)},
 };
 
-std::string Temporary::getName() const {
-  NameVisitor name_visitor;
-  std::string lhs_name, rhs_name;
+/**
+ * Gets name via symbol visitor
+ *
+ * @param sym to fetch name from
+ * @return
+ */
+std::string get_name(
+    const std::shared_ptr<symbol_table::VisitableBase> &sym
+) {
+  std::string lhs_name;
+  SymbolVisitorL visitor = [&lhs_name]
+      (const symbol_table::Symbol *symbol) {
+    lhs_name = symbol->getName();
+  };
+  if (!sym) return "";
+  invoke_accept(*sym, visitor);
+  return lhs_name;
+}
 
-  name_visitor.bind(&lhs_name);
-  if (getLeft())
-    getLeft()->accept(name_visitor);
-  else
-    lhs_name = "";
-
-  name_visitor.bind(&rhs_name);
-  if (getRight())
-    getRight()->accept(name_visitor);
-  else
-    rhs_name = "";
+std::string Temporary::fetchName(
+    symbol_ptr lhs, std::string op, symbol_ptr rhs
+) const {
+  std::string
+      lhs_name = get_name(lhs),
+      rhs_name = get_name(rhs);
 
   // if it is unary () should be used
   if (lhs_name == "")
     rhs_name = "(" + rhs_name + ")";
-  return lhs_name + getOperator() + rhs_name;
+  return lhs_name + op + rhs_name;
 }
-}  // namespace symbol
+}  // namespace symbol_table
 
 std::vector<asm_arg_parser::symbol_ptr> asm_arg_parser::getArgs(
     const asm_arg_parser::symbol_map &functions
 ) const throw(std::runtime_error) {
   instruction_pieces arr = parse();
-  assert(!arr.empty() && "instruction pieces cannot be empty");
+  assert_ex(!arr.empty(), "instruction pieces cannot be empty");
 
   std::string name = arr[0];
   std::vector<symbol_ptr> params;

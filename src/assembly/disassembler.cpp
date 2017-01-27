@@ -11,6 +11,8 @@
 #include <map>
 #include <iostream>
 #include <set>
+
+#include "../../include/befa/utils/assert.hpp"
 #include "../../include/befa.hpp"
 
 struct BasicBlockDecoder;
@@ -63,7 +65,7 @@ struct SymbolDataLoader {
   ) : ptr(ptr) {}
 
   void fetch(
-      Subject<instruction_type> &instr_subj,
+      rxcpp::subjects::subject<instruction_type> &instr_subj,
       std::vector<basic_block_ptr> &basic_block_buffer,
       disassemble_info d_info,
       bfd *_fd,
@@ -79,7 +81,7 @@ struct SymbolDataLoader {
       f_lock->reset();
 
       disassembler_ftype _dis_asm = disassembler(_fd);
-      assert(_dis_asm && "should not be null");
+      assert_ex(_dis_asm, "should not be null");
 
       bfd_vma sym_address = sym_lock->getAddress();
       int i_size = _dis_asm(sym_address, &d_info);
@@ -123,9 +125,9 @@ struct SymbolDataLoader {
           );
           ++bba_begin;
         }
-        assert(!basic_block_buffer.empty()
-                   && "basic_block_buffer cannot be empty");
-        instr_subj.update(instruction_type(
+        assert_ex(!basic_block_buffer.empty(),
+                  "basic_block_buffer cannot be empty");
+        instr_subj.get_subscriber().on_next(instruction_type(
             std::get<0>(instr), basic_block_buffer.back(),
             std::get<1>(instr), std::get<2>(instr)
         ));
@@ -173,7 +175,7 @@ void ExecutableFile::runDisassembler() {
 
     // create shared buffer for section (user of this will get weak_ptr, so lifetime is the same as this file)
     auto memory = new uint8_t[d_info.buffer_length];
-    assert(memory && "not enough memory");
+    assert_ex(memory, "not enough memory");
     shared_buffer.emplace_back(memory);
     d_info.buffer = memory;
 
@@ -208,10 +210,11 @@ int ffprintf(
   while (1) {
     f->buffer.resize((size_t) alloc + f->pos);
     va_start(ap, format);
-    printed = vsnprintf((char *) f->buffer.data() + f->pos,
-                        (size_t) alloc,
-                        format,
-                        ap);
+    printed = vsnprintf(
+        (char *) f->buffer.data() + f->pos,
+        (size_t) alloc,
+        format,
+        ap);
     va_end(ap);
     if (printed < 0 || printed >= alloc)
       alloc += abs(printed - alloc + 1);

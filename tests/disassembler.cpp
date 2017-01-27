@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <algorithm>
-#include <befa/utils/observer.hpp>
 
 #include "fixtures.hpp"
 
@@ -13,50 +12,34 @@
     ExecutableFile file;                              \
   };
 
-struct AssemblySequenceFinder : Observer<
-    const ExecutableFile::instruction_type &
-> {
-  using observer_type = Observer<const ExecutableFile::instruction_type &>;
-  using subscription_type = observer_type::subscription_type;
+using subject_type = rxcpp::subjects::subject<ExecutableFile::instruction_type>;
+using subscriber_base = rxcpp::subscriber<
+    ExecutableFile::instruction_type
+>;
 
-  AssemblySequenceFinder(
-      // in
-      const std::vector<std::string> &instr_sequence,
-      size_t seq_index,
-      // out
-      int &seq_found
-  ) : instr_sequence(instr_sequence),
-      seq_index(seq_index),
-      seq_found(seq_found) {}
-
-  void operator()(const ExecutableFile::instruction_type &instr) override {
-    assert(subscription && "invalid pointer");
-    assert(*subscription && "invalid subscription");
-    if (instr_sequence[seq_index] != instr.parse()[0]) {
-      subscription->unsubscribe();
+auto create_mapper(
+    rxcpp::composite_subscription subscription,
+    // in
+    const std::vector<std::string> &instr_sequence,
+    size_t seq_index
+) {
+  return [=, &instr_sequence](
+      const ExecutableFile::instruction_type &instr
+  ) mutable -> bool {
+    auto params = instr.parse();
+    // stop iteration
+    if (params.size() < 1 || seq_index >= instr_sequence.size()) {
+      subscription.unsubscribe();
+    } else if (instr_sequence[seq_index] != params[0]) {
+      subscription.unsubscribe();
     } else if (seq_index == instr_sequence.size() - 1) {
-      ++seq_found;
-      subscription->unsubscribe();
+      subscription.unsubscribe();
+      return true;
     }
     ++seq_index;
-  }
-
-  void register_subscription(
-      std::shared_ptr<subscription_type> subscription
-  ) override { this->subscription = subscription; }
- private:
-  // in
-  const std::vector<std::string> &instr_sequence;
-  size_t seq_index;
-
-  // out
-  int &seq_found;
-
-  // locals
-  std::shared_ptr<subscription_type> subscription
-      = std::make_shared<subscription_type>();
-};
-
+    return false;
+  };
+}
 
 // ==========================================================================
 CREATE_TEST_FIXTURE(
@@ -81,12 +64,19 @@ TEST_F(SimpleFixture, SimpleTest) {
   };
 
   int seq_found = 0;
-  auto &assembly$ = file.disassembly();
+  auto assembly$ = file.disassembly();
   assembly$.subscribe([&](const i_type &instr) {
     if (instr_sequence[0] == instr.parse()[0]) {
-      assembly$.subscribe(
-          AssemblySequenceFinder(instr_sequence, 1, seq_found)
-      );
+      auto subscription = rxcpp::composite_subscription();
+      subscription = assembly$.map(
+          create_mapper(
+              subscription,
+              instr_sequence,
+              1
+          )
+      ).subscribe([&seq_found] (bool result) {
+        if (result) ++seq_found;
+      });
     }
   });
 
@@ -113,15 +103,22 @@ TEST_F(GlobalFunctionFixture, GlobalFunctionTest) {
 
   int seq_found = 0;
 
-  auto global_function$ = file.disassembly().conditional([&](i_type instr) {
+  auto global_function$ = file.disassembly().filter([&](i_type instr) {
     return *ptr_lock(instr.getParent()->getParent()) == "global_function";
   });
 
   global_function$.subscribe([&](i_type instr) {
     if (instr_sequence[0] == instr.parse()[0]) {
-      global_function$.subscribe(
-          AssemblySequenceFinder(instr_sequence, 1, seq_found)
-      );
+      auto subscription = rxcpp::composite_subscription();
+      subscription = global_function$.map(
+          create_mapper(
+              subscription,
+              instr_sequence,
+              1
+          )
+      ).subscribe([&seq_found] (bool result) {
+        if (result) ++seq_found;
+      });
     }
   });
 

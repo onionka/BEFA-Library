@@ -24,241 +24,78 @@ namespace llvm {
  * @see Factory
  */
 #define REGISTER_VISITABLES(\
-    vi, vb, vrb, insf, ...\
-) \
-  template<typename DerivedT> \
-  using vi = details::visitable_traits<__VA_ARGS__>::visitable_impl<DerivedT>; \
-  using vb = details::visitable_traits<__VA_ARGS__>::visitable_base; \
-  using vrb = details::visitable_traits<__VA_ARGS__>::visitor_base; \
-  struct insf : public llvm::factories::details::fs<__VA_ARGS__> { };
+    vi, vb, vrb, ...\
+) template<typename DerivedT> \
+  using vi = visitable_traits<__VA_ARGS__>::visitable_impl<DerivedT>; \
+  using vb = visitable_traits<__VA_ARGS__>::visitable_base; \
+  using vrb = visitable_traits<__VA_ARGS__>::visitor_base;
 
-#define ANONYMOUS_ENUM uint64_t
-
-namespace factories {
-/**
- * Template class for all factories
- */
-template<typename /*T*/>
-struct Factory {
-// No need for virtual method, specialization will do the trick
-//  Requirements:
-//  "virtual" shared_ptr<T> create(
-//      const vector<string> &input
-//  ) = 0;
-//  "virtual" vector<shared_ptr<T>> collect() = 0;
-};
-
-namespace details {
-/**
- * Nasty hack to achieve partial, class, non-variable specialization
- */
-template<typename ...>
-struct parameter_tag {};
-
-template<typename ...Is>
-struct fs : public Factory<Is> ... {
-
-  using instruction_base_vector =
-  std::vector<std::shared_ptr<::VisitableBase<Is...>>>;
-
-  instruction_base_vector collect() {
-    instruction_base_vector result;
-    collect(result, parameter_tag<Is...>());
-    return result;
-  }
-
- private:
-  template<typename T, typename ...Ts>
-  void collect(
-      instruction_base_vector &result,
-      parameter_tag<T, Ts...> &&
-  ) {
-    for (auto collected : Factory<T>::collect())
-      result.emplace_back(collected);
-    collect(result, parameter_tag<Ts...>());
-  }
-
-  /**
-   * Stop iteration
-   */
-  void collect(
-      instruction_base_vector &,
-      parameter_tag<> &&
-  ) {}
-};
-}  // namespace details
-}  // namespace factories
-
-/** Predeclaration */
-struct InstructionFactory;
-
+// ~~~~~ Instruction declarations ~~~~~
 /**
  * Base of every instruction
  */
-struct Instruction {
-  using symbol_type = ExecutableFile::symbol_type;
-  using instruction_type = ExecutableFile::instruction_type;
-  using basic_block_type = ExecutableFile::basic_block_type;
+struct Instruction;
 
-  Instruction(const std::vector<instruction_type> &assembly)
-      : assembly(assembly) {}
-
-  const std::vector<instruction_type> &getAssembly() const {
-    return assembly;
-  }
-
-  std::shared_ptr<basic_block_type> getParent() const {
-    return assembly[0].getParent();
-  }
-
-  bfd_vma getAddress() const {
-    return assembly[0].getAddress();
-  }
-
- protected:
-  std::vector<instruction_type> &get_assembly() { return assembly; }
-
- private:
-  std::vector<instruction_type> assembly;
-// No need for virtual functions ... because of visitor
-//
-// /** @return string representation of this LLVM instruction */
-// virtual std::string getSignature() const = 0;
-//
-// /**
-//  * @return address of this instruction (can be address of its assembly
-//  *         base)
-//  */
-// virtual bfd_vma getAddress() const = 0;
-//
-// /**
-//  * @returns origin of this instruction
-//  */
-// virtual const instruction_type &getAssembly() const /*override*/
-//
-// /**
-//  * @return shared pointer to parent basic block
-//  */
-// virtual std::shared_ptr<
-//      ExecutableFile::basic_block_type
-// > getBasicBlock() = 0;
-//
-// /**
-//  * @return pointer to basic block
-//  */
-// virtual std::shared_ptr<basic_block_type> getParent() const /*override*/
-};
-
-namespace mappers {
-/**
- * Base for all mappers
- *
- * @tparam I type of instruction
- */
-struct InstructionMapperBase {
-  using visitable_type = std::shared_ptr<symbol_table::VisitableBase>;
-  using symbol_table_type = ExecutableFile::symbol_map_type;
-
-  InstructionMapperBase(
-      InstructionFactory &factory,
-      const symbol_table_type &sym_table
-  );
- protected:
-  InstructionFactory &factory;
-  const symbol_table_type &symbol_table;
-};
-
-/**
- * Specializing this, instruction mapper will autoregister
- *
- * @tparam I instruction type
- */
-template<typename I>
-struct InstructionMapper {};
-}  // namespace mappers
-
-
-// ~~~~~ Instruction declarations ~~~~~
 struct CallInstruction;
 
-/** base for ICmp and FCmp */
+//struct InstrictInstruction;
+
 struct CmpInstruction;
 
 struct ICmpInstruction;
 
 struct FCmpInstruction;
+
+struct TerminatorInstruction;
+
+struct JumpInstruction;
+
+struct BranchInstruction;
+
+struct Serializable;
 // ~~~~~ Instruction declarations ~~~~~
 
 
-#define LLVM_VISIT_CMPs(visitable) \
-    IMPLEMENT_VISIT(llvm::ICmpInstruction, visitable) \
-      { visit_cmps_##visitable(visitable); } \
-    IMPLEMENT_VISIT(llvm::FCmpInstruction, visitable) \
-      { visit_cmps_##visitable(visitable); } \
-  private: template<typename T> void visit_cmps_##visitable(const T *visitable)
+#define LLVM_COMPARE_LIST \
+  FCmpInstruction, ICmpInstruction
 
-#define LLVM_VISIT_ALL(visitable) \
-    VISIT_(llvm::CallInstruction, visit_all_##visitable) \
-    LLVM_VISIT_CMPs(visitable) { visit_all_##visitable(visitable); } \
-  private: template<typename T> void visit_all_##visitable(const T *visitable)
+#define LLVM_TERMINATOR_LIST \
+  JumpInstruction, BranchInstruction
 
-namespace factories {
+#define LLVM_INSTRUCTION_LIST \
+  CallInstruction, CmpInstruction, LLVM_COMPARE_LIST, \
+  TerminatorInstruction, LLVM_TERMINATOR_LIST
 
-template<>
-struct Factory<CallInstruction> {
-  std::shared_ptr<CallInstruction> &create(
-      std::weak_ptr<ExecutableFile::symbol_type> target,
-      const ExecutableFile::instruction_type &parent
-  );
+#define LLVM_VISITABLES \
+  Instruction, Serializable, LLVM_INSTRUCTION_LIST
 
-  std::vector<std::shared_ptr<CallInstruction>> collect() {
-    if (instruction)
-      return {instruction};
-    else
-      return {};
-  }
+// ~~~~~ Generalizations ~~~~~
+using CompareVisitorL = LambdaGeneralizer<
+    visitable_traits<LLVM_VISITABLES>, CmpInstruction,
+    LLVM_COMPARE_LIST
+>;
 
- private:
-  std::shared_ptr<CallInstruction> instruction;
-};
+using BranchVisitorL = LambdaGeneralizer<
+    visitable_traits<LLVM_VISITABLES>, TerminatorInstruction,
+    LLVM_TERMINATOR_LIST
+>;
 
-template<>
-struct Factory<ICmpInstruction> {
-  std::shared_ptr<ICmpInstruction> &create(
-      std::weak_ptr<ExecutableFile::symbol_type> target,
-      const ExecutableFile::instruction_type &parent
-  );
+using InstructionVisitorL = LambdaGeneralizer<
+    visitable_traits<LLVM_VISITABLES>, Instruction,
+    LLVM_INSTRUCTION_LIST
+>;
 
-  std::vector<std::shared_ptr<ICmpInstruction>> collect() {
-    if (instruction)
-      return {instruction};
-    else
-      return {};
-  }
+using SerializableVisitorL = LambdaGeneralizer<
+    visitable_traits<LLVM_VISITABLES>, Serializable,
+    LLVM_INSTRUCTION_LIST
+>;
 
- private:
-  std::shared_ptr<ICmpInstruction> instruction;
-};
+using CompareVisitor = typename CompareVisitorL::Base;
+using BranchVisitor = typename BranchVisitorL::Base;
+using InstructionVisitor = typename InstructionVisitorL::Base;
+using SerializableVisitor = typename SerializableVisitorL::Base;
 
-template<>
-struct Factory<FCmpInstruction> {
-  std::shared_ptr<FCmpInstruction> &create(
-      std::weak_ptr<ExecutableFile::symbol_type> target,
-      const ExecutableFile::instruction_type &parent
-  );
-
-  std::vector<std::shared_ptr<FCmpInstruction>> collect() {
-    if (instruction)
-      return {instruction};
-    else
-      return {};
-  }
-
- private:
-  std::shared_ptr<FCmpInstruction> instruction;
-};
-}  // namespace factories
-
+// ~~~~~ Generalizations ~~~~~
 
 /** REGISTER INSTRUCTIONS HERE!
  *
@@ -272,58 +109,222 @@ struct Factory<FCmpInstruction> {
  *              visitor of instruction class
  */
 REGISTER_VISITABLES(
-    VisitableImpl, VisitableBase, VisitorBase, InstructionFactory,
-    CallInstruction, ICmpInstruction, FCmpInstruction
+    VisitableImpl, VisitableBase, VisitorBase,
+    LLVM_VISITABLES
 )
 
-namespace mappers {
-template<>
-struct InstructionMapper<CallInstruction>
-    : public InstructionMapperBase {
-  InstructionMapper(
-      InstructionFactory &factory,
-      const ExecutableFile::symbol_map_type &sym_table = {}
-  ) : InstructionMapperBase(factory, sym_table) {}
+using InstructionTraits = visitable_traits<LLVM_VISITABLES>;
 
-  void operator()(const ExecutableFile::instruction_type &i);
+struct Serializable : virtual public VisitableBase {
+  Serializable(std::string signature) : signature(signature) {}
+
+  const std::string &getSignature() const { return signature; }
 
  private:
-  struct AddressCheck : public symbol_table::VisitorBase {
-    ASM_VISIT_ALL(arg) {
-      throw std::runtime_error(
-          std::string("AddressCheck: Type: '") + typeid(arg).name() +
-              "' is not valid parameter for Call (expecting Function)"
-      );
-    }
-  };
-
-  struct FunctionVisitor : public AddressCheck {
-    using symbol_ptr = std::weak_ptr<symbol_table::Function::asm_symbol_type>;
-
-    FunctionVisitor(
-        symbol_ptr &symbol_table
-    ) : symbol(symbol_table) {}
-
-    IMPLEMENT_VISIT(symbol_table::Function, arg) {
-      symbol = arg->getAsmSymbol();
-    }
-
-   private:
-    symbol_ptr &symbol;
-  };
+  std::string signature;
 };
 
-template<>
-struct InstructionMapper<ICmpInstruction>
-    : public InstructionMapperBase {
-  InstructionMapper(
-      InstructionFactory &factory,
-      const ExecutableFile::symbol_map_type &sym_table = {}
-  ) : InstructionMapperBase(factory, sym_table) {}
+/**
+ * Base class for every instruction
+ *
+ * You can traverse this via Generalizer
+ * @see Generalizer
+ */
+struct Instruction : virtual public VisitableBase {
+  using symbol_type = ExecutableFile::symbol_type;
+  using instruction_type = ExecutableFile::instruction_type;
+  using instruction_ptr = std::shared_ptr<instruction_type>;
+  using basic_block_type = ExecutableFile::basic_block_type;
 
-  void operator()(const ExecutableFile::instruction_type &i);
+  Instruction(
+      const std::vector<instruction_type> &assembly
+  ) : assembly(assembly) {}
+
+  const std::vector<instruction_type> &getAssembly() const {
+    return assembly;
+  }
+
+  std::shared_ptr<basic_block_type> getParent() const {
+    return assembly[0].getParent();
+  }
+
+  bfd_vma getAddress() const {
+    return assembly[0].getAddress();
+  }
+
+  void accept(VisitorBase &visitor) override {
+    visitor.visit(this);
+  }
+
+ protected:
+  /**
+   * Almost always this will be only one instruction
+   * (but occasionally multiple)
+   */
+  std::vector<instruction_type> assembly;
 };
-}  // namespace mappers
+
+/**
+ * Prefer using IFactoryBase over this as a base class
+ */
+struct InstructionFactory {
+  /**
+   * Newly arrived instruction will notify every factory
+   */
+  virtual void notify(const ExecutableFile::instruction_type &) const = 0;
+};
+
+/**
+ * Pre-declaration, used in IFactoryBase
+ */
+struct InstructionMapperBase;
+
+/**
+ * Adds self-registering/removal functionality to derived factories
+ */
+struct IFactoryBase
+    : public InstructionFactory {
+
+  /**
+   * Self registering factories
+   *
+   * @param mapper on which this factory hooks on
+   */
+  IFactoryBase(InstructionMapperBase &mapper);
+
+  /**
+   * Self removal factory
+   */
+  virtual ~IFactoryBase();
+
+  /**
+   * Requirements for all Factories
+   */
+  using InstructionFactory::notify;
+
+ protected:
+  /**
+   * @see InstructionMapperBase
+   */
+  InstructionMapperBase &mapper;
+};
+
+/**
+ * Base class for a mapper
+ *
+ * @tparam I type of instruction
+ */
+struct InstructionMapperBase {
+  using visitable_ptr = std::shared_ptr<VisitableBase>;
+  using symbol_table_type = ExecutableFile::symbol_map_type;
+
+  InstructionMapperBase(const symbol_table_type &sym_table);
+
+  /**
+   * Observer call hook
+   *
+   * @param i is assembly instruction
+   * @default behaviour is notification of all factories
+   */
+  virtual void operator()(const ExecutableFile::instruction_type &i) const {
+    for (auto &fac_ptr : factories) fac_ptr->notify(i);
+  }
+
+  /**
+   * Appends newly allocated instruction
+   * Factories use this to create new instructions
+   * This should also check if instructions don't overlap
+   *
+   * @param ptr (will be destroyed after this ...)
+   * @required
+   */
+  virtual void iappend(visitable_ptr &&ptr) = 0;
+
+  std::shared_ptr<symbol_table::VisitableBase> find_symbol
+      (const std::string &address) {
+    bool result = false;
+    std::stringstream ss;
+    bfd_vma int_addr;
+
+    ss << address;
+    ss >> std::hex >> int_addr;
+
+    auto visitor = [&result, &int_addr]
+        (const symbol_table::Function *visitable) {
+      result = visitable->getAsmSymbol()->getAddress() == int_addr;
+    };
+    for (auto &sym : symbol_table) {
+      *sym.second >> visitor;
+      if (result) return sym.second;
+    }
+    return nullptr;
+  }
+
+ public:
+
+  /**
+   * Mapper-scoped symbol table
+   */
+  const symbol_table_type &symbol_table;
+
+ private:
+  friend class IFactoryBase;
+
+  /**
+   * Adds factory into a list of factories
+   *
+   * @param ptr is pointer to a factory
+   * @see factories
+   */
+  void register_factory(
+      InstructionFactory *ptr
+  );
+
+  /**
+   * Removes factory from a list of factories by value
+   *
+   * @param ptr is pointer to a factory
+   * @see factories
+   */
+  void remove_factory(
+      InstructionFactory *ptr
+  );
+
+ protected:
+  std::vector<InstructionFactory *> factories;
+};
+
+struct InstructionMapper : InstructionMapperBase {
+  InstructionMapper(const symbol_table_type &sym_table)
+      : InstructionMapperBase(sym_table),
+        traversed_addresses({}),
+        append_traversed_addr([&](const Instruction *instr) {
+          assert_ex(
+              !contains(traversed_addresses, instr->getAddress()),
+              "Duplicate instruction");
+          traversed_addresses.push_back(instr->getAddress());
+        }) {}
+
+  /**
+   * Appends newly allocated instruction
+   *
+   * @param ptr (will be destroyed after this ...)
+   */
+  virtual void iappend(visitable_ptr &&ptr) {
+    invoke_accept(ptr, append_traversed_addr);
+    created_instructions.get_subscriber()
+        .on_next(ptr);
+  }
+
+  auto as_observable() const {
+    return created_instructions.get_observable();
+  }
+
+ private:
+  std::vector<bfd_vma> traversed_addresses;
+  rxcpp::subjects::subject<visitable_ptr> created_instructions;
+  InstructionVisitorL append_traversed_addr;
+};
 
 #ifndef INSTRUCTION_TEST
 # undef REGISTER_VISITABLES

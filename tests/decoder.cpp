@@ -12,6 +12,7 @@
 #include <befa/assembly/asm_arg_parser.hpp>
 #include <befa/assembly/instruction.hpp>
 #include <befa.hpp>
+#include <befa/llvm/instruction.hpp>
 
 namespace {
 
@@ -41,54 +42,44 @@ TEST(DecoderTest, BasicInstruction) {
   simple_instr.getArgs();
 }
 
-struct TestVisitor
-    : public symbol_table::VisitorBase {
 
-  std::string param_name;
-
-  TestVisitor(std::string param_name) : param_name(param_name) {}
-
-  ASM_VISIT_ALL(arg) {
-    ASSERT_EQ(arg->getName(), param_name);
-  }
-};
+symbol_table::SymbolVisitorL create_test_visitor(std::string cmp) {
+  return symbol_table::SymbolVisitorL(
+      [&cmp](const symbol_table::Symbol *ptr) {
+        ASSERT_EQ(ptr->getName(), cmp);
+      }
+  );
+}
 
 TEST(DecoderTest, WithoutPreparseInstruction) {
   InstructionTemplate simple_instr("mov eax,ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
-  TestVisitor visitor("_eax");
-  args[0]->accept(visitor);
-  visitor.param_name = "_ebx";
-  args[1]->accept(visitor);
+  invoke_accept(args[0], create_test_visitor("<DWORD> _eax"));
+  invoke_accept(args[1], create_test_visitor("<DWORD> _ebx"));
 }
 
 TEST(DecoderTest, TestDereference) {
   InstructionTemplate simple_instr("mov DWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
-  TestVisitor visitor("*(_eax*0x8+0x666)");
-  args[0]->accept(visitor);
-  visitor.param_name = "_ebx";
-  args[1]->accept(visitor);
+  invoke_accept(args[0], create_test_visitor("*(<DWORD> _eax*0x8+0x666)"));
+  invoke_accept(args[1], create_test_visitor("<DWORD> _ebx"));
 }
 
 TEST(DecoderTest, TestXMM) {
   InstructionTemplate simple_instr("mov XMMWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 2);
-  TestVisitor visitor("*(_eax*0x8+0x666)");
-  args[0]->accept(visitor);
-  visitor.param_name = "_ebx";
-  args[1]->accept(visitor);
+  invoke_accept(args[0], create_test_visitor("*(<DWORD> _eax*0x8+0x666)"));
+  invoke_accept(args[1], create_test_visitor("<DWORD> _ebx"));
 }
 
 TEST(DecoderTest, TestLEA) {
   InstructionTemplate simple_instr("jne    4009b0");
   auto args = simple_instr.getArgs();
   ASSERT_EQ(args.size(), 1);
-  TestVisitor visitor("4009b0");
-  args[0]->accept(visitor);
+  invoke_accept(args[0], create_test_visitor("4009b0"));
 }
 
 struct DummySymbol : public ExecutableFile::symbol_type  {
@@ -112,7 +103,6 @@ TEST(DecoderTest, TestFunctionFeed) {
   };
   auto args = simple_instr.getArgs(sym_table);
   ASSERT_EQ(args.size(), 1);
-  TestVisitor visitor("@number_of_the_beast");
-  args[0]->accept(visitor);
+  invoke_accept(args[0], create_test_visitor("@number_of_the_beast"));
 }
 }

@@ -15,7 +15,7 @@ SET(LLVM_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/llvm/instruction.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/llvm/call.hpp
-        ../include/befa/llvm/cmp.hpp)
+        ../include/befa/llvm/cmp.hpp ../include/befa/llvm/jmp.hpp)
 
 SET(LLVM_SOURCES
         ${PROJECT_SOURCE_DIR}/src/llvm/decompiler.cpp)
@@ -24,8 +24,7 @@ SET(UTIL_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa/utils/visitor.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/algorithms.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/byte_array_view.hpp
-        ${PROJECT_SOURCE_DIR}/include/befa/utils/observer.hpp
-        ${PROJECT_SOURCE_DIR}/include/befa/utils/bucket_allocator.hpp ../include/befa/utils/range.hpp)
+        ${PROJECT_SOURCE_DIR}/include/befa/utils/bucket_allocator.hpp ../include/befa/utils/range.hpp ../include/befa/utils/assert.hpp)
 
 ADD_LIBRARY(befa STATIC
         ${ASSEMBLY_SOURCES} ${ASSEMBLY_HEADERS}

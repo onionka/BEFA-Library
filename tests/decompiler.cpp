@@ -13,7 +13,6 @@
 #include <befa/llvm/cmp.hpp>
 #include <befa.hpp>
 
-
 namespace {
 struct dummy_parent {};
 
@@ -24,13 +23,19 @@ struct InstructionTemplate
 };
 
 template<typename LambdaT>
-struct TestVisitor : public llvm::VisitorBase {
+struct TestVisitor : public Generalizer<
+    llvm::InstructionTraits,
+    // Class that generalize derivation classes
+    llvm::Instruction,
+    // Derivations ...
+    llvm::CallInstruction
+> {
 
   TestVisitor(LambdaT &&check)
       : check(std::forward<LambdaT>(check)) {}
 
-  LLVM_VISIT_ALL(arg) {
-    check(arg);
+  void generalized_visitor(const llvm::Instruction *ptr) override {
+    check(ptr);
   }
 
  private:
@@ -64,25 +69,50 @@ void test_single_instruction(
     ExecutableFile::symbol_map_type symbol_map,
     std::string compare
 ) {
+  // instruction created from signature only (dummy)
   InstructionTemplate simple_instr(signature);
 
-  llvm::InstructionFactory factory;
+  // to create llvm instruction we need factory
   ExecutableFile::symbol_map_type symbol_table{
       symbol_map
   };
 
-  llvm::mappers::InstructionMapper<llvm::CallInstruction> mapper
-      (factory, symbol_table);
+  // subject of instruction stream (via this you can send instructions)
+  rxcpp::subjects::subject<ExecutableFile::instruction_type> i_subj;
 
-  mapper(simple_instr);
-  auto visitor = create_TestVisitor([&compare] (auto *instr) {
-    ASSERT_EQ(instr->getSignature(), compare);
+  // create mapper (contains observable - as_observable())
+  llvm::InstructionMapper mapper(symbol_table);
+
+  llvm::CallFactory fact(mapper);
+
+  // hook instruction mapper into instruction stream
+  i_subj.get_observable().subscribe(
+      rxcpp::make_observer_dynamic<ExecutableFile::instruction_type>(mapper)
+  );
+
+  bool called = false;
+  bool received = false;
+  // hook to stream of translated instructions
+  mapper.as_observable().subscribe([&](
+      const std::shared_ptr<llvm::VisitableBase> &i
+  ) {
+    received = true;
+    invoke_accept(i, create_TestVisitor([&](const auto *instr) {
+      ASSERT_EQ(
+          instr->getAssembly()[0].getDecoded(),
+          simple_instr.getDecoded()
+      );
+      ASSERT_FALSE(called);
+      called = true;
+    }));
   });
-  auto instr_vector = factory.collect();
-  ASSERT_GT(instr_vector.size(), 0);
-  for (auto &vis: instr_vector) {
-    vis->accept(visitor);
-  }
+
+  ASSERT_FALSE(received);
+  ASSERT_FALSE(called);
+  // send instruction
+  i_subj.get_subscriber().on_next(simple_instr);
+  ASSERT_TRUE(received && "not received");
+  ASSERT_TRUE(called && "not visited");
 }
 
 TEST(DecompilerTest, CallTest) {
@@ -102,3 +132,26 @@ TEST(DecompilerTest, CallTest) {
   );
 }
 }  // namespace
+
+//
+//TEST(DecompilerTest, JumpTest) {
+//  test_single_instruction(
+//      "jmp    400800",
+//      {
+//          {0x400800,
+//           std::make_shared<symbol_table::Function>(
+//               std::make_shared<DummySymbol>(
+//                   "printf",
+//                   0x400800
+//               )
+//           )
+//          }
+//      },
+//      "jmp @printf"
+//  );
+//  test_single_instruction(
+//      "jmp    666",
+//      {},
+//      "jmp 0x666"
+//  );
+//}

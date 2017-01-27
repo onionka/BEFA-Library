@@ -11,6 +11,8 @@
 #include <cassert>
 #include <memory>
 
+#include "assert.hpp"
+
 // ~~~~~ Vector operations ~~~~~
 /**
  * Known from Typescript .map() function
@@ -91,6 +93,23 @@ inline auto ptr_lock(_WeakPtrT &&ptr) {
 }
 // ~~~~~ WEAK_PTR LOCK ~~~~~
 
+// ~~~~~ Type operations ~~~~~
+/**
+ * @tparam T type from which you want to remove all decorators
+ *           like pointers, references, const and similar
+ */
+template<typename T>
+using remove_all_t = std::remove_volatile_t<
+    std::remove_pointer_t<
+        std::remove_const_t<
+            std::remove_reference_t<
+                std::remove_all_extents_t<T>
+            >
+        >
+    >
+>;
+// ~~~~~ Type operations ~~~~~
+
 // ~~~~~ Function operations ~~~~~
 /**
  * Converts std::function into uint64_t number
@@ -101,57 +120,16 @@ inline auto ptr_lock(_WeakPtrT &&ptr) {
 
 namespace details {
 
-template <typename Function>
-struct function_traits
-    : public function_traits<decltype(&Function::operator())> {
-};
-
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType(ClassType::*)(Args...) const> {
-  typedef ReturnType (*pointer)(Args...);
-  typedef std::function<ReturnType(Args...)> function;
-};
-
-template <typename Function>
-typename function_traits<Function>::function
-to_function (Function & lambda) {
-  return static_cast<typename function_traits<Function>::function>(lambda);
+template<typename _FunctionT>
+inline uint64_t func_to_address(_FunctionT &&lambda) {
+  auto address = (uint64_t) &lambda;
+  assert_ex(address != 0 , "failed to retrieve function address");
+  return address;
 }
-
+}  // namespace details
 
 template<typename _FunctionT>
-inline uint64_t func_to_address
-    (_FunctionT lambda) {
-  auto function = new decltype(to_function(lambda))(
-      to_function(lambda)
-  );
-  void * func = static_cast<void *>(function);
-  return (uint64_t) func;
-}
-
-//template<typename _FunctionT>
-//inline uint64_t func_to_address
-//    <std::function<_FunctionT>>(std::function<_FunctionT> func) {
-//  auto *func_address = func.template target<_FunctionT *>();
-//  assert(func_address && "bad function type");
-//  return (uint64_t) (* func_address);
-//}
-//
-//template<typename Class, typename Return, typename ...Arguments>
-//uint64_t func_to_address<std::function<Return (Class::*)(Arguments...)>>
-//    (std::function<Return (Class::*)(Arguments...)> &executor) {
-//  typedef Return (Class::*fnType)(Arguments...);
-//  fnType ** fnPointer = executor.template target<fnType *>();
-//  if (fnPointer != nullptr) {
-//    return (uint64_t) * fnPointer;
-//  }
-//  return 0;
-//}
-}
-
-template<typename _FunctionT>
-inline uint64_t func_to_address
-    (_FunctionT &&func) {
+inline uint64_t func_to_address(_FunctionT &&func) {
   return details::func_to_address(std::forward<_FunctionT>(func));
 }
 

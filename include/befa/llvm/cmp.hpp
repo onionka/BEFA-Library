@@ -9,84 +9,85 @@
 
 namespace llvm {
 
-struct CmpInstruction : public Instruction {
+struct CmpInstruction
+    : public Instruction,
+      virtual public llvm::VisitableBase,
+      public Serializable {
   enum types_e {
-      // greater than
-      GT, GE,
-      // lesser than
-      LT, LE,
-      // (not) equal
-      EQ, NE,
+    // greater than
+    GT, GE,
+    // lesser than
+    LT, LE,
+    // unsigned greater than
+    UGT, UGE,
+    // unsigned lesser than
+    ULT, ULE,
+    // (not) equal
+    EQ, NE,
   };
 
   CmpInstruction(
+      const std::shared_ptr<symbol_table::VisitableBase> &result,
       const std::shared_ptr<symbol_table::VisitableBase> &lhs,
       types_e op,
       const std::shared_ptr<symbol_table::VisitableBase> &rhs,
-      const instruction_type &parent
-  ) : Instruction({parent}), lhs(lhs), op(op), rhs(rhs) {}
+      const instruction_type &asembly
+  ) : Instruction({asembly}), Serializable(fetchSignature(
+      result, lhs, op, rhs
+  )), result(result), lhs(lhs), op(op), rhs(rhs) {}
 
-  std::string getSignature() const {
+
+  void accept(VisitorBase &visitor) override {
+    visitor.visit(this);
+  }
+
+ private:
+  std::string fetchSignature(
+      const std::shared_ptr<symbol_table::VisitableBase> &result,
+      const std::shared_ptr<symbol_table::VisitableBase> &lhs,
+      types_e op,
+      const std::shared_ptr<symbol_table::VisitableBase> &rhs
+  ) const {
     static std::map<types_e, std::string> type_to_str {
-        {GT, ">"},
-        {GE, ">="},
-        {LT, "<"},
-        {LE, "<="},
-        {EQ, "=="},
-        {NE, "!="}
+        {GT, "gt"},
+        {GE, "ge"},
+        {LT, "lt"},
+        {LE, "le"},
+        {UGT, "ugt"},
+        {UGE, "uge"},
+        {ULT, "ult"},
+        {ULE, "ule"},
+        {EQ, "eq"},
+        {NE, "ne"}
     };
 
     std::string signature;
-    ArgVisitor arg_visitor(signature);
+    symbol_table::SymbolVisitorL arg_visitor(
+        [&signature] (const symbol_table::Symbol *sym) {
+          signature += sym->getName();
+        }
+    );
     lhs->accept(arg_visitor);
     signature += " " + type_to_str[op] + " ";
     rhs->accept(arg_visitor);
     return signature;
   }
 
- private:
-  struct ArgVisitor : public symbol_table::VisitorBase {
-    ArgVisitor(std::string &name_out) : name_out(name_out) {}
 
-    ASM_VISIT_ALL(arg) {
-      name_out += arg->getName();
-    }
-
-   private:
-    std::string &name_out;
-  };
-
+  const std::shared_ptr<symbol_table::VisitableBase> &result;
   const std::shared_ptr<symbol_table::VisitableBase> &lhs;
   types_e op;
   const std::shared_ptr<symbol_table::VisitableBase> &rhs;
 };
 
 struct ICmpInstruction final
-    : public CmpInstruction, public llvm::VisitableImpl<ICmpInstruction> {
-  const std::map<std::string, types_e> comparition_jumps {
-      {"ja", GT},
-      {"jg", GT},
-      {"jnbe", GT},
-      {"jnle", GT},
+    : public CmpInstruction,
+      virtual public llvm::VisitableBase {
+  const static std::map<std::string, types_e> comparition_jumps;
 
-      {"jae", GE},
-      {"jge", GE},
-      {"jnb", GE},
-      {"jnl", GE},
-
-      {"jb", LT},
-      {"jl", LT},
-      {"jnae", LT},
-      {"jnge", LT},
-
-      {"jbe", LE},
-      {"jle", LE},
-      {"jna", LE},
-      {"jng", LE},
-
-      {"je", EQ},
-      {"jne", NE},
-  };
+  void accept(VisitorBase &visitor) override {
+    visitor.visit(this);
+  }
 
   /**
    *
@@ -101,31 +102,22 @@ struct ICmpInstruction final
    * @tparam rhsSymbolBase param should be deduced
    */
   template<
-      typename lhsIntegralT, typename lhsSymbolBase,
-      typename rhsIntegralT, typename rhsSymbolBase
+      typename lhsIntegralT, typename rhsIntegralT
   >
   ICmpInstruction(
-      const std::shared_ptr<symbol_table::SizedSymbol<
-          lhsIntegralT, lhsSymbolBase>> &lhs,
+      const std::shared_ptr<symbol_table::Variable> &result,
+      const std::shared_ptr<symbol_table::SizedSymbol<lhsIntegralT>> &lhs,
       types_e op,
-      const std::shared_ptr<symbol_table::SizedSymbol<
-          rhsIntegralT, rhsSymbolBase>> &rhs,
+      const std::shared_ptr<symbol_table::SizedSymbol<rhsIntegralT>> &rhs,
       const instruction_type &parent
   ) : CmpInstruction(
-      static_cast<
-          typename std::enable_if<
-              symbol_table::types::is_integral<lhsIntegralT>::value,
-              lhsSymbolBase &>::type
-          >(lhs), op,
-      static_cast<
-          typename std::enable_if<
-              symbol_table::types::is_integral<lhsIntegralT>::value,
-              rhsSymbolBase &>::type
-          >(rhs), parent) {}
+      result, lhs, op, rhs, parent
+  ) {}
 };
 
 struct FCmpInstruction final
-    : public CmpInstruction, public llvm::VisitableImpl<FCmpInstruction> {
+    : public CmpInstruction,
+      virtual public llvm::VisitableBase {
   /**
    *
    * @param lhs is left hand size of float compare operation
@@ -139,27 +131,21 @@ struct FCmpInstruction final
    * @tparam rhsSymbolBase param should be deduced
    */
   template<
-      typename lhsFloatT, typename lhsSymbolBase,
-      typename rhsFloatT, typename rhsSymbolBase
+      typename lhsFloatT, typename rhsFloatT
   >
   FCmpInstruction(
-      const std::shared_ptr<symbol_table::SizedSymbol<
-          lhsFloatT, lhsSymbolBase>> &lhs,
+      const std::shared_ptr<symbol_table::Variable> &result,
+      const std::shared_ptr<symbol_table::SizedSymbol<lhsFloatT>> &lhs,
       types_e op,
-      const std::shared_ptr<symbol_table::SizedSymbol<
-          rhsFloatT, rhsSymbolBase>> &rhs,
+      const std::shared_ptr<symbol_table::SizedSymbol<rhsFloatT>> &rhs,
       const instruction_type &parent
   ) : CmpInstruction(
-      static_cast<
-          typename std::enable_if<
-              symbol_table::types::is_sse<lhsFloatT>::value,
-              lhsSymbolBase &>::type
-          >(lhs), op,
-      static_cast<
-          typename std::enable_if<
-              symbol_table::types::is_sse<rhsFloatT>::value,
-              rhsSymbolBase &>::type
-          >(rhs), parent) {}
+      result, lhs, op, rhs, parent
+  ) {}
+
+  void accept(VisitorBase &visitor) override {
+    visitor.visit(this);
+  }
 };
 
 }

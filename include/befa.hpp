@@ -8,8 +8,8 @@
 #include <memory>
 #include <vector>
 #include <bfd.h>
+#include <rxcpp/rx.hpp>
 
-#include "befa/utils/observer.hpp"
 #include "befa/assembly/instruction.hpp"
 #include "befa/assembly/basic_block.hpp"
 #include "befa/assembly/symbol.hpp"
@@ -65,6 +65,8 @@ class ExecutableFile : private disassembler_impl {
   using basic_block_type = befa::BasicBlock<symbol_type>;
   using instruction_type = befa::Instruction<basic_block_type>;
   using symbol_map_type = instruction_type::symbol_map;
+  using instruction_subj = rxcpp::subjects::subject<instruction_type>;
+  using instruction_o$ = instruction_subj::observable_type;
 
   /**
    * Opens a file to be disassebled (creates instance of this)
@@ -104,25 +106,13 @@ class ExecutableFile : private disassembler_impl {
    *
    * @return Observable of instructions
    */
-  Observable<instruction_type> &disassembly() { return assembly_subject.asObservable(); }
+  instruction_o$ disassembly() { return assembly_subject.get_observable(); }
 
   /**
    *
    * @return Observable of instructions
    */
-  auto &symbols() { return basic_block_subject.asObservable(); }
-
-  /**
-   *
-   * @return Observable of instructions
-   */
-  auto &basic_block() { return basic_block_subject.asObservable(); }
-
-  /**
-   *
-   * @return Observable of instructions
-   */
-//  Observable<llvm::Instruction> &llvm() { return llvm_instructions.asObservable(); }
+//  auto &llvm() { return llvm_instructions.get_observable(); }
 
   /**
    * Executes disassembler
@@ -163,28 +153,12 @@ class ExecutableFile : private disassembler_impl {
   /**
    * Subject of instructions (see reactive programming)
    */
-  Subject<instruction_type> assembly_subject;
+  rxcpp::subjects::subject<instruction_type> assembly_subject;
 
   /**
    * Subject of llvm instructions (see reactive programming)
    */
 //  Subject<llvm::Instruction> llvm_instructions;
-
-  /**
-   * Subject of the same basic block instructions
-   */
-  Subject<std::pair<
-      std::shared_ptr<basic_block_type>,
-      std::vector<instruction_type>
-  >> basic_block_subject;
-
-  /**
-   * Subject of the same basic block instructions
-   */
-  Subject<std::pair<
-      std::shared_ptr<symbol_type>,
-      std::vector<instruction_type>
-  >> symbol_subject;
 
   /**
    * Here are stored shared pointers at sections
@@ -204,7 +178,7 @@ class ExecutableFile : private disassembler_impl {
   /**
    * So we can replace subscription (erase old)
    */
-  Subject<instruction_type>::subscription_type basic_block_subscribe;
+  rxcpp::subscription basic_block_subscribe;
 
   /**
    * If this instance has valid file descriptor

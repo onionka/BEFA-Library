@@ -112,45 +112,8 @@ std::vector<std::string> ExecutableFile::getTargets() {
   return ret;
 }
 
-struct BasicBlockSubscriber {
-  typedef Subject<std::pair<
-      std::shared_ptr<ExecutableFile::basic_block_type>,
-      std::vector<ExecutableFile::instruction_type>
-  >> basic_block_subject_type;
-
-  BasicBlockSubscriber(basic_block_subject_type basic_block_subject)
-      : basic_block_subject(basic_block_subject) {}
-
-  void operator()(ExecutableFile::instruction_type instr) {
-    auto locked_bb = instr.getParent();
-    if (bb_id == (bfd_vma) -1) {
-      bb_id = locked_bb->getId();
-      last_bb = locked_bb;
-    }
-    // if parent is different, than the first instruction
-    // send to the subject whole basic block vector of instructions
-    if (bb_id != locked_bb->getId()) {
-      if (!buffer.empty())
-        basic_block_subject.update(std::make_pair(
-            buffer.back().getParent(), buffer));
-      bb_id = locked_bb->getId();
-      last_bb = locked_bb;
-      buffer.clear();
-    }
-    buffer.push_back(std::move(instr));
-  }
-
- private:
-  std::shared_ptr<ExecutableFile::basic_block_type> last_bb;
-  basic_block_subject_type basic_block_subject;
-  std::vector<ExecutableFile::instruction_type> buffer;
-  bfd_vma bb_id = (bfd_vma) -1;
-};
-
 ExecutableFile::ExecutableFile(bfd *fd)
     : disassembler_impl(fd), is_valid(fd != NULL) {
-  basic_block_subscribe =
-      assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
 //  basic_block_subject.subscribe(SymbolSubscriber(symbol_subject));
 }
 
@@ -164,9 +127,6 @@ ExecutableFile::ExecutableFile(ExecutableFile &&rhs)
       sections_sorted(std::move(rhs.sections_sorted)),
       symbols_sorted(std::move(rhs.symbols_sorted)) {
   // so reference into basic_block_subject will not be forgotten
-  if (basic_block_subscribe) basic_block_subscribe.unsubscribe();
-  basic_block_subscribe =
-      assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
 }
 
 ExecutableFile &ExecutableFile::operator=(ExecutableFile &&rhs) {
@@ -178,9 +138,6 @@ ExecutableFile &ExecutableFile::operator=(ExecutableFile &&rhs) {
   is_valid = std::move(rhs.is_valid);
   sections_sorted = std::move(rhs.sections_sorted);
   symbols_sorted = std::move(rhs.symbols_sorted);
-  if (basic_block_subscribe) basic_block_subscribe.unsubscribe();
-  basic_block_subscribe =
-      assembly_subject.subscribe(BasicBlockSubscriber(basic_block_subject));
   return *this;
 }
 

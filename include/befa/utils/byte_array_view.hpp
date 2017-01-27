@@ -19,7 +19,7 @@ struct array_view {
   typedef std::vector<item_type> vector_type;
 
   // cons
-  array_view(vector_type vector) throw()
+  array_view(vector_type &vector) throw()
       : _p(vector.data()), _s((size_type) vector.size()) {}
 
   // cons
@@ -54,7 +54,7 @@ struct array_view {
   const_reference operator[](size_type i) const
 #ifdef ARRAY_VIEW_CHECK_BORDERS
   {
-    assert(i >= size() && "index out of bound");
+    assert_ex(i >= size() , "index out of bound");
 #else
     throw() {
 #endif
