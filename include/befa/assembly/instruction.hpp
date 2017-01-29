@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <pcrecpp.h>
+#include <rxcpp/rx-observable.hpp>
 
 #include "../utils/algorithms.hpp"
 #include "../utils/byte_array_view.hpp"
@@ -25,7 +26,7 @@ static const ::pcrecpp::RE parse_regex = std::string(
 );
 
 namespace details {
-inline std::vector<std::string> match(
+inline auto split(
     const std::string &str,
     const pcrecpp::RE &parse_regex
 );
@@ -92,7 +93,7 @@ struct Instruction
   const bfd_vma &getAddress() const { return address; }
 
   instruction_pieces parse() const override {
-    return details::match(getDecoded(), parse_regex);
+    return details::split(getDecoded(), parse_regex);
   }
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
 
@@ -132,16 +133,26 @@ struct Instruction
 };
 
 namespace details {
-std::vector<std::string> match(
+/**
+ * Splits into groups
+ *
+ * @param str to be split by regular expression
+ * @param parse_regex is pcree
+ * @return observable of parsed pieces
+ */
+auto split(
     const std::string &str,
     const pcrecpp::RE &parse_regex
 ) {
-  std::vector<std::string> result;
-  string temp;
-  pcrecpp::StringPiece input(str);
-  while (parse_regex.FindAndConsume(&input, &temp))
-    result.push_back(temp);
-  return result;
+  return rxcpp::sources::create<std::string>(
+      [&] (rxcpp::subscriber<std::string> s) {
+        string temp;
+        pcrecpp::StringPiece input(str);
+        while (parse_regex.FindAndConsume(&input, &temp))
+          s.on_next(temp);
+        s.on_completed();
+      }
+  );
 }
 }  // namespace details
 }  // namespace befa

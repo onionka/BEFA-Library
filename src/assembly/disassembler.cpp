@@ -72,7 +72,6 @@ struct SymbolDataLoader {
       std::weak_ptr<disassembler_impl::ffile> f,
       bfd_vma sym_size
   ) {
-    // TODO: Decode instructions
     { // file related work
       auto f_lock = ptr_lock(f);
       auto sym_lock = ptr_lock(ptr);
@@ -81,7 +80,10 @@ struct SymbolDataLoader {
       f_lock->reset();
 
       disassembler_ftype _dis_asm = disassembler(_fd);
-      assert_ex(_dis_asm, "should not be null");
+      assert_ex(
+          _dis_asm,
+          "failed to open file descriptor for disassembling"
+      );
 
       bfd_vma sym_address = sym_lock->getAddress();
       int i_size = _dis_asm(sym_address, &d_info);
@@ -125,8 +127,10 @@ struct SymbolDataLoader {
           );
           ++bba_begin;
         }
-        assert_ex(!basic_block_buffer.empty(),
-                  "basic_block_buffer cannot be empty");
+        assert_ex(
+            !basic_block_buffer.empty(),
+            "basic_block_buffer cannot be empty"
+        );
         instr_subj.get_subscriber().on_next(instruction_type(
             std::get<0>(instr), basic_block_buffer.back(),
             std::get<1>(instr), std::get<2>(instr)

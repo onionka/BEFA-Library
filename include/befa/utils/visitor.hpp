@@ -64,6 +64,30 @@ struct VisitorBase<T, Ts...> : public VisitorBase<Ts...> {
   virtual void visit(const T *) {}
 };
 
+namespace details {
+template<typename lambdaT>
+struct parse_visitor {};
+
+template<typename cls, typename paramT, typename retT>
+struct parse_visitor<retT(cls::*)(paramT)> {
+  using param_type = remove_all_t<paramT>;
+  using return_type = remove_all_t<retT>;
+};
+
+template<typename cls, typename paramT, typename retT>
+struct parse_visitor<retT(cls::*)(paramT) const> {
+  using param_type = remove_all_t<paramT>;
+  using return_type = remove_all_t<retT>;
+};
+
+template<typename paramT, typename retT>
+struct parse_visitor<retT(*)(paramT)> {
+  using param_type = remove_all_t<paramT>;
+  using return_type = remove_all_t<retT>;
+};
+
+}  // namespace details
+
 /** Base class for all visitable objects */
 template<typename ...Ts>
 struct VisitableBase {
@@ -79,7 +103,7 @@ struct VisitableBase {
   template<typename FunctionT>
   VisitableBase<Ts...> &operator>>(FunctionT &&visitor) {
     using lambda_type = remove_all_t<FunctionT>;
-    using param_type = typename parse_visitor<
+    using param_type = typename details::parse_visitor<
         typename std::remove_pointer<
             decltype(&lambda_type::operator())
         >::type
@@ -106,27 +130,6 @@ struct VisitableBase {
    private:
     LambdaT &lambda;
   };
-
-  template<typename lambdaT>
-  struct parse_visitor {};
-
-  template<typename cls, typename paramT, typename retT>
-  struct parse_visitor<retT(cls::*)(paramT)> {
-    using param_type = remove_all_t<paramT>;
-    using return_type = remove_all_t<retT>;
-  };
-
-  template<typename cls, typename paramT, typename retT>
-  struct parse_visitor<retT(cls::*)(paramT) const> {
-    using param_type = remove_all_t<paramT>;
-    using return_type = remove_all_t<retT>;
-  };
-
-  template<typename paramT, typename retT>
-  struct parse_visitor<retT(*)(paramT)> {
-    using param_type = remove_all_t<paramT>;
-    using return_type = remove_all_t<retT>;
-  };
 };
 
 /** Base class for all visitable objects (pre-implemented accept method) */
@@ -138,50 +141,126 @@ struct VisitableImpl : public virtual VisitableBase<Ts...> {
   }
 };
 
-// Learn a 'is_pointer' function to know shared and weak ptr
+// Learn 'is_pointer' function new pointer types: shared and weak
 namespace std {
 template<typename _Tp>
-struct is_pointer<shared_ptr<_Tp>>
-    : true_type {};
+struct is_pointer<shared_ptr < _Tp>> : true_type {
+};
 template<typename _Tp>
-struct is_pointer<shared_ptr<_Tp> &>
-    : true_type {};
+struct is_pointer<shared_ptr < _Tp> &> : true_type {
+};
 template<typename _Tp>
-struct is_pointer<const shared_ptr<_Tp> &>
-    : true_type {};
+struct is_pointer<const shared_ptr <_Tp> &> : true_type {};
 template<typename _Tp>
-struct is_pointer<weak_ptr<_Tp>>
-    : true_type {};
+struct is_pointer<weak_ptr < _Tp>> : true_type {
+};
 template<typename _Tp>
-struct is_pointer<weak_ptr<_Tp> &>
-    : true_type {};
+struct is_pointer<weak_ptr < _Tp> &> : true_type {
+};
 template<typename _Tp>
-struct is_pointer<const weak_ptr<_Tp> &>
-    : true_type {};
+struct is_pointer<const weak_ptr <_Tp> &> : true_type {};
 }  // namespace std
 
+namespace std {
+template<typename T>
+struct remove_pointer<std::shared_ptr<T>> { using type = T; };
+template<typename T>
+struct remove_pointer<std::unique_ptr<T>> { using type = T; };
+template<typename T>
+struct remove_pointer<std::shared_ptr<T> &> { using type = T; };
+template<typename T>
+struct remove_pointer<std::unique_ptr<T> &> { using type = T; };
+template<typename T>
+struct remove_pointer<const std::shared_ptr<T> &> { using type = T; };
+template<typename T>
+struct remove_pointer<const std::unique_ptr<T> &> { using type = T; };
+}
 
+namespace details {
+
+template<typename T>
+struct decay_ptr_impl {
+  constexpr static auto &decay(T ptr) {
+    assert_ex(
+        (bool) ptr,
+        std::string("nullptr dereference of type '")
+            + typeid(decltype(*ptr)).name() + "'!"
+    );
+    return *ptr;
+  };
+};
+
+template<typename T>
+struct decay_nothing {
+  constexpr static T decay(T &&ptr) {
+    return std::forward<T &>(ptr);
+  };
+};
+
+template<typename T>
+using decay_ptr_base = std::conditional_t<
+    std::is_pointer<T>::value,
+    decay_ptr_impl<T>,
+    decay_nothing<T>
+>;
+
+template<typename T>
+struct decay_ptr : decay_ptr_base<T> {
+  using decay_ptr_base<T>::decay;
+};
+}  // namespace details
+
+/**
+ *
+ * @param visitable pointer (or reference to pointer) to visitable
+ * @param visitor unique ref to visitor (but not a pointer)
+ * @return
+ */
 template<typename Visitable, typename Visitor>
-typename std::enable_if<
-    std::is_pointer<Visitable>::value,
-    void
->::type invoke_accept(
+void invoke_accept(
     Visitable &&visitable,
     Visitor &&visitor
 ) {
-  assert_ex((bool)visitable, "invalid visitable");
-  visitable->accept(visitor);
+  details::decay_ptr<Visitable>::decay(
+      std::forward<Visitable>(visitable)
+  ).accept(details::decay_ptr<Visitor &>::decay(
+      visitor
+  ));
 }
 
-template<typename Visitable, typename Visitor>
-typename std::enable_if<
-    (!std::is_pointer<Visitable>::value),
-    void
->::type invoke_accept(
+/**
+ * Works only with lambdas
+ * @tparam Visitor
+ * @tparam Visitable
+ * @tparam Lambda
+ * @tparam DefaultValueT
+ * @param visitable
+ * @param mapper
+ * @param default_result
+ * @return
+ */
+template<
+    typename Visitor,
+    typename Visitable,
+    typename Lambda,
+    typename DefaultValueT = typename details::parse_visitor<
+        typename std::remove_pointer<
+            decltype(&Lambda::operator())
+        >::type
+    >::return_type
+>
+auto map_visitable(
     Visitable &&visitable,
-    Visitor &&visitor
-) { visitable.accept(visitor); }
-
+    Lambda &&mapper,
+    DefaultValueT default_result = DefaultValueT()
+) -> DefaultValueT {
+  invoke_accept(visitable, Visitor(
+      [&mapper, &default_result](const auto &ptr) {
+        default_result = mapper(ptr);
+      }
+  ));
+  return default_result;
+}
 
 template<typename ...VisitablesT>
 struct visitable_traits {
@@ -230,7 +309,7 @@ struct Generalizer<visitable_traits, BaseT, T, Ts...>
    * Implementation of visit for each of derivations
    */
   void visit(const T *visitable) override {
-    this->generalized_visitor((const BaseT *)(visitable));
+    this->generalized_visitor((const BaseT *) (visitable));
   }
 };
 

@@ -286,23 +286,24 @@ std::string Temporary::fetchName(
 }
 }  // namespace symbol_table
 
-std::vector<asm_arg_parser::symbol_ptr> asm_arg_parser::getArgs(
+asm_arg_parser::symbol_obserable asm_arg_parser::getArgs(
     const asm_arg_parser::symbol_map &functions
 ) const throw(std::runtime_error) {
-  instruction_pieces arr = parse();
-  assert_ex(!arr.empty(), "instruction pieces cannot be empty");
-
-  std::string name = arr[0];
-  std::vector<symbol_ptr> params;
-
-  for (auto &arg : range(arr.begin() + 1, arr.end())) {
-    if (auto expr = handle_expression(arg, functions)) {
-      params.emplace_back(std::move(expr));
-    } else {
-      name += " (" + arg + ")";
-    }
-  }
-  return std::move(params);
+  return parse().skip(1)
+      .map([&](
+          const std::string &arg
+      ) -> symbol_ptr {
+        return handle_expression(arg, functions);
+      })
+#if !defined(NASSERT_EX) || NASSERT_EX == 0
+      .filter([](
+          std::shared_ptr<symbol_table::VisitableBase> ptr
+      ) -> bool {
+        assert_ex((bool) ptr, "failed to create symbol/expression");
+        return true;
+      })
+#endif // NDEBUG
+      ;
 }
 
 std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_dereference
@@ -419,6 +420,7 @@ std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::handle_expression(
     }
   }
 
-  return nullptr;
+  // unknown symbol or expression
+  return std::make_shared<symbol_table::Symbol>(expr);
 }
 //

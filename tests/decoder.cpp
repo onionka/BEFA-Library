@@ -38,7 +38,15 @@ struct InstructionTemplate
 };
 
 TEST(DecoderTest, BasicInstruction) {
-  SimpleInstruction simple_instr({"mov", "eax", "ebx"});
+  auto pieces = rxcpp::sources::create<std::string>([](
+      rxcpp::subscriber<std::string> sub
+  ) {
+    sub.on_next("mov");
+    sub.on_next("eax");
+    sub.on_next("ebx");
+    sub.on_completed();
+  });
+  SimpleInstruction simple_instr(pieces);
   simple_instr.getArgs();
 }
 
@@ -51,35 +59,43 @@ symbol_table::SymbolVisitorL create_test_visitor(std::string cmp) {
   );
 }
 
+auto create_check_fn(std::string name) {
+  return rxcpp::make_observer<std::shared_ptr<symbol_table::VisitableBase>>([&name] (
+      const std::shared_ptr<symbol_table::VisitableBase> &ptr
+  ) {
+    invoke_accept(ptr, create_test_visitor(name));
+  });
+}
+
 TEST(DecoderTest, WithoutPreparseInstruction) {
   InstructionTemplate simple_instr("mov eax,ebx");
   auto args = simple_instr.getArgs();
-  ASSERT_EQ(args.size(), 2);
-  invoke_accept(args[0], create_test_visitor("<DWORD> _eax"));
-  invoke_accept(args[1], create_test_visitor("<DWORD> _ebx"));
+  args.count().subscribe([](size_t size) { ASSERT_EQ(size, 2); });
+  args.element_at(0).subscribe(create_check_fn("<DWORD> _eax"));
+  args.element_at(1).subscribe(create_check_fn("<DWORD> _ebx"));
 }
 
 TEST(DecoderTest, TestDereference) {
   InstructionTemplate simple_instr("mov DWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
-  ASSERT_EQ(args.size(), 2);
-  invoke_accept(args[0], create_test_visitor("*(<DWORD> _eax*0x8+0x666)"));
-  invoke_accept(args[1], create_test_visitor("<DWORD> _ebx"));
+  args.count().subscribe([](size_t size) { ASSERT_EQ(size, 2); });
+  args.element_at(0).subscribe(create_check_fn("*(<DWORD> _eax*0x8+0x666)"));
+  args.element_at(1).subscribe(create_check_fn("<DWORD> _ebx"));
 }
 
 TEST(DecoderTest, TestXMM) {
   InstructionTemplate simple_instr("mov XMMWORD PTR [eax*0x8+0x666],ebx");
   auto args = simple_instr.getArgs();
-  ASSERT_EQ(args.size(), 2);
-  invoke_accept(args[0], create_test_visitor("*(<DWORD> _eax*0x8+0x666)"));
-  invoke_accept(args[1], create_test_visitor("<DWORD> _ebx"));
+  args.count().subscribe([](size_t size) { ASSERT_EQ(size, 2); });
+  args.element_at(0).subscribe(create_check_fn("*(<DWORD> _eax*0x8+0x666)"));
+  args.element_at(1).subscribe(create_check_fn("<DWORD> _ebx"));
 }
 
 TEST(DecoderTest, TestLEA) {
   InstructionTemplate simple_instr("jne    4009b0");
   auto args = simple_instr.getArgs();
-  ASSERT_EQ(args.size(), 1);
-  invoke_accept(args[0], create_test_visitor("4009b0"));
+  args.count().subscribe([](size_t size) { ASSERT_EQ(size, 1); });
+  args.element_at(0).subscribe(create_check_fn("4009b0"));
 }
 
 struct DummySymbol : public ExecutableFile::symbol_type  {
@@ -102,7 +118,7 @@ TEST(DecoderTest, TestFunctionFeed) {
       ))
   };
   auto args = simple_instr.getArgs(sym_table);
-  ASSERT_EQ(args.size(), 1);
-  invoke_accept(args[0], create_test_visitor("@number_of_the_beast"));
+  args.count().subscribe([] (size_t size) { ASSERT_EQ(size , 1); });
+  args.element_at(0).subscribe(create_check_fn("@number_of_the_beast"));
 }
 }

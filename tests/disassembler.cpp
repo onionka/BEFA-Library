@@ -26,12 +26,11 @@ auto create_mapper(
   return [=, &instr_sequence](
       const ExecutableFile::instruction_type &instr
   ) mutable -> bool {
-    auto params = instr.parse();
     // stop iteration
-    if (params.size() < 1 || seq_index >= instr_sequence.size()) {
+    if (seq_index >= instr_sequence.size() ||
+        instr_sequence[seq_index] != instr.getName()) {
       subscription.unsubscribe();
-    } else if (instr_sequence[seq_index] != params[0]) {
-      subscription.unsubscribe();
+      // the sequence has been found
     } else if (seq_index == instr_sequence.size() - 1) {
       subscription.unsubscribe();
       return true;
@@ -66,7 +65,7 @@ TEST_F(SimpleFixture, SimpleTest) {
   int seq_found = 0;
   auto assembly$ = file.disassembly();
   assembly$.subscribe([&](const i_type &instr) {
-    if (instr_sequence[0] == instr.parse()[0]) {
+    if (instr_sequence[0] == instr.getName()) {
       auto subscription = rxcpp::composite_subscription();
       subscription = assembly$.map(
           create_mapper(
@@ -108,7 +107,7 @@ TEST_F(GlobalFunctionFixture, GlobalFunctionTest) {
   });
 
   global_function$.subscribe([&](i_type instr) {
-    if (instr_sequence[0] == instr.parse()[0]) {
+    if (instr_sequence[0] == instr.getName()) {
       auto subscription = rxcpp::composite_subscription();
       subscription = global_function$.map(
           create_mapper(

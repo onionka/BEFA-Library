@@ -69,20 +69,27 @@ struct CallInstruction
 };
 
 struct CallFactory : public IFactoryBase {
-  CallFactory(InstructionMapperBase &mapper)
+  CallFactory(std::shared_ptr<llvm::MapperForFactory> mapper)
       : IFactoryBase(mapper) {}
 
-  void notify(const ExecutableFile::instruction_type &i) const override {
-    auto pieces = i.parse();
-    if (pieces[0] == "call") {
-      mapper.iappend(std::static_pointer_cast<VisitableBase>(
-          std::make_shared<CallInstruction>(
-              nullptr,
-              mapper.find_symbol(pieces[1]),
-              i
-          )
-      ));
-    }
+  void notify(
+      const ExecutableFile::instruction_type &i,
+      const InstructionMapperBase *mapper
+  ) const override {
+    InstructionMapperBase *nonconst = (InstructionMapperBase *) mapper;
+    if (i.getName() == "call")
+      i.getArgs(*nonconst->symbol_table).first().subscribe([&](
+          const std::shared_ptr<symbol_table::VisitableBase> &target
+      ) {
+        mapper->subscriber()
+            .on_next(std::static_pointer_cast<VisitableBase>(
+                std::make_shared<CallInstruction>(
+                    nullptr,
+                    target,
+                    i
+                )
+            ));
+      });
   }
 };
 

@@ -120,7 +120,7 @@ ExecutableFile::ExecutableFile(bfd *fd)
 ExecutableFile::ExecutableFile(ExecutableFile &&rhs)
     : disassembler_impl(std::move(rhs)),
       assembly_subject(std::move(rhs.assembly_subject)),
-//      llvm_instructions(std::move(rhs.llvm_instructions)),
+//      llvm_subj(std::move(rhs.llvm_subj)),
       section_buffer(std::move(rhs.section_buffer)),
       symbol_buffer(std::move(rhs.symbol_buffer)),
       is_valid(std::move(rhs.is_valid)),
@@ -132,7 +132,7 @@ ExecutableFile::ExecutableFile(ExecutableFile &&rhs)
 ExecutableFile &ExecutableFile::operator=(ExecutableFile &&rhs) {
   disassembler_impl::operator=(std::move(rhs));
   assembly_subject = std::move(rhs.assembly_subject);
-//  llvm_instructions = std::move(rhs.llvm_instructions);
+//  llvm_subj = std::move(rhs.llvm_subj);
   section_buffer = std::move(rhs.section_buffer);
   symbol_buffer = std::move(rhs.symbol_buffer);
   is_valid = std::move(rhs.is_valid);

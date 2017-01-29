@@ -73,39 +73,45 @@ void test_single_instruction(
   InstructionTemplate simple_instr(signature);
 
   // to create llvm instruction we need factory
-  ExecutableFile::symbol_map_type symbol_table{
-      symbol_map
-  };
+  auto symbol_table =
+      std::make_shared<ExecutableFile::symbol_map_type>(symbol_map);
 
   // subject of instruction stream (via this you can send instructions)
   rxcpp::subjects::subject<ExecutableFile::instruction_type> i_subj;
 
   // create mapper (contains observable - as_observable())
-  llvm::InstructionMapper mapper(symbol_table);
+  std::shared_ptr<llvm::InstructionMapper> mapper
+      = std::make_shared<llvm::InstructionMapper>(symbol_table);
 
-  llvm::CallFactory fact(mapper);
+  // append Call factory
+  mapper->register_factory(
+      std::make_shared<llvm::CallFactory>(mapper)
+  );
 
   // hook instruction mapper into instruction stream
   i_subj.get_observable().subscribe(
-      rxcpp::make_observer_dynamic<ExecutableFile::instruction_type>(mapper)
+      mapper->getMapper()
   );
 
   bool called = false;
   bool received = false;
   // hook to stream of translated instructions
-  mapper.as_observable().subscribe([&](
-      const std::shared_ptr<llvm::VisitableBase> &i
-  ) {
-    received = true;
-    invoke_accept(i, create_TestVisitor([&](const auto *instr) {
-      ASSERT_EQ(
-          instr->getAssembly()[0].getDecoded(),
-          simple_instr.getDecoded()
-      );
-      ASSERT_FALSE(called);
-      called = true;
-    }));
-  });
+  mapper->observable()
+      .subscribe([&](
+          const std::shared_ptr<llvm::VisitableBase> &i
+      ) {
+        received = true;
+        invoke_accept(i, create_TestVisitor([&](
+            const auto *instr
+        ) {
+          ASSERT_EQ(
+              instr->getAssembly()[0].getDecoded(),
+              simple_instr.getDecoded()
+          );
+          ASSERT_FALSE(called);
+          called = true;
+        }));
+      });
 
   ASSERT_FALSE(received);
   ASSERT_FALSE(called);

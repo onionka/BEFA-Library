@@ -15,6 +15,13 @@
 #include "befa/assembly/symbol.hpp"
 #include "befa/assembly/section.hpp"
 
+namespace llvm {
+/**
+ * defined in @see befa/llvm/instruction.hpp
+ */
+struct InstructionMapperBase;
+}
+
 /**
  * BFD old-c algorthms adaptor
  */
@@ -27,13 +34,13 @@ class disassembler_impl {
     size_t pos;
   };
 
-  // ~~~~~ Copy & Move semantics ~~~~~
+  // ~~~~~ Copy & Move semantics
   disassembler_impl(const disassembler_impl &) = delete;
   disassembler_impl &operator=(const disassembler_impl &) = delete;
   disassembler_impl(disassembler_impl &&rhs);
 
   disassembler_impl &operator=(disassembler_impl &&rhs);
-  // ~~~~~ Copy & Move semantics ~~~~~
+  // ~~~~~ Copy & Move semantics
 
  private:
   std::vector<asection *> sections;
@@ -60,13 +67,19 @@ class disassembler_impl {
 
 class ExecutableFile : private disassembler_impl {
  public:
+  // ~~~~~ Executable file hierarchy
   using section_type = befa::Section;
   using symbol_type = befa::Symbol<section_type>;
   using basic_block_type = befa::BasicBlock<symbol_type>;
   using instruction_type = befa::Instruction<basic_block_type>;
   using symbol_map_type = instruction_type::symbol_map;
-  using instruction_subj = rxcpp::subjects::subject<instruction_type>;
-  using instruction_o$ = instruction_subj::observable_type;
+  using assembly_subj_t = rxcpp::subjects::subject<instruction_type>;
+  using assembly_o_t = assembly_subj_t::observable_type;
+  // ~~~~~ Executable file hierarchy
+
+  // ~~~~~ LLVM types
+  using llvm_mapper_t = llvm::InstructionMapperBase;
+  // ~~~~~ LLVM types
 
   /**
    * Opens a file to be disassebled (creates instance of this)
@@ -104,15 +117,9 @@ class ExecutableFile : private disassembler_impl {
 
   /**
    *
-   * @return Observable of instructions
+   * @return assembly instruction stream (observable)
    */
-  instruction_o$ disassembly() { return assembly_subject.get_observable(); }
-
-  /**
-   *
-   * @return Observable of instructions
-   */
-//  auto &llvm() { return llvm_instructions.get_observable(); }
+  assembly_o_t disassembly() { return assembly_subject.get_observable(); }
 
   /**
    * Executes disassembler
@@ -158,7 +165,7 @@ class ExecutableFile : private disassembler_impl {
   /**
    * Subject of llvm instructions (see reactive programming)
    */
-//  Subject<llvm::Instruction> llvm_instructions;
+  std::shared_ptr<llvm_mapper_t> llvm_mapper;
 
   /**
    * Here are stored shared pointers at sections
@@ -174,11 +181,6 @@ class ExecutableFile : private disassembler_impl {
    * Here are stored shared pointers at sections
    */
   std::vector<std::shared_ptr<basic_block_type>> basic_block_buffer;
-
-  /**
-   * So we can replace subscription (erase old)
-   */
-  rxcpp::subscription basic_block_subscribe;
 
   /**
    * If this instance has valid file descriptor

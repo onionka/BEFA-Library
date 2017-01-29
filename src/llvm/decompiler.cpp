@@ -8,9 +8,12 @@
 #include "../../include/befa.hpp"
 
 void ExecutableFile::runDecompiler() {
-  disassembly().subscribe([](instruction_type i ATTRIBUTE_UNUSED) {
-    // parse instruction 'i'
-  });
+  disassembly()
+      .subscribe([&](
+          instruction_type i ATTRIBUTE_UNUSED
+      ) {
+        // parse instruction 'i'
+      });
 
   runDisassembler();
 }
@@ -19,30 +22,27 @@ namespace llvm {
 
 // InstructionMapperBase
 void InstructionMapperBase::register_factory(
-    InstructionFactory *ptr
-) {
-  factories.push_back(ptr);
-}
+    const std::shared_ptr<InstructionFactory> &ptr
+) { factories.push_back(ptr); }
 
 void InstructionMapperBase::remove_factory(
     InstructionFactory *ptr
 ) {
-  factories.erase(std::remove(
-      factories.begin(), factories.end(), ptr
+  factories.erase(std::remove_if(
+      factories.begin(), factories.end(),
+      [&ptr] (const std::shared_ptr<InstructionFactory> &fac) {
+        return fac.get() == ptr;
+      }
   ), factories.end());
 }
 // InstructionMapperBase ~~~~~
 
 // IFactoryBase
 IFactoryBase::IFactoryBase(
-    InstructionMapperBase &mapper
-) : mapper(mapper) {
-  mapper.register_factory(this);
-}
+    mapper_type mapper
+) : mapper(mapper) {}
 
-IFactoryBase::~IFactoryBase() {
-  mapper.remove_factory(this);
-}
+void IFactoryBase::deregister() { mapper->remove_factory(this); }
 // IFactoryBase ~~~~~
 
 const std::map<std::string, ICmpInstruction::types_e>
@@ -72,8 +72,8 @@ const std::map<std::string, ICmpInstruction::types_e>
 };
 
 InstructionMapperBase::InstructionMapperBase(
-    const symbol_table_type &symbol_table
-) : symbol_table(symbol_table) {}
+    const std::shared_ptr<symbol_table_type> &symbol_table
+) : MapperForFactory(symbol_table) {}
 
 //void InstructionMapper<CallInstruction>::operator()
 //    (const ExecutableFile::instruction_type &i) {
@@ -118,6 +118,40 @@ InstructionMapperBase::InstructionMapperBase(
 //    (factory).create(jmp_target, i);
 //  }
 //}
+
+// ~~~~~ CMP implementation
+static std::map<CmpInstruction::types_e, std::string> type_to_str{
+    {CmpInstruction::GT, "gt"},
+    {CmpInstruction::GE, "ge"},
+    {CmpInstruction::LT, "lt"},
+    {CmpInstruction::LE, "le"},
+    {CmpInstruction::UGT, "ugt"},
+    {CmpInstruction::UGE, "uge"},
+    {CmpInstruction::ULT, "ult"},
+    {CmpInstruction::ULE, "ule"},
+    {CmpInstruction::EQ, "eq"},
+    {CmpInstruction::NE, "ne"}
+};
+
+std::string CmpInstruction::fetchSignature(
+    const std::shared_ptr<symbol_table::VisitableBase> &result,
+    const std::shared_ptr<symbol_table::VisitableBase> &lhs,
+    CmpInstruction::types_e op,
+    const std::shared_ptr<symbol_table::VisitableBase> &rhs
+) const {
+
+  std::string signature;
+  symbol_table::SymbolVisitorL arg_visitor(
+      [&signature](const symbol_table::Symbol *sym) {
+        signature += sym->getName();
+      }
+  );
+  lhs->accept(arg_visitor);
+  signature += " " + type_to_str[op] + " ";
+  rhs->accept(arg_visitor);
+  return signature;
+}
+// ~~~~~ CMP implementation
 
 }  // namespace llvm
 

@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <regex>
+#include <rxcpp/rx.hpp>
 
 #include "../utils/assert.hpp"
 #include "../utils/visitor.hpp"
@@ -271,6 +272,7 @@ using SymbolVisitorL = LambdaGeneralizer<
 >;
 // ~~~~~ Lambda Visitors ~~~~~
 
+// use this to implement derived classes instead of lambdas
 // ~~~~~ Generalized Visitors ~~~~~
 template<typename size_type>
 using SizedSymbolVisitor = typename SizedSymbolVisitorL<size_type>::Base;
@@ -301,7 +303,6 @@ struct Variable : virtual public VisitableBase {
   struct Use;
 };
 
-
 struct Variable::Define
     : public Variable,
       virtual public VisitableBase {
@@ -312,13 +313,11 @@ struct Variable::Define
 
 struct Variable::Use
     : public Variable,
-      virtual public VisitableBase{
+      virtual public VisitableBase {
   void accept(VisitorBase &base) override {
     base.visit(this);
   }
 };
-
-
 
 /**
  * Base class for all Assembly Symbols
@@ -327,12 +326,23 @@ struct Symbol : virtual public VisitableBase {
   using symbol_ptr = std::shared_ptr<VisitableBase>;
   using temporary_ptr = std::shared_ptr<VisitableBase>;
 
-  Symbol(const std::string &name) : name(name) {}
+  /**
+   *
+   * @param name
+   * @param address is needed, but with default value
+   *        that causes to generate new unique address
+   */
+  Symbol(
+      const std::string &name,
+      bfd_vma address = (bfd_vma) -1
+  ) : name(name), address(address) {}
 
   /**
    * @return name of this symbol (like eax or ebp)
    */
   const std::string &getName() const { return name; }
+
+  bfd_vma getAddress() const { return address; }
 
   void accept(VisitorBase &base) override {
     base.visit(this);
@@ -340,6 +350,7 @@ struct Symbol : virtual public VisitableBase {
 
  private:
   std::string name;
+  bfd_vma address;
 };
 
 /**
@@ -574,19 +585,20 @@ struct Immidiate
  private:
   std::string value;
 };
-}
+}  // namespace symbol_table
 
 struct asm_arg_parser {
-  using instruction_pieces = std::vector<std::string>;
+  using instruction_pieces = rxcpp::subjects::subject<std::string>::observable_type;
   using symbol_ptr = std::shared_ptr<symbol_table::VisitableBase>;
   using symbol_map = std::map<bfd_vma, symbol_ptr>;
+  using symbol_obserable = rxcpp::subjects::subject<asm_arg_parser::symbol_ptr>::observable_type;
 
   /**
    * Arguments are Immidiate, Expressions, Registers, ...
    *
    * @return vector of parameters
    */
-  std::vector<symbol_ptr> getArgs(
+  symbol_obserable getArgs(
       const symbol_map &functions = {}
   ) const throw(std::runtime_error);
 
@@ -596,6 +608,20 @@ struct asm_arg_parser {
    * @return mov eax,ebx -> ["mov", "eax", "ebx"]
    */
   virtual instruction_pieces parse() const = 0;
+
+  /**
+   * better run getArgs() first, because it will call parse
+   * and set name
+   *
+   * @return name of this instruction
+   */
+  std::string getName() const {
+    std::string name;
+    parse().first().subscribe([&name](const std::string &n) {
+      name = n;
+    });
+    return name;
+  }
 
  private:
 

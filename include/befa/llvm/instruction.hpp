@@ -165,37 +165,51 @@ struct Instruction : virtual public VisitableBase {
 };
 
 /**
+ * Pre-declaration, used in IFactoryBase
+ */
+struct InstructionMapperBase;
+
+struct MapperForFactory;
+
+/**
  * Prefer using IFactoryBase over this as a base class
  */
 struct InstructionFactory {
   /**
    * Newly arrived instruction will notify every factory
    */
-  virtual void notify(const ExecutableFile::instruction_type &) const = 0;
+  virtual void notify(
+      const ExecutableFile::instruction_type &,
+      const InstructionMapperBase *
+  ) const = 0;
 };
 
 /**
- * Pre-declaration, used in IFactoryBase
- */
-struct InstructionMapperBase;
-
-/**
- * Adds self-registering/removal functionality to derived factories
+ * adds subject, but still requires notify
  */
 struct IFactoryBase
     : public InstructionFactory {
 
+  using mapper_type = std::shared_ptr<llvm::MapperForFactory>;
+
   /**
    * Self registering factories
    *
-   * @param mapper on which this factory hooks on
+   * @param subject is a subject that will stream instructions
    */
-  IFactoryBase(InstructionMapperBase &mapper);
+  IFactoryBase(
+      mapper_type mapper
+  );
 
   /**
-   * Self removal factory
+   * Polymorphism requirement
    */
-  virtual ~IFactoryBase();
+  virtual ~IFactoryBase() = default;
+
+  /**
+   * If you want to remove from mapper factories, call this method
+   */
+  void deregister();
 
   /**
    * Requirements for all Factories
@@ -203,45 +217,41 @@ struct IFactoryBase
   using InstructionFactory::notify;
 
  protected:
-  /**
-   * @see InstructionMapperBase
-   */
-  InstructionMapperBase &mapper;
+  mapper_type mapper;
 };
 
 /**
- * Base class for a mapper
- *
- * @tparam I type of instruction
+ * Interface window for factories
  */
-struct InstructionMapperBase {
-  using visitable_ptr = std::shared_ptr<VisitableBase>;
+struct MapperForFactory {
+  // ~~~~~ Symbol types
+  using symbol_type = symbol_table::VisitableBase;
+  using symbol_ptr = std::shared_ptr<symbol_type>;
   using symbol_table_type = ExecutableFile::symbol_map_type;
+  using symbol_table_ptr = std::shared_ptr<symbol_table_type>;
+  // ~~~~~ Symbol types
 
-  InstructionMapperBase(const symbol_table_type &sym_table);
-
-  /**
-   * Observer call hook
-   *
-   * @param i is assembly instruction
-   * @default behaviour is notification of all factories
-   */
-  virtual void operator()(const ExecutableFile::instruction_type &i) const {
-    for (auto &fac_ptr : factories) fac_ptr->notify(i);
-  }
+  // ~~~~~ llvm::Instruction types
+  using instruction_type = VisitableBase;
+  using instruction_ptr = std::shared_ptr<instruction_type>;
+  using subject_type = rxcpp::subjects::subject<instruction_ptr>;
+  using subscriber_type = subject_type::subscriber_type;
+  using observable_type = subject_type::observable_type;
+  // ~~~~~ llvm::Instruction types
 
   /**
-   * Appends newly allocated instruction
-   * Factories use this to create new instructions
-   * This should also check if instructions don't overlap
-   *
-   * @param ptr (will be destroyed after this ...)
-   * @required
+   * Create mapper with symbol table
    */
-  virtual void iappend(visitable_ptr &&ptr) = 0;
+  MapperForFactory(const symbol_table_ptr &symbol_table)
+      : symbol_table(symbol_table) {}
 
+  /**
+   * Fetches symbol by its address
+   * @param address in string format
+   * @return pointer to VisitableBase or nullptr
+   */
   std::shared_ptr<symbol_table::VisitableBase> find_symbol
-      (const std::string &address) {
+      (const std::string &address) const {
     bool result = false;
     std::stringstream ss;
     bfd_vma int_addr;
@@ -253,22 +263,81 @@ struct InstructionMapperBase {
         (const symbol_table::Function *visitable) {
       result = visitable->getAsmSymbol()->getAddress() == int_addr;
     };
-    for (auto &sym : symbol_table) {
+    for (auto &sym : *symbol_table) {
       *sym.second >> visitor;
       if (result) return sym.second;
     }
     return nullptr;
   }
 
- public:
+  /**
+   * Append new symbol
+   */
+  void append_symbol(const symbol_ptr &sym) {
+    symbol_table->operator[](get_address(sym)) = sym;
+  }
+
+  /**
+   * Removes factory from a list of factories by value
+   *
+   * @param ptr is pointer to a factory
+   * @see factories
+   */
+  virtual void remove_factory(
+      InstructionFactory *ptr
+  ) = 0;
+
+  virtual subscriber_type subscriber() const = 0;
+
+  /**
+   *
+   * @param sym
+   * @return
+   */
+  bfd_vma get_address(const symbol_ptr &sym) const {
+    const static bfd_vma non_address = (bfd_vma) -1;
+    bfd_vma address = non_address;
+    invoke_accept(sym, symbol_table::SymbolVisitorL([&address](
+      const symbol_table::Symbol *s
+    ) { address = s->getAddress(); }));
+    assert_ex(address != non_address, "trying to load non-symbol address");
+    return address;
+  }
 
   /**
    * Mapper-scoped symbol table
    */
-  const symbol_table_type &symbol_table;
+  std::shared_ptr<symbol_table_type> symbol_table;
+};
 
- private:
-  friend class IFactoryBase;
+/**
+ * Base class for a mapper
+ *
+ * @tparam I type of instruction
+ */
+struct InstructionMapperBase : public MapperForFactory {
+  InstructionMapperBase(const symbol_table_ptr &sym_table);
+
+  /**
+   * Observer call hook
+   *
+   * @param i is assembly instruction
+   * @default behaviour is notification of all factories
+   */
+  virtual void operator()(const ExecutableFile::instruction_type &i) const {
+    for (auto &fac_ptr : factories) fac_ptr->notify(i, this);
+  }
+
+  auto getMapper() {
+    return [&] (const ExecutableFile::instruction_type &i) {
+      this->operator()(i);
+    };
+  }
+
+  /**
+   * Expects that derivations of this will contain observable of instructions
+   */
+  virtual observable_type observable() const = 0;
 
   /**
    * Adds factory into a list of factories
@@ -277,7 +346,7 @@ struct InstructionMapperBase {
    * @see factories
    */
   void register_factory(
-      InstructionFactory *ptr
+      const std::shared_ptr<InstructionFactory> &ptr
   );
 
   /**
@@ -291,11 +360,11 @@ struct InstructionMapperBase {
   );
 
  protected:
-  std::vector<InstructionFactory *> factories;
+  std::vector<std::shared_ptr<InstructionFactory>> factories;
 };
 
-struct InstructionMapper : InstructionMapperBase {
-  InstructionMapper(const symbol_table_type &sym_table)
+struct InstructionMapper : public InstructionMapperBase {
+  InstructionMapper(const symbol_table_ptr &sym_table)
       : InstructionMapperBase(sym_table),
         traversed_addresses({}),
         append_traversed_addr([&](const Instruction *instr) {
@@ -305,24 +374,17 @@ struct InstructionMapper : InstructionMapperBase {
           traversed_addresses.push_back(instr->getAddress());
         }) {}
 
-  /**
-   * Appends newly allocated instruction
-   *
-   * @param ptr (will be destroyed after this ...)
-   */
-  virtual void iappend(visitable_ptr &&ptr) {
-    invoke_accept(ptr, append_traversed_addr);
-    created_instructions.get_subscriber()
-        .on_next(ptr);
+  observable_type observable() const override {
+    return created_instructions.get_observable();
   }
 
-  auto as_observable() const {
-    return created_instructions.get_observable();
+  subscriber_type subscriber() const override {
+    return created_instructions.get_subscriber();
   }
 
  private:
   std::vector<bfd_vma> traversed_addresses;
-  rxcpp::subjects::subject<visitable_ptr> created_instructions;
+  subject_type created_instructions;
   InstructionVisitorL append_traversed_addr;
 };
 

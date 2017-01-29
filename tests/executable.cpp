@@ -29,9 +29,10 @@ TEST_F(ExecutableFixture, FetchSymbols) {
 
   EXPECT_FALSE(sym_table.empty());
 
-  EXPECT_NE(sym_table.end(), std::find_if(sym_table.begin(), sym_table.end(), [](auto &sym) {
-    return ptr_lock(sym)->operator==("main");
-  }));
+  EXPECT_NE(sym_table.end(),
+            std::find_if(sym_table.begin(), sym_table.end(), [](auto &sym) {
+              return ptr_lock(sym)->operator==("main");
+            }));
 }
 
 TEST_F(ExecutableFixture, FetchSections) {
@@ -39,9 +40,10 @@ TEST_F(ExecutableFixture, FetchSections) {
 
   EXPECT_FALSE(sections.empty());
 
-  EXPECT_NE(sections.end(), std::find_if(sections.begin(), sections.end(), [](auto &sec) {
-    return ptr_lock(sec)->getName() == ".text";
-  }));
+  EXPECT_NE(sections.end(),
+            std::find_if(sections.begin(), sections.end(), [](auto &sec) {
+              return ptr_lock(sec)->getName() == ".text";
+            }));
 }
 
 TEST_F(ExecutableFixture, FetchSectionViaSymbols) {
@@ -50,9 +52,10 @@ TEST_F(ExecutableFixture, FetchSectionViaSymbols) {
 
   EXPECT_FALSE(sections.empty());
 
-  EXPECT_NE(sections.end(), std::find_if(sections.begin(), sections.end(), [](auto &sec) {
-    return ptr_lock(sec)->getName() == ".text";
-  }));
+  EXPECT_NE(sections.end(),
+            std::find_if(sections.begin(), sections.end(), [](auto &sec) {
+              return ptr_lock(sec)->getName() == ".text";
+            }));
 }
 
 TEST_F(ExecutableFixture, FindSymbolsSections) {
@@ -84,9 +87,19 @@ TEST_F(ExecutableFixture, TestInstruction) {
       ::array_view<uint8_t>(), dummy_parent, "mov eax, ebx", 500);
   auto arr = instruction.parse();
 
-  EXPECT_EQ(arr[0], "mov");
-  EXPECT_EQ(arr[1], "eax");
-  EXPECT_EQ(arr[2], "ebx");
+  arr.element_at(0)
+      .subscribe([](const std::string &parsed) {
+        EXPECT_EQ(parsed, "mov");
+      });
+
+  arr.element_at(1)
+      .subscribe([](const std::string &parsed) {
+        EXPECT_EQ(parsed, "eax");
+      });
+  arr.element_at(2)
+      .subscribe([](const std::string &parsed) {
+        EXPECT_EQ(parsed, "ebx");
+      });
 }
 
 }  // namespace
