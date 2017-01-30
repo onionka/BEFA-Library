@@ -20,7 +20,7 @@ void ExecutableFile::runDecompiler() {
 
 namespace llvm {
 
-// InstructionMapperBase
+// ~~~~~ InstructionMapperBase
 void InstructionMapperBase::register_factory(
     const std::shared_ptr<InstructionFactory> &ptr
 ) { factories.push_back(ptr); }
@@ -30,21 +30,22 @@ void InstructionMapperBase::remove_factory(
 ) {
   factories.erase(std::remove_if(
       factories.begin(), factories.end(),
-      [&ptr] (const std::shared_ptr<InstructionFactory> &fac) {
+      [&ptr](const std::shared_ptr<InstructionFactory> &fac) {
         return fac.get() == ptr;
       }
   ), factories.end());
 }
-// InstructionMapperBase ~~~~~
+// ~~~~~ InstructionMapperBase
 
-// IFactoryBase
+// ~~~~~ IFactoryBase
 IFactoryBase::IFactoryBase(
-    mapper_type mapper
+    mapper_ptr mapper
 ) : mapper(mapper) {}
 
 void IFactoryBase::deregister() { mapper->remove_factory(this); }
-// IFactoryBase ~~~~~
+// ~~~~~ IFactoryBase
 
+// ~~~~~ Mappers
 const std::map<std::string, ICmpInstruction::types_e>
     ICmpInstruction::comparition_jumps{
     {"ja", GT},
@@ -75,49 +76,127 @@ InstructionMapperBase::InstructionMapperBase(
     const std::shared_ptr<symbol_table_type> &symbol_table
 ) : MapperForFactory(symbol_table) {}
 
-//void InstructionMapper<CallInstruction>::operator()
-//    (const ExecutableFile::instruction_type &i) {
-//  auto parsed_i = i.parse();
-//  std::vector<std::shared_ptr<symbol_table::VisitableBase>> args;
-//  if (parsed_i[0] == "call" && (
-//      // if this is call then get args
-//      args = i.getArgs(symbol_table)
-//  ).size() == 1) {
-//    std::shared_ptr<InstructionFactory>
-//    std::weak_ptr<ExecutableFile::symbol_type> call_target;
-//    // call have only one argument (first)
-//    invoke_accept(args[0], FunctionVisitor(call_target));
-//    static_cast<factories::Factory <CallInstruction> &>
-//    (factory).create(call_target, i);
-//  }
-//}
-//
-//void InstructionMapper<ICmpInstruction>::operator()
-//    (const ExecutableFile::instruction_type &i) {
-//  auto parsed_i = i.parse();
-//  std::vector<std::shared_ptr<symbol_table::VisitableBase>> args;
-//  ICmpInstruction::types_e type;
-//  if (std::find_if(
-//      ICmpInstruction::comparition_jumps.begin(),
-//      ICmpInstruction::comparition_jumps.end(),
-//      // find a type of instruction
-//      [&](const std::pair<std::string, ICmpInstruction::types_e> &jmp) {
-//        if (parsed_i[0] == jmp.first) {
-//          type = jmp.second;
-//          return true;
-//        }
-//        return false;
-//      }) != ICmpInstruction::comparition_jumps.end()
-//      && (
-//          // if this is jump then get args
-//          args = i.getArgs(symbol_table)
-//      ).size() == 1) {
-//    std::weak_ptr<symbol_table::Function::asm_symbol_type> jmp_target;
-//    invoke_accept(args[0], FunctionVisitor(jmp_target));
-//    static_cast<factories::Factory <CallInstruction> &>
-//    (factory).create(jmp_target, i);
-//  }
-//}
+auto InstructionMapperBase::operator()
+    (const ExecutableFile::instruction_type &i) const {
+  return rxcpp::sources::iterate(factories)
+      // create new states of factories (and run then on - i instruction)
+      .reduce(
+          factory_ptr(), [&](
+              factory_ptr acc,
+              std::shared_ptr<InstructionFactory> fac_ptr
+          ) {
+            if (auto new_fact = fac_ptr->operator()(
+                i, static_cast<const MapperForFactory *>(this)
+            ))
+              acc.push_back(new_fact);
+            return acc;
+          }
+      )
+
+          // filter out not-created factories
+      .filter([&](const factory_ptr &o$) -> bool { return !o$.empty(); })
+
+          // create new mapper from them by soft copying
+      .map([&](
+          const factory_ptr &o$
+      ) -> std::shared_ptr<llvm::InstructionMapperBase> {
+        return this->soft_copy(o$);
+      });
+}
+
+std::shared_ptr<symbol_table::VisitableBase> MapperForFactory::find_symbol
+    (const std::string &address) const {
+  bool result = false;
+  std::stringstream ss;
+  bfd_vma int_addr;
+
+  ss << address;
+  ss >> std::hex >> int_addr;
+
+  auto visitor = [&result, &int_addr]
+      (const symbol_table::Function *visitable) {
+    result = visitable->getAsmSymbol()->getAddress() == int_addr;
+  };
+  for (auto &sym : *symbol_table) {
+    *sym.second >> visitor;
+    if (result) return sym.second;
+  }
+  return nullptr;
+}
+
+bfd_vma MapperForFactory::get_address
+    (const MapperForFactory::symbol_ptr &sym) const {
+  const static bfd_vma non_address = (bfd_vma) -1;
+  bfd_vma address = non_address;
+  invoke_accept(sym, symbol_table::SymbolVisitorL([&address](
+      const symbol_table::Symbol *s
+  ) { address = s->getAddress(); }));
+  assert_ex(address != non_address, "trying to load non-symbol address");
+  return address;
+}
+
+std::shared_ptr<MapperForFactory::symbol_table_type>
+MapperForFactory::get_symbol_table() const {
+  return symbol_table;
+}
+
+InstructionMapper::observable_type InstructionMapper::observable() const {
+  return created_instructions->get_observable();
+}
+
+InstructionMapper::subscriber_type InstructionMapper::subscriber() const {
+  return created_instructions->get_subscriber();
+}
+
+rxcpp::subscription InstructionMapper::subscribe_on
+    (InstructionMapper::i_observable_t o$) {
+  using mapper_return_type = decltype(operator()(
+      *(const ExecutableFile::instruction_type *) nullptr
+  ));
+  rxcpp::composite_subscription composite_subscription;
+  composite_subscription.add(
+      // run mapper on each instruction that will come
+      o$.map([&](
+              const ExecutableFile::instruction_type &i
+          ) { return operator()(i); })
+              // subscribe new-state mapper
+              // subscribe again when factory returns new factory
+          .subscribe([&](mapper_return_type new_mapper$) -> void {
+            composite_subscription.add(
+                new_mapper$.subscribe([&](
+                    std::shared_ptr<llvm::InstructionMapperBase> new_mapper
+                ) -> void { new_mapper->subscribe_on(o$); })
+            );
+          })
+  );
+  return composite_subscription;
+}
+
+InstructionMapper::InstructionMapper
+    (const InstructionMapper::symbol_table_ptr &sym_table)
+    : InstructionMapperBase(sym_table),
+      traversed_addresses(std::make_shared<std::vector<bfd_vma>>()),
+      created_instructions(std::make_shared<subject_type>()),
+      append_traversed_addr([&](const Instruction *instr) {
+        assert_ex(
+            !contains(*traversed_addresses, instr->getAddress()),
+            "Duplicate instruction");
+        traversed_addresses->push_back(instr->getAddress());
+      }) {}
+
+InstructionMapper::InstructionMapper(
+    const InstructionMapper &self,
+    const std::vector<std::shared_ptr<InstructionFactory>> &o$
+) : InstructionMapperBase(self, o$),
+    traversed_addresses(self.traversed_addresses),
+    created_instructions(self.created_instructions),
+    append_traversed_addr(self.append_traversed_addr) {}
+
+std::shared_ptr<InstructionMapperBase> InstructionMapper::soft_copy
+    (std::vector<std::shared_ptr<InstructionFactory>> o$) const {
+  return std::make_shared<InstructionMapper>(*this, o$);
+}
+// ~~~~~ Mappers
 
 // ~~~~~ CMP implementation
 static std::map<CmpInstruction::types_e, std::string> type_to_str{
@@ -139,17 +218,32 @@ std::string CmpInstruction::fetchSignature(
     CmpInstruction::types_e op,
     const std::shared_ptr<symbol_table::VisitableBase> &rhs
 ) const {
-
   std::string signature;
   symbol_table::SymbolVisitorL arg_visitor(
       [&signature](const symbol_table::Symbol *sym) {
         signature += sym->getName();
       }
   );
-  lhs->accept(arg_visitor);
+  invoke_accept(result, arg_visitor);
+  signature += " = ";
+  invoke_accept(lhs, arg_visitor);
   signature += " " + type_to_str[op] + " ";
-  rhs->accept(arg_visitor);
+  invoke_accept(rhs, arg_visitor);
   return signature;
+}
+
+CompareFactory::CompareFactory(const IFactoryBase::mapper_ptr &mapper)
+    : IFactoryBase(mapper) {}
+
+CompareFactory::next_factory_ptr CompareFactory::operator()(
+    const ExecutableFile::instruction_type &instruction,
+    const mapper_type *base
+) const {
+  if (instruction.getName() == "cmp") {
+//     just one state
+//    return std::make_shared<JumpFactory>();
+  }
+  return nullptr;
 }
 // ~~~~~ CMP implementation
 

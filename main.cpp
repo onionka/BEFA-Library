@@ -75,17 +75,16 @@ int main(int argc, const char **argv) {
           const ExecutableFile::instruction_type &instruction
       ) {
         // iterate through arguments of instruction
-        auto subscription = instruction.getArgs(sym_table_symbols)
+        auto subscription = instruction
+            .getArgs(sym_table_symbols)
 
                 // convert to names
             .map([](
                 std::shared_ptr<symbol_table::VisitableBase> arg
             ) {
               return map_visitable<symbol_table::SymbolVisitorL>(
-                  arg, [](const symbol_table::Symbol *ptr) {
-                    return ptr->getName();
-                  }
-              );
+                  arg, [](const symbol_table::Symbol *ptr)
+                      -> std::string { return ptr->getName(); });
             })
 
                 // filter out empty (non-symbol stuff)
@@ -95,21 +94,15 @@ int main(int argc, const char **argv) {
 
                 // string join achieved by reduction
             .reduce(std::string(""), [](
-                std::string seed,
-                std::string b
-            ) -> std::string {
-              return seed == "" ? b : seed + ", " + b;
-            })
+                std::string seed, std::string b
+            ) -> std::string { return seed == "" ? b : seed + ", " + b; })
 
                 // print instruction
             .subscribe([&instruction](
                 std::string str_params
-            ) {
-              printf("      <%08lx> %s %s\n",
-                     instruction.getAddress(),
-                     instruction.getName().c_str(),
-                     str_params.c_str()
-              );
+            ) -> void {
+              printf("      <%08lx> %s %s\n", instruction.getAddress(),
+                     instruction.getName().c_str(), str_params.c_str());
             });
       });
 

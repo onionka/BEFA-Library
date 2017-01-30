@@ -257,23 +257,20 @@ const std::map<std::string, VisitableBase *> registers{
  * Gets name via symbol visitor
  *
  * @param sym to fetch name from
- * @return
+ * @return if visitable is not symbol, returns empty string
  */
 std::string get_name(
     const std::shared_ptr<symbol_table::VisitableBase> &sym
 ) {
-  std::string lhs_name;
-  SymbolVisitorL visitor = [&lhs_name]
-      (const symbol_table::Symbol *symbol) {
-    lhs_name = symbol->getName();
-  };
-  if (!sym) return "";
-  invoke_accept(*sym, visitor);
-  return lhs_name;
+  return map_visitable<symbol_table::SymbolVisitorL>(
+      sym, [](const symbol_table::Symbol *ptr) -> std::string
+      { return ptr->getName(); });
 }
 
 std::string Temporary::fetchName(
-    symbol_ptr lhs, std::string op, symbol_ptr rhs
+    const std::string &op,
+    const symbol_ptr &rhs,
+    const symbol_ptr &lhs
 ) const {
   std::string
       lhs_name = get_name(lhs),
@@ -290,11 +287,8 @@ asm_arg_parser::symbol_obserable asm_arg_parser::getArgs(
     const asm_arg_parser::symbol_map &functions
 ) const throw(std::runtime_error) {
   return parse().skip(1)
-      .map([&](
-          const std::string &arg
-      ) -> symbol_ptr {
-        return handle_expression(arg, functions);
-      })
+      .map([&](const std::string &arg) -> symbol_ptr
+           { return handle_expression(arg, functions); })
 #if !defined(NASSERT_EX) || NASSERT_EX == 0
       .filter([](
           std::shared_ptr<symbol_table::VisitableBase> ptr

@@ -7,6 +7,7 @@
 
 #include <tuple>
 #include <memory>
+#include <rxcpp/rx.hpp>
 
 #include "../utils/visitor.hpp"
 #include "../../befa.hpp"
@@ -175,12 +176,24 @@ struct MapperForFactory;
  * Prefer using IFactoryBase over this as a base class
  */
 struct InstructionFactory {
+  using instruction_type = llvm::VisitableBase;
+  using instruction_ptr = std::shared_ptr<instruction_type>;
+  using subject_type = rxcpp::subjects::subject<instruction_type>;
+  using observable_type = subject_type::observable_type;
+  using next_factory_ptr = std::shared_ptr<InstructionFactory>;
+  using subscriber_type = subject_type::subscriber_type;
+
+  using mapper_type = llvm::MapperForFactory;
+  using mapper_ptr = std::shared_ptr<mapper_type>;
+
   /**
    * Newly arrived instruction will notify every factory
+   *
+   * @returns observable for merge
    */
-  virtual void notify(
+  virtual next_factory_ptr operator()(
       const ExecutableFile::instruction_type &,
-      const InstructionMapperBase *
+      const mapper_type *
   ) const = 0;
 };
 
@@ -190,15 +203,13 @@ struct InstructionFactory {
 struct IFactoryBase
     : public InstructionFactory {
 
-  using mapper_type = std::shared_ptr<llvm::MapperForFactory>;
-
   /**
    * Self registering factories
    *
    * @param subject is a subject that will stream instructions
    */
   IFactoryBase(
-      mapper_type mapper
+      mapper_ptr mapper
   );
 
   /**
@@ -214,10 +225,10 @@ struct IFactoryBase
   /**
    * Requirements for all Factories
    */
-  using InstructionFactory::notify;
+  using InstructionFactory::operator();
 
  protected:
-  mapper_type mapper;
+  mapper_ptr mapper;
 };
 
 /**
@@ -230,6 +241,13 @@ struct MapperForFactory {
   using symbol_table_type = ExecutableFile::symbol_map_type;
   using symbol_table_ptr = std::shared_ptr<symbol_table_type>;
   // ~~~~~ Symbol types
+
+  // ~~~~~ Assembly types
+  using a_instr_type = ExecutableFile::instruction_type;
+  using a_instr_ref = a_instr_type &;
+  using a_subject_type = rxcpp::subjects::subject<a_instr_type>;
+  using a_observable_type = a_subject_type::observable_type;
+  // ~~~~~ Assembly types
 
   // ~~~~~ llvm::Instruction types
   using instruction_type = VisitableBase;
@@ -251,31 +269,7 @@ struct MapperForFactory {
    * @return pointer to VisitableBase or nullptr
    */
   std::shared_ptr<symbol_table::VisitableBase> find_symbol
-      (const std::string &address) const {
-    bool result = false;
-    std::stringstream ss;
-    bfd_vma int_addr;
-
-    ss << address;
-    ss >> std::hex >> int_addr;
-
-    auto visitor = [&result, &int_addr]
-        (const symbol_table::Function *visitable) {
-      result = visitable->getAsmSymbol()->getAddress() == int_addr;
-    };
-    for (auto &sym : *symbol_table) {
-      *sym.second >> visitor;
-      if (result) return sym.second;
-    }
-    return nullptr;
-  }
-
-  /**
-   * Append new symbol
-   */
-  void append_symbol(const symbol_ptr &sym) {
-    symbol_table->operator[](get_address(sym)) = sym;
-  }
+      (const std::string &address) const;
 
   /**
    * Removes factory from a list of factories by value
@@ -287,22 +281,32 @@ struct MapperForFactory {
       InstructionFactory *ptr
   ) = 0;
 
-  virtual subscriber_type subscriber() const = 0;
-
   /**
    *
    * @param sym
    * @return
    */
-  bfd_vma get_address(const symbol_ptr &sym) const {
-    const static bfd_vma non_address = (bfd_vma) -1;
-    bfd_vma address = non_address;
-    invoke_accept(sym, symbol_table::SymbolVisitorL([&address](
-      const symbol_table::Symbol *s
-    ) { address = s->getAddress(); }));
-    assert_ex(address != non_address, "trying to load non-symbol address");
-    return address;
-  }
+  bfd_vma get_address(const symbol_ptr &sym) const;
+
+  /**
+   *
+   * @return
+   */
+  std::shared_ptr<symbol_table_type> get_symbol_table() const;
+
+  /**
+   * Expects that derivations of this will contain observable of instructions
+   */
+  virtual subscriber_type subscriber() const = 0;
+
+ protected:
+
+  /**
+   * Copy cons - shared_ptr is a wrapped reference
+   */
+  MapperForFactory(
+      const MapperForFactory &self
+  ) : symbol_table(self.symbol_table) {}
 
   /**
    * Mapper-scoped symbol table
@@ -316,28 +320,32 @@ struct MapperForFactory {
  * @tparam I type of instruction
  */
 struct InstructionMapperBase : public MapperForFactory {
+  using factory_ptr = std::vector<std::shared_ptr<InstructionFactory>>;
+
+  using asm_instruction_t = ExecutableFile::instruction_type;
+  using i_subject_t = rxcpp::subjects::subject<asm_instruction_t>;
+  using i_observable_t = i_subject_t::observable_type;
+
   InstructionMapperBase(const symbol_table_ptr &sym_table);
 
   /**
-   * Observer call hook
+   * Creates a soft copy of this mapper, for next state
    *
-   * @param i is assembly instruction
-   * @default behaviour is notification of all factories
+   * @param o$ vector of new states of factories
    */
-  virtual void operator()(const ExecutableFile::instruction_type &i) const {
-    for (auto &fac_ptr : factories) fac_ptr->notify(i, this);
-  }
-
-  auto getMapper() {
-    return [&] (const ExecutableFile::instruction_type &i) {
-      this->operator()(i);
-    };
-  }
+  virtual std::shared_ptr<InstructionMapperBase> soft_copy(
+      std::vector<std::shared_ptr<InstructionFactory>> o$
+  ) const = 0;
 
   /**
-   * Expects that derivations of this will contain observable of instructions
+   * This will subscribe into a stream of instruction
+   *
+   * @param o$ is input observable
+   * @return subscription (can be removed)
    */
-  virtual observable_type observable() const = 0;
+  virtual rxcpp::subscription subscribe_on(
+      i_observable_t o$
+  ) = 0;
 
   /**
    * Adds factory into a list of factories
@@ -359,32 +367,55 @@ struct InstructionMapperBase : public MapperForFactory {
       InstructionFactory *ptr
   );
 
+  /**
+   * Observer call hook
+   *
+   * @param i is assembly instruction
+   * @default behaviour is notification of all factories
+   */
+  auto operator()(const ExecutableFile::instruction_type &i) const;
+
  protected:
+  /**
+   * Copy cons - new factories
+   *
+   * the rest is just copy referencies
+   */
+  InstructionMapperBase(
+      const InstructionMapperBase &self,
+      const std::vector<std::shared_ptr<InstructionFactory>> &factories
+  ) : MapperForFactory(self),
+      factories(factories) {}
+
   std::vector<std::shared_ptr<InstructionFactory>> factories;
 };
 
 struct InstructionMapper : public InstructionMapperBase {
-  InstructionMapper(const symbol_table_ptr &sym_table)
-      : InstructionMapperBase(sym_table),
-        traversed_addresses({}),
-        append_traversed_addr([&](const Instruction *instr) {
-          assert_ex(
-              !contains(traversed_addresses, instr->getAddress()),
-              "Duplicate instruction");
-          traversed_addresses.push_back(instr->getAddress());
-        }) {}
+  InstructionMapper(const symbol_table_ptr &sym_table);
 
-  observable_type observable() const override {
-    return created_instructions.get_observable();
-  }
+  observable_type observable() const;
 
-  subscriber_type subscriber() const override {
-    return created_instructions.get_subscriber();
-  }
+  std::shared_ptr<InstructionMapperBase> soft_copy(
+      std::vector<std::shared_ptr<InstructionFactory>> o$
+  ) const override;
 
- private:
-  std::vector<bfd_vma> traversed_addresses;
-  subject_type created_instructions;
+  rxcpp::subscription subscribe_on(i_observable_t o$) override;
+
+  subscriber_type subscriber() const override;
+
+ public:
+  /**
+   * construct by copy references
+   *
+   * (note that InstructionVisitorL is just wrapper without state)
+   */
+  InstructionMapper(
+      const InstructionMapper &self,
+      const std::vector<std::shared_ptr<InstructionFactory>> &o$
+  );
+
+  std::shared_ptr<std::vector<bfd_vma>> traversed_addresses;
+  std::shared_ptr<subject_type> created_instructions;
   InstructionVisitorL append_traversed_addr;
 };
 

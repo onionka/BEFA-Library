@@ -208,8 +208,7 @@ int ffprintf(
     const char *format,
     ...
 ) {
-  /* Reserve two times as much as the length of the fmt_str */
-  int printed, alloc = (int) strlen(format) * 2;
+  int printed, alloc = (int) strlen(format);
   va_list ap;
   while (1) {
     f->buffer.resize((size_t) alloc + f->pos);

@@ -15,16 +15,20 @@ struct CmpInstruction
       public Serializable {
   enum types_e {
     // greater than
-    GT, GE,
+        GT, GE,
     // lesser than
-    LT, LE,
+        LT, LE,
     // unsigned greater than
-    UGT, UGE,
+        UGT, UGE,
     // unsigned lesser than
-    ULT, ULE,
+        ULT, ULE,
     // (not) equal
-    EQ, NE,
+        EQ, NE,
   };
+
+  void accept(VisitorBase &visitor) override {
+    visitor.visit(this);
+  }
 
   /**
    *
@@ -44,11 +48,6 @@ struct CmpInstruction
       result, lhs, op, rhs
   )), result(result), lhs(lhs), op(op), rhs(rhs) {}
 
-
-  void accept(VisitorBase &visitor) override {
-    visitor.visit(this);
-  }
-
  private:
   std::string fetchSignature(
       const std::shared_ptr<symbol_table::VisitableBase> &result,
@@ -56,7 +55,6 @@ struct CmpInstruction
       types_e op,
       const std::shared_ptr<symbol_table::VisitableBase> &rhs
   ) const;
-
 
   const std::shared_ptr<symbol_table::VisitableBase> &result;
   const std::shared_ptr<symbol_table::VisitableBase> &lhs;
@@ -100,6 +98,11 @@ struct ICmpInstruction final
 struct FCmpInstruction final
     : public CmpInstruction,
       virtual public llvm::VisitableBase {
+
+  void accept(VisitorBase &visitor) override {
+    visitor.visit(this);
+  }
+
   /**
    *
    * @param lhs is left hand size of float compare operation
@@ -122,12 +125,37 @@ struct FCmpInstruction final
   ) : CmpInstruction(
       result, lhs, op, rhs, parent
   ) {}
-
-  void accept(VisitorBase &visitor) override {
-    visitor.visit(this);
-  }
 };
 
+
+struct CompareFactory : public IFactoryBase {
+  using symbol_type = symbol_table::VisitableBase;
+  using symbol_ptr = std::shared_ptr<symbol_type>;
+
+  /**
+   * @param mapper reference to parent mapper
+   */
+  CompareFactory(const mapper_ptr &mapper);
+
+  /**
+   * @return pointer to the lastly compared symbol
+   */
+  symbol_ptr get_last_symbol() const { return last_symbol; }
+
+  /**
+   * @return pointer to the result symbol of comparition
+   */
+  symbol_ptr get_result_symbol() const { return result; }
+
+  next_factory_ptr operator()(
+      const ExecutableFile::instruction_type &instruction,
+      const mapper_type *base
+  ) const override;
+
+ private:
+  symbol_ptr last_symbol;
+  symbol_ptr result;
+};
 }
 
 #endif //BEFA_CMP_HPP

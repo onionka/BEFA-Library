@@ -7,6 +7,7 @@
 
 #include <typeinfo>
 #include <functional>
+#include <memory>
 
 #include "algorithms.hpp"
 
@@ -142,39 +143,33 @@ struct VisitableImpl : public virtual VisitableBase<Ts...> {
 };
 
 // Learn 'is_pointer' function new pointer types: shared and weak
+// added possibility to remove pointer from shared_ptr and unique_ptr
 namespace std {
 template<typename _Tp>
-struct is_pointer<shared_ptr < _Tp>> : true_type {
-};
+struct is_pointer<std::shared_ptr<_Tp>> : std::true_type {};
 template<typename _Tp>
-struct is_pointer<shared_ptr < _Tp> &> : true_type {
-};
+struct is_pointer<std::shared_ptr<_Tp> &> : std::true_type {};
 template<typename _Tp>
-struct is_pointer<const shared_ptr <_Tp> &> : true_type {};
+struct is_pointer<const std::shared_ptr<_Tp> &> : std::true_type {};
 template<typename _Tp>
-struct is_pointer<weak_ptr < _Tp>> : true_type {
-};
+struct is_pointer<std::weak_ptr<_Tp>> : std::true_type {};
 template<typename _Tp>
-struct is_pointer<weak_ptr < _Tp> &> : true_type {
-};
+struct is_pointer<std::weak_ptr<_Tp> &> : std::true_type {};
 template<typename _Tp>
-struct is_pointer<const weak_ptr <_Tp> &> : true_type {};
+struct is_pointer<const std::weak_ptr<_Tp> &> : std::true_type {};
+template<typename _Tp>
+struct remove_pointer<std::shared_ptr<_Tp>> { using type = _Tp; };
+template<typename _Tp>
+struct remove_pointer<std::unique_ptr<_Tp>> { using type = _Tp; };
+template<typename _Tp>
+struct remove_pointer<std::shared_ptr<_Tp> &> { using type = _Tp; };
+template<typename _Tp>
+struct remove_pointer<std::unique_ptr<_Tp> &> { using type = _Tp; };
+template<typename _Tp>
+struct remove_pointer<const std::shared_ptr<_Tp> &> { using type = _Tp; };
+template<typename _Tp>
+struct remove_pointer<const std::unique_ptr<_Tp> &> { using type = _Tp; };
 }  // namespace std
-
-namespace std {
-template<typename T>
-struct remove_pointer<std::shared_ptr<T>> { using type = T; };
-template<typename T>
-struct remove_pointer<std::unique_ptr<T>> { using type = T; };
-template<typename T>
-struct remove_pointer<std::shared_ptr<T> &> { using type = T; };
-template<typename T>
-struct remove_pointer<std::unique_ptr<T> &> { using type = T; };
-template<typename T>
-struct remove_pointer<const std::shared_ptr<T> &> { using type = T; };
-template<typename T>
-struct remove_pointer<const std::unique_ptr<T> &> { using type = T; };
-}
 
 namespace details {
 
@@ -204,6 +199,12 @@ using decay_ptr_base = std::conditional_t<
     decay_nothing<T>
 >;
 
+/**
+ * Implements method that can turn pointer to reference
+ * or just pass the reference (no overhead if macro NASSERT_EX == 1)
+ *
+ * @tparam T is type
+ */
 template<typename T>
 struct decay_ptr : decay_ptr_base<T> {
   using decay_ptr_base<T>::decay;
@@ -227,6 +228,28 @@ void invoke_accept(
       visitor
   ));
 }
+
+namespace details {
+template<typename T, bool is_ptr>
+struct possible_ptr_impl {
+  inline static bool do_check(T ptr) {
+    return (bool) ptr;
+  }
+};
+
+template<typename T>
+struct possible_ptr_impl<T, false> {
+  inline static bool do_check(T) {
+    return true;
+  }
+};
+
+template<typename T>
+using possible_ptr_check = possible_ptr_impl<
+    T, std::is_pointer<T>::value
+>;
+
+}  // namespace details
 
 /**
  * Works only with lambdas
@@ -254,11 +277,12 @@ auto map_visitable(
     Lambda &&mapper,
     DefaultValueT default_result = DefaultValueT()
 ) -> DefaultValueT {
-  invoke_accept(visitable, Visitor(
-      [&mapper, &default_result](const auto &ptr) {
-        default_result = mapper(ptr);
-      }
-  ));
+  if (details::possible_ptr_check<Visitable>::do_check(visitable))
+    invoke_accept(visitable, Visitor(
+        [&mapper, &default_result](const auto &ptr) {
+          default_result = mapper(ptr);
+        } // wtf
+    ));
   return default_result;
 }
 

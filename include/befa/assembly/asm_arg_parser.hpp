@@ -13,7 +13,6 @@
 
 #include "../utils/assert.hpp"
 #include "../utils/visitor.hpp"
-#include "../utils/bucket_allocator.hpp"
 #include "section.hpp"
 #include "symbol.hpp"
 
@@ -426,14 +425,16 @@ auto cast_symbol_to_visitable(BaseT &&obj) {
  */
 struct Temporary
     : virtual public VisitableBase,
-      public Symbol {
+      virtual public Symbol {
   using symbol_ptr = std::shared_ptr<VisitableBase>;
 
   Temporary(symbol_ptr lhs, std::string op, symbol_ptr rhs)
-      : Symbol(fetchName(lhs, op, rhs)), lhs(lhs), op(op), rhs(rhs) {}
+      : Symbol(fetchName(op, rhs, lhs)),
+        lhs(lhs), op(op), rhs(rhs) {}
 
   Temporary(std::string op, symbol_ptr rhs)
-      : Symbol(fetchName(nullptr, op, rhs)), lhs(nullptr), op(op), rhs(rhs) {}
+      : Symbol(fetchName(op, rhs)),
+        lhs(nullptr), op(op), rhs(rhs) {}
 
   void accept(VisitorBase &base) override {
     base.visit(this);
@@ -453,10 +454,14 @@ struct Temporary
   bool isUnary() const { return !(bool) getLeft(); }
   // ~~~~~ Getters ~~~~~
 
- private:
-
-  std::string fetchName(
-      symbol_ptr lhs, std::string op, symbol_ptr rhs
+ protected:
+  /**
+   * So we could add <TYPE> to variables
+   */
+  virtual std::string fetchName(
+      const std::string &op,
+      const symbol_ptr &rhs,
+      const symbol_ptr &lhs = nullptr
   ) const;
 
   symbol_ptr lhs;
@@ -473,7 +478,8 @@ template<typename SizeT>
 struct SizedTemporary
     : public SizedSymbol<SizeT>,
       public Temporary,
-      virtual public VisitableBase {
+      virtual public VisitableBase,
+      virtual public Symbol {
   using size_trait = typename SizedSymbol<SizeT>::size_trait;
 
   using symbol_ptr = typename Temporary::symbol_ptr;
@@ -482,25 +488,27 @@ struct SizedTemporary
       const symbol_ptr &lhs,
       const std::string &op,
       const symbol_ptr &rhs
-  ) : Temporary(lhs, op, rhs) {}
+  ) : Symbol(fetchName(op, rhs, lhs)),
+      Temporary(lhs, op, rhs) {}
 
   SizedTemporary(
       const std::string &op,
       const symbol_ptr &rhs
-  ) : Temporary(op, rhs) {}
+  ) : Symbol(fetchName(op, rhs)),
+      Temporary(op, rhs) {}
 
   void accept(VisitorBase &base) override {
     base.visit(this);
   }
 
- private:
+ protected:
   std::string fetchName(
       const std::string &op,
       const symbol_ptr &rhs,
       const symbol_ptr &lhs = nullptr
-  ) const {
-    return "<" + std::string(size_trait::name) + ">"
-        + Temporary::getName();
+  ) const override {
+    return "((" + std::string(size_trait::name) + ")"
+        + Temporary::fetchName(op, rhs, lhs) + ")";
   }
 };
 
@@ -535,7 +543,7 @@ struct Register
 
  private:
   std::string fetch_name(std::string name) {
-    return std::string("<") + size_trait::name + "> " + name;
+    return std::string("((") + size_trait::name + ")" + name + ")";
   }
 };
 

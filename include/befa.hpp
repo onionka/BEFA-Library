@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 #include <bfd.h>
+#undef GCC_VERSION
 #include <rxcpp/rx.hpp>
 
 #include "befa/assembly/instruction.hpp"

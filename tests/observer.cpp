@@ -8,11 +8,9 @@
 #include <rxcpp/rx.hpp>
 namespace Rx {
 using namespace rxcpp;
-//using namespace rxcpp::sources;
-//using namespace rxcpp::operators;
 using namespace util;
 using namespace subjects;
-}
+}  // namespace Rx
 
 #include "fixtures.hpp"
 
@@ -21,14 +19,13 @@ namespace {
 TEST(ObservableTest, ReactiveReplacement) {
   Rx::subject<int> int_subj;
   auto subscription = int_subj.get_observable()
-      .map([] (const int &i) {
+      .map([](const int &i) {
         return std::to_string(i);
       })
-      .filter([] (const std::string &i) {
-        printf("%s\n", i.c_str());
+      .filter([](const std::string &i) {
         return i == "5";
       })
-      .subscribe([] (const std::string &str) {
+      .subscribe([](const std::string &str) {
         ASSERT_STREQ(str.c_str(), "5");
       });
   int_subj.get_subscriber()

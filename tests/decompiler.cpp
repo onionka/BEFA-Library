@@ -34,9 +34,9 @@ struct TestVisitor : public Generalizer<
   TestVisitor(LambdaT &&check)
       : check(std::forward<LambdaT>(check)) {}
 
-  void generalized_visitor(const llvm::Instruction *ptr) override {
-    check(ptr);
-  }
+  void generalized_visitor(
+      const llvm::Instruction *ptr
+  ) override { check(ptr); }
 
  private:
   LambdaT check;
@@ -65,12 +65,15 @@ struct DummySymbol : public ExecutableFile::symbol_type {
 };
 
 void test_single_instruction(
-    std::string signature,
+    std::vector<std::string> signatures,
     ExecutableFile::symbol_map_type symbol_map,
     std::string compare
 ) {
   // instruction created from signature only (dummy)
-  InstructionTemplate simple_instr(signature);
+  auto instruction_stream = rxcpp::sources::iterate(signatures)
+      .map([](std::string signature) {
+        return InstructionTemplate(signature);
+      });
 
   // to create llvm instruction we need factory
   auto symbol_table =
@@ -89,41 +92,50 @@ void test_single_instruction(
   );
 
   // hook instruction mapper into instruction stream
-  i_subj.get_observable().subscribe(
-      mapper->getMapper()
-  );
+  mapper->subscribe_on(i_subj.get_observable());
 
-  bool called = false;
-  bool received = false;
-  // hook to stream of translated instructions
-  mapper->observable()
-      .subscribe([&](
-          const std::shared_ptr<llvm::VisitableBase> &i
-      ) {
-        received = true;
-        invoke_accept(i, create_TestVisitor([&](
-            const auto *instr
-        ) {
-          ASSERT_EQ(
-              instr->getAssembly()[0].getDecoded(),
-              simple_instr.getDecoded()
-          );
-          ASSERT_FALSE(called);
-          called = true;
-        }));
-      });
-
-  ASSERT_FALSE(received);
-  ASSERT_FALSE(called);
   // send instruction
-  i_subj.get_subscriber().on_next(simple_instr);
-  ASSERT_TRUE(received && "not received");
-  ASSERT_TRUE(called && "not visited");
+  instruction_stream.subscribe(
+      [&](const ExecutableFile::instruction_type &simple_i) {
+        bool tested = false;
+        bool received = false;
+        // hook to stream of translated instructions
+        mapper
+            // get observable from mapper
+            ->observable()
+
+                // subscribe for newly generated instructions
+            .subscribe([&](
+                const std::shared_ptr<llvm::VisitableBase> &i
+            ) {
+              received = true;
+              // retrieve type of instruction
+              invoke_accept(i, create_TestVisitor([&](
+                  const llvm::Instruction *instr
+              ) -> void {
+                ASSERT_EQ(
+                    instr->getAssembly()[0].getDecoded(),
+                    simple_i.getDecoded()
+                );
+                ASSERT_FALSE(tested);
+                tested = true;
+              }));
+            });
+
+        ASSERT_FALSE(received);
+        ASSERT_FALSE(tested);
+
+        i_subj.get_subscriber().on_next(simple_i);
+
+        ASSERT_TRUE(received && "not received");
+        ASSERT_TRUE(tested && "not visited");
+      }
+  );
 }
 
 TEST(DecompilerTest, CallTest) {
   test_single_instruction(
-      "call    400800",
+      {"call    400800"},
       {
           {0x400800,
            std::make_shared<symbol_table::Function>(
@@ -136,6 +148,10 @@ TEST(DecompilerTest, CallTest) {
       },
       "call @printf()"
   );
+}
+
+TEST(DecompilerTest, CmpTest) {
+
 }
 }  // namespace
 

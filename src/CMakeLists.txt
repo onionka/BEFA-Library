@@ -24,7 +24,7 @@ SET(UTIL_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa/utils/visitor.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/algorithms.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/byte_array_view.hpp
-        ${PROJECT_SOURCE_DIR}/include/befa/utils/bucket_allocator.hpp ../include/befa/utils/range.hpp ../include/befa/utils/assert.hpp)
+        ../include/befa/utils/range.hpp ../include/befa/utils/assert.hpp ../include/befa/utils/backward.hpp)
 
 ADD_LIBRARY(befa STATIC
         ${ASSEMBLY_SOURCES} ${ASSEMBLY_HEADERS}
