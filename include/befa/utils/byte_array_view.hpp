@@ -10,13 +10,13 @@
 
 template<typename T>
 struct array_view {
-  typedef unsigned size_type;
-  typedef T item_type;
-  typedef item_type *pointer;
-  typedef item_type *const_pointer;
-  typedef item_type &reference;
-  typedef item_type &const_reference;
-  typedef std::vector<item_type> vector_type;
+  typedef unsigned                size_type;
+  typedef T                       item_type;
+  typedef item_type*              pointer;
+  typedef item_type*              const_pointer;
+  typedef item_type&              reference;
+  typedef item_type&              const_reference;
+  typedef std::vector<item_type>  vector_type;
 
   // cons
   array_view(vector_type &vector) throw()

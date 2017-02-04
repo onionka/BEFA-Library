@@ -82,8 +82,8 @@ TEST_F(ExecutableFixture, TestInstruction) {
   //  const std::weak_ptr<BasicBlockT> &parent,
   //  std::string decoded,
   //  bfd_vma address
-  std::shared_ptr<ExecutableFile::basic_block_type> dummy_parent = nullptr;
-  auto instruction = ExecutableFile::instruction_type(
+  ExecutableFile::bb_t::ptr::shared dummy_parent = nullptr;
+  auto instruction = ExecutableFile::inst_t::info::type(
       ::array_view<uint8_t>(), dummy_parent, "mov eax, ebx", 500);
   auto arr = instruction.parse();
 

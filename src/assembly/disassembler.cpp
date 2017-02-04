@@ -55,23 +55,24 @@ uint64_t match_jump(std::string instr) {
 }
 
 struct SymbolDataLoader {
-  typedef ExecutableFile::basic_block_type basic_block_type;
-  typedef std::shared_ptr<basic_block_type> basic_block_ptr;
-  typedef ExecutableFile::instruction_type instruction_type;
-  typedef std::weak_ptr<instruction_type> instruction_ptr;
+  using sym_t = ExecutableFile::sym_t;
+  using bb_t = ExecutableFile::bb_t;
+  using inst_t = ExecutableFile::inst_t;
+
+  using ffile_t = type_traits::container<disassembler_impl::ffile>;
 
   SymbolDataLoader(
-      const std::weak_ptr<ExecutableFile::symbol_type> &ptr
-  ) : ptr(ptr) {}
+      sym_t::ptr::weak ptr
+                  ) : ptr(ptr) {}
 
   void fetch(
-      rxcpp::subjects::subject<instruction_type> &instr_subj,
-      std::vector<basic_block_ptr> &basic_block_buffer,
+      inst_t::rx::subj &instr_subj,
+      bb_t::vector::shared &basic_block_buffer,
       disassemble_info d_info,
       bfd *_fd,
-      std::weak_ptr<disassembler_impl::ffile> f,
+      ffile_t::ptr::weak f,
       bfd_vma sym_size
-  ) {
+            ) {
     { // file related work
       auto f_lock = ptr_lock(f);
       auto sym_lock = ptr_lock(ptr);
@@ -107,7 +108,7 @@ struct SymbolDataLoader {
           basic_block_addresses.emplace(address);
           basic_block_addresses.emplace(i_address + i_size);
         }
-        // create instruction, and pass it into subject
+        // create instruction, and pass it into subj
         instructions.emplace_back(std::make_tuple(
             array_view<uint8_t>(d_info.buffer + offset, i_size),
             f_lock->buffer,
@@ -123,7 +124,7 @@ struct SymbolDataLoader {
         if (bba_begin != basic_block_addresses.end() &&
             std::get<2>(instr) == *bba_begin) {
           basic_block_buffer.emplace_back(
-              std::make_shared<basic_block_type>(*bba_begin, ptr)
+              std::make_shared<bb_t::info::type>(*bba_begin, ptr)
           );
           ++bba_begin;
         }
@@ -131,16 +132,17 @@ struct SymbolDataLoader {
             !basic_block_buffer.empty(),
             "basic_block_buffer cannot be empty"
         );
-        instr_subj.get_subscriber().on_next(instruction_type(
-            std::get<0>(instr), basic_block_buffer.back(),
-            std::get<1>(instr), std::get<2>(instr)
-        ));
+        instr_subj.get_subscriber()
+                  .on_next(inst_t::info::type(
+                      std::get<0>(instr), basic_block_buffer.back(),
+                      std::get<1>(instr), std::get<2>(instr)
+                  ));
       }
     }
   }
 
  private:
-  std::weak_ptr<ExecutableFile::symbol_type> ptr;
+  sym_t::ptr::weak ptr;
 };
 
 int ffprintf(struct disassembler_impl::ffile *f, const char *format, ...);
@@ -152,18 +154,18 @@ void ExecutableFile::runDisassembler() {
 
   auto sym_table = getSymbolTable();
   for_each(sym_table, [&](auto &sym_ite) {
-    auto sym = *sym_ite;
-    auto sym_lock = ptr_lock(sym);
+    sym_t::ptr::weak sym = *sym_ite;
+    sym_t::ptr::shared sym_lock = ptr_lock(sym);
 
     // we doesn't care about non-function symbols
     if (!(sym_lock->hasFlags(BSF_FUNCTION)))
       return;
 
-    auto section_lock = ptr_lock(sym_lock->getParent());
+    sec_t::ptr::shared section_lock = ptr_lock(sym_lock->getParent());
 
-    auto closest_ite = std::find_if(
+    sym_t::vector::weak::const_iterator closest_ite = std::find_if(
         sym_ite, sym_table.cend(),
-        [&sym](const std::weak_ptr<ExecutableFile::symbol_type> &val) {
+        [&sym](const sym_t::ptr::weak &val) {
           return (ptr_lock(val)->getFlags() & BSF_FUNCTION)
               && (ptr_lock(sym)->getAddress() < ptr_lock(val)->getAddress());
         }
@@ -175,7 +177,7 @@ void ExecutableFile::runDisassembler() {
                        : sym_lock->getDistance(*closest_ite);
 
     d_info.buffer_vma = section_lock->getAddress(_fd);
-    d_info.buffer_length = section_lock->getSize(_fd);
+    d_info.buffer_length = (unsigned int) section_lock->getSize(_fd);
 
     // create shared buffer for section (user of this will get weak_ptr, so lifetime is the same as this file)
     auto memory = new uint8_t[d_info.buffer_length];
@@ -207,14 +209,16 @@ int ffprintf(
     struct disassembler_impl::ffile *f,
     const char *format,
     ...
-) {
+            ) {
   int printed, alloc = (int) strlen(format);
   va_list ap;
   while (1) {
-    f->buffer.resize((size_t) alloc + f->pos);
+    f->buffer
+     .resize((size_t) alloc + f->pos);
     va_start(ap, format);
     printed = vsnprintf(
-        (char *) f->buffer.data() + f->pos,
+        (char *) f->buffer
+                  .data() + f->pos,
         (size_t) alloc,
         format,
         ap);
@@ -230,7 +234,7 @@ int ffprintf(
 
 disassemble_info create_disassemble_info(
     bfd *_fd, disassembler_impl::ffile *f
-) {
+                                        ) {
   disassemble_info ret;
   init_disassemble_info(&ret, f, (fprintf_ftype) ffprintf);
 

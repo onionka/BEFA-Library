@@ -2,10 +2,27 @@
 // Created by miro on 12/3/16.
 //
 
-#include "../../include/befa/assembly/asm_arg_parser.hpp"
+#include "../../include/befa/assembly/instruction_parser.hpp"
 #include "../../include/befa.hpp"
 #include "../../include/befa/utils/range.hpp"
 
+static std::regex multiplication
+    ("(.+)(\\*)(.+)");
+
+static std::regex add_or_substract
+    ("(.+)(\\+|\\-)(.+)");
+
+static std::regex dereference
+    ("(XMMWORD|BYTE|WORD|DWORD|QWORD) PTR (?:\\w+:)?\\[(.*)\\]");
+
+static std::regex number
+    ("((?:0x0*)?[0-9a-fA-F]+)");
+
+static std::regex address
+    ("(?:0x)?0*([0-9a-fA-F]+)");
+
+
+// registers declarations and definitions
 namespace symbol_table {
 #define DECLARE_REGISTER(name, size) \
     static Register<size> reg##name(#name);
@@ -252,6 +269,9 @@ const std::map<std::string, VisitableBase *> registers{
     {"xmm6", CAST_TO_VISITABLE(reg_xmm6)},
     {"xmm7", CAST_TO_VISITABLE(reg_xmm7)},
 };
+}  // namespace symbol_table
+
+namespace symbol_table {
 
 /**
  * Gets name via symbol visitor
@@ -259,19 +279,17 @@ const std::map<std::string, VisitableBase *> registers{
  * @param sym to fetch name from
  * @return if visitable is not symbol, returns empty string
  */
-std::string get_name(
-    const std::shared_ptr<symbol_table::VisitableBase> &sym
-) {
+std::string get_name
+    (const instruction_parser::sym_t::ptr::shared &sym) {
   return map_visitable<symbol_table::SymbolVisitorL>(
-      sym, [](const symbol_table::Symbol *ptr) -> std::string
-      { return ptr->getName(); });
+      sym,
+      [](const symbol_table::Symbol *ptr)
+          -> std::string { return ptr->getName(); });
 }
 
-std::string Temporary::fetchName(
-    const std::string &op,
-    const symbol_ptr &rhs,
-    const symbol_ptr &lhs
-) const {
+std::string Temporary::fetchName
+    (const std::string &op, const symbol_ptr &rhs, const symbol_ptr &lhs)
+const {
   std::string
       lhs_name = get_name(lhs),
       rhs_name = get_name(rhs);
@@ -283,15 +301,23 @@ std::string Temporary::fetchName(
 }
 }  // namespace symbol_table
 
-asm_arg_parser::symbol_obserable asm_arg_parser::getArgs(
-    const asm_arg_parser::symbol_map &functions
-) const throw(std::runtime_error) {
-  return parse().skip(1)
-      .map([&](const std::string &arg) -> symbol_ptr
-           { return handle_expression(arg, functions); })
+
+static auto empty_functions = std::make_shared<instruction_parser::sym_map_t::type>();
+
+instruction_parser::sym_t::rx::shared_obs instruction_parser::getArgs
+    (instruction_parser::sym_map_t::c_ptr::shared functions)
+const throw(std::runtime_error) {
+  if (!functions) functions = empty_functions;
+  return parse()
+      .skip(1)
+      .map([=](
+          const std::string &arg
+      ) -> sym_t::ptr::shared {
+        return handle_expression(arg, functions);
+      })
 #if !defined(NASSERT_EX) || NASSERT_EX == 0
       .filter([](
-          std::shared_ptr<symbol_table::VisitableBase> ptr
+          instruction_parser::sym_t::ptr::shared ptr
       ) -> bool {
         assert_ex((bool) ptr, "failed to create symbol/expression");
         return true;
@@ -300,8 +326,9 @@ asm_arg_parser::symbol_obserable asm_arg_parser::getArgs(
       ;
 }
 
-std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_dereference
-    (std::string size, std::string expr) const throw(std::runtime_error) {
+instruction_parser::sym_t::ptr::shared    instruction_parser::create_dereference
+    (std::string size, std::string expr)
+const throw(std::runtime_error) {
   using namespace symbol_table::types;
 
   using temp_byte = symbol_table::SizedTemporary<BYTE>;
@@ -331,44 +358,34 @@ std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_dereference
 //      "unknown type of parameter SIZE: " + size + " EXPR: " + expr);
 }
 
-std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_operation
-    (std::string lhs, std::string op,
-     std::string rhs) const throw(std::runtime_error) {
+instruction_parser::sym_t::ptr::shared    instruction_parser::create_operation
+    (std::string lhs, std::string op, std::string rhs)
+const throw(std::runtime_error) {
   if (auto lhs_expr = handle_expression(lhs))
     if (auto rhs_expr = handle_expression(rhs))
       return std::make_shared<symbol_table::Temporary>(
           lhs_expr, op, rhs_expr
       );
   return nullptr;
-//  throw std::runtime_error(
-//      "'" + lhs + op + rhs + "' expression not implemented"
-//  );
 }
 
-std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::create_imm
-    (std::string value) const throw() {
+instruction_parser::sym_t::ptr::shared    instruction_parser::create_imm
+    (std::string value)
+const throw() {
   return std::make_shared<symbol_table::Immidiate>(value);
 }
 
-static std::regex multiplication("(.+)(\\*)(.+)");
-static std::regex add_or_substract("(.+)(\\+|\\-)(.+)");
-static std::regex dereference(
-    "(XMMWORD|BYTE|WORD|DWORD|QWORD) PTR (?:\\w+:)?\\[(.*)\\]"
-);
-static std::regex number("((?:0x0*)?[0-9a-fA-F]+)");
-static std::regex address("(?:0x)?0*([0-9a-fA-F]+)");
-
-std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::handle_expression(
-    std::string expr,
-    const asm_arg_parser::symbol_map &functions
-) const throw(std::runtime_error) {
+instruction_parser::sym_t::ptr::shared    instruction_parser::handle_expression
+    (std::string expr, sym_map_t::c_ptr::shared functions)
+const throw(std::runtime_error) {
   std::smatch result;
+  if (!functions) functions = empty_functions;
 
   { // if (possible) parameter is function
     if (std::regex_match(expr, result, address)) {
       // find function by address
-      auto func_symbol = functions.find(std::stoul(result.str(1), nullptr, 16));
-      if (func_symbol != functions.cend()) {
+      auto func_symbol = functions->find(result.str(1));
+      if (func_symbol != functions->cend()) {
         return func_symbol->second;
       }
     }
@@ -377,8 +394,9 @@ std::shared_ptr<symbol_table::VisitableBase> asm_arg_parser::handle_expression(
   { // if (possible) parameter is register
     auto reg_symbol = symbol_table::registers.find(expr);
     if (reg_symbol != symbol_table::registers.end()) {
-      return std::shared_ptr<symbol_table::VisitableBase>(
-          reg_symbol->second, symbol_table::register_deleter
+      return sym_t::ptr::shared(
+          reg_symbol->second,
+          symbol_table::register_deleter
       );
     }
   }

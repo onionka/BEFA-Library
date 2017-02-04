@@ -4,7 +4,7 @@ SET(ASSEMBLY_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa/assembly/symbol.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/assembly/basic_block.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/assembly/section.hpp
-        ${PROJECT_SOURCE_DIR}/include/befa/assembly/asm_arg_parser.hpp)
+        ${PROJECT_SOURCE_DIR}/include/befa/assembly/instruction_parser.hpp)
 
 SET(ASSEMBLY_SOURCES
         ${PROJECT_SOURCE_DIR}/src/assembly/disassembler.cpp
@@ -24,7 +24,7 @@ SET(UTIL_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa/utils/visitor.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/algorithms.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/utils/byte_array_view.hpp
-        ../include/befa/utils/range.hpp ../include/befa/utils/assert.hpp ../include/befa/utils/backward.hpp)
+        ../include/befa/utils/range.hpp ../include/befa/utils/assert.hpp ../include/befa/utils/backward.hpp ../include/befa/utils/types.hpp)
 
 ADD_LIBRARY(befa STATIC
         ${ASSEMBLY_SOURCES} ${ASSEMBLY_HEADERS}

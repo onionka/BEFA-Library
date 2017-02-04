@@ -9,9 +9,7 @@
 
 void ExecutableFile::runDecompiler() {
   disassembly()
-      .subscribe([&](
-          instruction_type i ATTRIBUTE_UNUSED
-      ) {
+      .subscribe([&](inst_t::c_info::ref) {
         // parse instruction 'i'
       });
 
@@ -20,34 +18,9 @@ void ExecutableFile::runDecompiler() {
 
 namespace llvm {
 
-// ~~~~~ InstructionMapperBase
-void InstructionMapperBase::register_factory(
-    const std::shared_ptr<InstructionFactory> &ptr
-) { factories.push_back(ptr); }
-
-void InstructionMapperBase::remove_factory(
-    InstructionFactory *ptr
-) {
-  factories.erase(std::remove_if(
-      factories.begin(), factories.end(),
-      [&ptr](const std::shared_ptr<InstructionFactory> &fac) {
-        return fac.get() == ptr;
-      }
-  ), factories.end());
-}
-// ~~~~~ InstructionMapperBase
-
-// ~~~~~ IFactoryBase
-IFactoryBase::IFactoryBase(
-    mapper_ptr mapper
-) : mapper(mapper) {}
-
-void IFactoryBase::deregister() { mapper->remove_factory(this); }
-// ~~~~~ IFactoryBase
-
 // ~~~~~ Mappers
-const std::map<std::string, ICmpInstruction::types_e>
-    ICmpInstruction::comparition_jumps{
+const std::map<std::string, CmpInstruction::types_e>
+    CmpInstruction::comparition_jumps{
     {"ja", GT},
     {"jg", GT},
     {"jnbe", GT},
@@ -72,60 +45,109 @@ const std::map<std::string, ICmpInstruction::types_e>
     {"jne", NE},
 };
 
-InstructionMapperBase::InstructionMapperBase(
-    const std::shared_ptr<symbol_table_type> &symbol_table
-) : MapperForFactory(symbol_table) {}
-
-auto InstructionMapperBase::operator()
-    (const ExecutableFile::instruction_type &i) const {
-  return rxcpp::sources::iterate(factories)
-      // create new states of factories (and run then on - i instruction)
-      .reduce(
-          factory_ptr(), [&](
-              factory_ptr acc,
-              std::shared_ptr<InstructionFactory> fac_ptr
-          ) {
-            if (auto new_fact = fac_ptr->operator()(
-                i, static_cast<const MapperForFactory *>(this)
-            ))
-              acc.push_back(new_fact);
-            return acc;
-          }
-      )
-
-          // filter out not-created factories
-      .filter([&](const factory_ptr &o$) -> bool { return !o$.empty(); })
-
-          // create new mapper from them by soft copying
-      .map([&](
-          const factory_ptr &o$
-      ) -> std::shared_ptr<llvm::InstructionMapperBase> {
-        return this->soft_copy(o$);
-      });
+InstructionVisitorL create_traversal(
+    InstructionMapper::addr_t::vector::value &addresses
+) {
+  return [&addresses](const Instruction *instr) {
+    assert_ex(
+        !contains(addresses, instr->getAddress()),
+        "Duplicate instruction");
+    addresses.push_back(instr->getAddress());
+  };
 }
 
-std::shared_ptr<symbol_table::VisitableBase> MapperForFactory::find_symbol
-    (const std::string &address) const {
+InstructionMapper::InstructionMapper(
+    sym_table_t::ptr::shared symbol_table
+) : symbol_table(symbol_table),
+    traversed_addresses({}),
+    append_traversed_addr(create_traversal(traversed_addresses)) {
+
+}
+
+traits::ir::rx::shared_obs InstructionMapper::observable() const {
+  return created_instructions.get_observable();
+}
+
+traits::ir::rx::shared_subs InstructionMapper::subscriber() const {
+  return created_instructions.get_subscriber();
+}
+
+InstructionMapper::sym_table_t::rx::shared_obs InstructionMapper::reduce_instr(
+    traits::a_ir::rx::obs o$
+) {
+  return o$
+      .reduce(std::make_tuple(symbol_table, subscriber()), [&](
+          std::tuple<
+              sym_table_t::ptr::shared,
+              ir_t::rx::shared_subs
+          > acc,
+          const traits::a_ir::info::type &i
+      ) {
+        for (auto &factory : factories)
+          factory->operator()(
+              i, std::get<0>(acc), std::get<1>(acc)
+          );
+        return acc;
+      })
+      .map([](
+          std::tuple<
+              sym_table_t::ptr::shared,
+              ir_t::rx::shared_subs
+          > acc
+      ) { return std::get<0>(acc); });
+}
+
+void InstructionMapper::register_factory(fact_t::ptr::shared ptr) {
+  factories.push_back(ptr);
+}
+
+void InstructionMapper::remove_factory(const fact_t::ptr::raw ptr) {
+  factories.erase(std::remove_if(
+      factories.begin(), factories.end(),
+      [&ptr](const std::shared_ptr<LLVMFactory> &fac) {
+        return fac.get() == ptr;
+      }
+  ), factories.end());
+}
+
+InstructionMapper::InstructionMapper(const InstructionMapper &self)
+    : symbol_table(self.symbol_table),
+      factories(self.factories),
+      traversed_addresses(self.traversed_addresses),
+      append_traversed_addr(self.append_traversed_addr),
+      created_instructions(self.created_instructions) {}
+// ~~~~~ Mappers
+
+// ~~~~~ Symbol Table
+traits::symbol::ptr::shared SymTable::find_symbol(
+    const std::string &name
+) const {
   bool result = false;
-  std::stringstream ss;
-  bfd_vma int_addr;
-
-  ss << address;
-  ss >> std::hex >> int_addr;
-
-  auto visitor = [&result, &int_addr]
-      (const symbol_table::Function *visitable) {
-    result = visitable->getAsmSymbol()->getAddress() == int_addr;
-  };
+  auto visitor = symbol_table::SymbolVisitorL([&result, &name]
+      (const symbol_table::Symbol *visitable) {
+    result = (visitable->getName().find(name) != std::string::npos);
+  });
   for (auto &sym : *symbol_table) {
-    *sym.second >> visitor;
+    invoke_accept(sym.second, visitor);
     if (result) return sym.second;
   }
   return nullptr;
 }
 
-bfd_vma MapperForFactory::get_address
-    (const MapperForFactory::symbol_ptr &sym) const {
+traits::symbol::ptr::shared SymTable::find_symbol(bfd_vma address) const {
+  bool result = false;
+  auto visitor = symbol_table::SymbolVisitorL([&result, &address]
+      (const symbol_table::Symbol *visitable) {
+    result = (visitable->getAddress() == address);
+  });
+  for (auto &sym : *symbol_table) {
+    invoke_accept(sym.second, visitor);
+    if (result) return sym.second;
+  }
+  return nullptr;
+}
+
+bfd_vma SymTable::get_address(SymTable::sym_t::ptr::shared sym) const {
   const static bfd_vma non_address = (bfd_vma) -1;
   bfd_vma address = non_address;
   invoke_accept(sym, symbol_table::SymbolVisitorL([&address](
@@ -135,68 +157,10 @@ bfd_vma MapperForFactory::get_address
   return address;
 }
 
-std::shared_ptr<MapperForFactory::symbol_table_type>
-MapperForFactory::get_symbol_table() const {
+traits::sym_map::ptr::shared SymTable::to_map() const {
   return symbol_table;
 }
-
-InstructionMapper::observable_type InstructionMapper::observable() const {
-  return created_instructions->get_observable();
-}
-
-InstructionMapper::subscriber_type InstructionMapper::subscriber() const {
-  return created_instructions->get_subscriber();
-}
-
-rxcpp::subscription InstructionMapper::subscribe_on
-    (InstructionMapper::i_observable_t o$) {
-  using mapper_return_type = decltype(operator()(
-      *(const ExecutableFile::instruction_type *) nullptr
-  ));
-  rxcpp::composite_subscription composite_subscription;
-  composite_subscription.add(
-      // run mapper on each instruction that will come
-      o$.map([&](
-              const ExecutableFile::instruction_type &i
-          ) { return operator()(i); })
-              // subscribe new-state mapper
-              // subscribe again when factory returns new factory
-          .subscribe([&](mapper_return_type new_mapper$) -> void {
-            composite_subscription.add(
-                new_mapper$.subscribe([&](
-                    std::shared_ptr<llvm::InstructionMapperBase> new_mapper
-                ) -> void { new_mapper->subscribe_on(o$); })
-            );
-          })
-  );
-  return composite_subscription;
-}
-
-InstructionMapper::InstructionMapper
-    (const InstructionMapper::symbol_table_ptr &sym_table)
-    : InstructionMapperBase(sym_table),
-      traversed_addresses(std::make_shared<std::vector<bfd_vma>>()),
-      created_instructions(std::make_shared<subject_type>()),
-      append_traversed_addr([&](const Instruction *instr) {
-        assert_ex(
-            !contains(*traversed_addresses, instr->getAddress()),
-            "Duplicate instruction");
-        traversed_addresses->push_back(instr->getAddress());
-      }) {}
-
-InstructionMapper::InstructionMapper(
-    const InstructionMapper &self,
-    const std::vector<std::shared_ptr<InstructionFactory>> &o$
-) : InstructionMapperBase(self, o$),
-    traversed_addresses(self.traversed_addresses),
-    created_instructions(self.created_instructions),
-    append_traversed_addr(self.append_traversed_addr) {}
-
-std::shared_ptr<InstructionMapperBase> InstructionMapper::soft_copy
-    (std::vector<std::shared_ptr<InstructionFactory>> o$) const {
-  return std::make_shared<InstructionMapper>(*this, o$);
-}
-// ~~~~~ Mappers
+// ~~~~~ Symbol Table
 
 // ~~~~~ CMP implementation
 static std::map<CmpInstruction::types_e, std::string> type_to_str{
@@ -212,12 +176,12 @@ static std::map<CmpInstruction::types_e, std::string> type_to_str{
     {CmpInstruction::NE, "ne"}
 };
 
-std::string CmpInstruction::fetchSignature(
+std::string CmpInstruction::fetch_name(
     const std::shared_ptr<symbol_table::VisitableBase> &result,
     const std::shared_ptr<symbol_table::VisitableBase> &lhs,
     CmpInstruction::types_e op,
     const std::shared_ptr<symbol_table::VisitableBase> &rhs
-) const {
+) {
   std::string signature;
   symbol_table::SymbolVisitorL arg_visitor(
       [&signature](const symbol_table::Symbol *sym) {
@@ -232,20 +196,214 @@ std::string CmpInstruction::fetchSignature(
   return signature;
 }
 
-CompareFactory::CompareFactory(const IFactoryBase::mapper_ptr &mapper)
-    : IFactoryBase(mapper) {}
-
-CompareFactory::next_factory_ptr CompareFactory::operator()(
-    const ExecutableFile::instruction_type &instruction,
-    const mapper_type *base
+void CompareFactory::operator()(
+    a_ir_t::c_info::ref instruction,
+    sym_table_t::ptr::shared /*symboL_table*/,
+    ir_t::rx::shared_subs subscriber
 ) const {
-  if (instruction.getName() == "cmp") {
-//     just one state
-//    return std::make_shared<JumpFactory>();
+  auto name = instruction.getName();
+  printf("%s\n", name.c_str());
+
+#define SEND_TEXT(str) \
+  subscriber.on_next(std::make_shared<llvm::Serializable>(str))
+
+  if (name == "cmp") {
+    SEND_TEXT("SF = MostSignificantBit(Temp)");
+    SEND_TEXT("If (Temp == 0) ZF = 1 else ZF = 0");
+    SEND_TEXT("PF = BitWiseXorNor(Temp[Max-1:0])");
+    SEND_TEXT("CF = 0");
+    SEND_TEXT("OF = 0");
+    SEND_TEXT("AF is undefined");
+
   }
-  return nullptr;
+
+  if (name == "test") {
+    SEND_TEXT("SF = MostSignificantBit(Temp)");
+    SEND_TEXT("If (Temp == 0) ZF = 1 else ZF = 0");
+    SEND_TEXT("PF = BitWiseXorNor(Temp[Max-1:0])");
+    SEND_TEXT("CF = 0");
+    SEND_TEXT("OF = 0");
+    SEND_TEXT("AF is undefined");
+  }
 }
 // ~~~~~ CMP implementation
+using sym_t = BinaryOperator::sym_t;
+
+namespace details {
+/**
+ * @brief finds out operand name
+ * @param operand
+ * @return (name, true) if operand was serializable
+ *         ("", false) else
+ */
+std::tuple<std::string, bool> fetch_name(
+    sym_t::ptr::shared operand
+) {
+  std::string result;
+  bool fetched = false;
+  if (operand)
+    invoke_accept(operand, symbol_table::SymbolVisitorL(
+        [&](const symbol_table::Symbol *symbol) {
+          result = symbol->getName();
+          fetched = true;
+        }
+    ));
+  return std::make_tuple(result, fetched);
+}
+}  // namespace details
+
+// ~~~~~ Binary operation impl
+BinaryOperator::BinaryOperator(
+    const inst_vect_t & assembly,
+    sym_t::ptr::shared  target,
+    sym_t::ptr::shared  lhs,
+    bin_op_t::type      bin_op,
+    sym_t::ptr::shared  rhs
+) : Serializable       (fetch_name(
+                          target, rhs,
+                          bin_op, lhs
+                       ))
+  , Uses               (rhs, lhs)
+  , Assignment         (assembly, target,
+                        createResult(
+                            rhs, bin_op, lhs
+                        ))
+  , Operator           (bin_op) {}
+
+sym_t::ptr::shared BinaryOperator::createResult(
+    sym_t::ptr::shared  rhs,
+    bin_op_t::type     _operator,
+    sym_t::ptr::shared  lhs
+) {
+  Operator op(_operator);
+  return std::make_shared<symbol_table::Temporary>(
+    rhs, op.toString(), lhs
+  );
+}
+
+std::string BinaryOperator::fetch_name(
+    sym_t::ptr::shared         target,
+    sym_t::ptr::shared         lhs,
+    bin_op_t::type            _operator,
+    sym_t::ptr::shared         rhs
+) {
+  return std::get<0> (details::fetch_name (target))
+      +                                    " = "
+      +  std::get<0> (details::fetch_name (lhs))
+      +                                   _operator
+      +  std::get<0> (details::fetch_name (rhs));
+}
+// ~~~~~ Binary operation impl
+
+// ~~~~~ Unary operator impl
+UnaryInstruction::UnaryInstruction(
+    const Instruction::a_vec_t &assembly,
+    sym_t::ptr::shared          target,
+    operator_t::type           _operator,
+    sym_t::ptr::shared          operand
+) : Serializable    (fetch_name(target, _operator, operand))
+  , Defines                    (target)
+  , Uses                       (operand)
+  , Assignment                 (assembly, target,
+                                create_result(
+                                    _operator,
+                                    operand
+                                ))
+  , Operator                   (_operator) {}
+
+std::string UnaryInstruction:: fetch_name(
+    sym_t::ptr::shared         target,
+    operator_t::type          _operator,
+    sym_t::ptr::shared         operand
+) {
+  return std::get<0>(details:: fetch_name (target))
+      +                                    " = "
+      +                                   _operator
+      + std::get<0> (details:: fetch_name (operand));
+}
+
+sym_t::ptr::shared UnaryInstruction::create_result(
+    operator_t::type _operator,
+    sym_t::ptr::shared rhs
+) {
+  // TODO: add type of result ...
+  return std::make_shared<
+      symbol_table::Temporary
+  >(_operator, rhs);
+}
+// ~~~~~ Unary operator impl
+
+// ~~~~~ Assignment
+Assignment::Assignment(
+    const a_vec_t &          assembly,
+    sym_t::ptr::shared       target,
+    sym_t::ptr::shared       source
+) : Serializable(fetch_name (target, source))
+  , Defines                 (source)
+  , Uses                    (target)
+  , Instruction             (assembly) {}
+
+std::string
+Assignment           ::fetch_name(
+    sym_t::ptr::shared       target,
+    sym_t::ptr::shared       source
+) {
+  return std::get<0>(details::fetch_name(target))
+       +                                 " = "
+       + std::get<0>(details::fetch_name(source));
+}
+
+// ~~~~~ Assignment
+
+// ~~~~~ CALL implementation
+CallInstruction::CallInstruction(
+    const a_vec_t&          assembly,
+    sym_t::ptr::shared      call_target,
+    sym_t::ptr::shared      result
+) : Serializable(fetch_name(result, call_target))
+  , UnaryInstruction      ({assembly},
+                            result,
+                           "call",
+                            call_target) {}
+
+std::string CallInstruction::fetch_name(
+    sym_t::ptr::shared result,
+    sym_t::ptr::shared target
+) {
+  return std::get<0>(details::fetch_name(result))
+      + " = call "
+      +  std::get<0>(details::fetch_name(target))
+      + "()";
+}
+
+void CallFactory::operator()(
+    a_ir_t::c_info::ref i,
+    sym_table_t::ptr::shared symbol_table,
+    ir_t::rx::shared_subs subscriber
+) const {
+  if (i.getName() == "call")
+    // first parameter is target of call
+    i.getArgs(symbol_table->to_map())
+     .first()
+     .subscribe([&](
+         std::shared_ptr<symbol_table::VisitableBase> target
+     ) {
+       auto eax = symbol_table->find_symbol("_eax");
+       invoke_accept(eax, symbol_table::RegisterVisitorL(
+           [] (const symbol_table::RegisterBase *reg) {
+         printf("%s\n", reg->getName().c_str());
+       }));
+       subscriber.on_next(
+           std::static_pointer_cast<llvm::VisitableBase>(
+               std::make_shared<CallInstruction>(
+                   a_ir_t::vector::value({i}), target,
+                   eax
+               )
+           )
+       );
+     });
+}
+// ~~~~~ CALL implementation
 
 }  // namespace llvm
 

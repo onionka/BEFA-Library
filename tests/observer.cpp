@@ -58,7 +58,7 @@ TEST(ObservableTest, ReactiveReplacement) {
 //
 //typedef Subject<std::string> rx_subject_t;
 //typedef rx_subject_t::subscription_type subscription_t;
-//typedef rx_subject_t::observable_type observable_t;
+//typedef rx_subject_t::llvm_obs_type observable_t;
 //
 //TEST(ObservableTest, SubscriptionTest) {
 //  rx_subject_t subj;
@@ -113,7 +113,7 @@ TEST(ObservableTest, ReactiveReplacement) {
 //  rx_subject_t subj;
 //  observable_t so$(subj);
 //
-//  auto subscription = so$.map<size_t>([](const std::string &s) {
+//  auto sub = so$.map<size_t>([](const std::string &s) {
 //    return s.size();
 //  }).subscribe([](size_t size) {
 //    ASSERT_EQ(size, 5);
@@ -126,7 +126,7 @@ TEST(ObservableTest, ReactiveReplacement) {
 //  rx_subject_t subj;
 //  observable_t so$(subj);
 //
-//  auto subscription = so$.conditional([](const std::string &s) {
+//  auto sub = so$.conditional([](const std::string &s) {
 //    return s == "a";
 //  }).subscribe([](const std::string &s) {
 //    ASSERT_EQ(s, "a");
@@ -187,7 +187,7 @@ TEST(ObservableTest, ReactiveReplacement) {
 //  observable_t so$(subj);
 //
 //  std::string return_value = "string";
-//  auto subscription = so$.subscribe([&return_value](const std::string &s) {
+//  auto sub = so$.subscribe([&return_value](const std::string &s) {
 //    ASSERT_EQ(s, return_value);
 //  });
 //
@@ -206,7 +206,7 @@ TEST(ObservableTest, ReactiveReplacement) {
 //
 //  auto create$ = [&] {
 //    rx_subject_t subj(RegexSearch("stringstriingstriiing", "(stri*ng)"));
-//    auto subscription = subj.subscribe([&](const std::string &s) {
+//    auto sub = subj.subscribe([&](const std::string &s) {
 //      ++i;
 //      ASSERT_EQ(s, return_value);
 //    });

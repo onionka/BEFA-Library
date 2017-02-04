@@ -9,87 +9,58 @@
 #include "../../befa.hpp"
 
 namespace llvm {
-struct CallInstruction
-    : virtual public VisitableBase,
-        // traits
-      public Instruction,
-      public Serializable {
-  using symbol_type = symbol_table::VisitableBase;
-  using symbol_ptr = std::shared_ptr<symbol_type>;
-  using instruction_type = ExecutableFile::instruction_type;
-  using basic_block_type = ExecutableFile::basic_block_type;
+class CallInstruction
+    : public               UnaryInstruction {
 
+  /**
+   * @brief is visitor for all types of symbols
+   */
+  using generalizer_t =    symbol_table::SymbolVisitorL;
+
+ public:
+
+  /**
+   * @brief Represents call instruction from LLVM IR
+   * @param assembly is real representation
+   * @param target
+   * @param result is variable in which should be a result
+   */
   CallInstruction(
-      symbol_ptr result,
-      symbol_ptr target,
-      const instruction_type &assembly
-  ) : Instruction({assembly}), Serializable(fetchSignature(result, target)),
-      target(target), result(result) {}
+      const a_vec_t&       assembly,
+      sym_t::ptr::shared   call_target,
+      sym_t::ptr::shared   result
+  );
 
-  symbol_ptr getTarget() const {
-    return target;
-  }
-
-  symbol_ptr getResult() const {
-    return result;
-  }
-
-  void accept(VisitorBase &visitor) override {
+  void                     accept(
+      VisitorBase&         visitor
+  )   const                override {
     visitor.visit(this);
   }
 
  private:
-
-  using generalizer_t = LambdaGeneralizer<
-      symbol_table::VisitorTraits,
-      symbol_table::Symbol,
-      ASM_SYMBOLS_LIST
-  >;
-
-  generalizer_t create_name_visitor(std::string &result) const {
-    return generalizer_t(
-        [&result](const auto &ptr) { result = ptr->getName(); }
-    );
-  }
-
-  std::string fetchSignature(
-      symbol_ptr result,
-      symbol_ptr target
-  ) const {
-    std::string name, result_name;
-    if (target)
-      invoke_accept(target, create_name_visitor(name));
-    if (result)
-      invoke_accept(result, create_name_visitor(result_name));
-    return result_name + " = call @" + name + "()";
-  }
-
-  symbol_ptr target;
-  symbol_ptr result;
+  /**
+   * @brief Gets signatures of result and target
+   *        and creates signature of calling (params TBD)
+   * @param result ptr to result symbol
+   * @param target ptr to target (this is method probably) symbol
+   * @return string version of this (passed to Serializable backend)
+   *
+   * FIXME: add parameters of call LLVM IR
+   */
+  static inline
+  std::string              fetch_name(
+      sym_t::ptr::shared   result,
+      sym_t::ptr::shared   call_target
+  );
 };
 
-struct CallFactory : public IFactoryBase {
-  CallFactory(std::shared_ptr<llvm::MapperForFactory> mapper)
-      : IFactoryBase(mapper) {}
-
-  next_factory_ptr operator()(
-      const ExecutableFile::instruction_type &i,
-      const mapper_type *mapper
-  ) const override {
-    if (i.getName() == "call")
-      // first parameter is target of call
-      i.getArgs(*mapper->get_symbol_table()).first().subscribe([&](
-          const std::shared_ptr<symbol_table::VisitableBase> &target
-      ) {
-        mapper->subscriber()
-            .on_next(std::static_pointer_cast<VisitableBase>(
-                std::make_shared<CallInstruction>(
-                    nullptr, target, i
-                )
-            ));
-      });
-    return nullptr;
-  }
+struct CallFactory
+    : public                    LLVMFactory {
+  void                          operator()(
+      a_ir_t::c_info::ref       i,
+      sym_table_t::ptr::shared  symbol_table,
+      ir_t::rx::shared_subs     subscriber
+  )   const                     override;
 };
 
 }  // namespace llvm

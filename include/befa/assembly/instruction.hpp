@@ -11,7 +11,7 @@
 
 #include "../utils/algorithms.hpp"
 #include "../utils/byte_array_view.hpp"
-#include "asm_arg_parser.hpp"
+#include "instruction_parser.hpp"
 
 namespace befa {
 static const ::pcrecpp::RE parse_regex = std::string(
@@ -32,78 +32,88 @@ inline auto split(
 );
 }  // namespace details
 
-template<typename BasicBlockT>
+template<
+    typename                  BasicBlockT
+>
 struct Instruction
-    : public asm_arg_parser {
-  using basic_block = BasicBlockT;
-  using basic_block_weak = std::weak_ptr<basic_block>;
-  using basic_block_ptr = std::shared_ptr<basic_block>;
-  using byte_array = ::array_view<uint8_t>;
+    : public                  instruction_parser {
+  using self     =            Instruction                     <BasicBlockT>;
+  using base     =            instruction_parser;
+  using bb_t     =            types::traits::container        <BasicBlockT>;
+  using bytes_t  =            array_view                      <uint8_t>;
 
   // Dummy instruction
-  Instruction() = default;
+  Instruction()  =            default;
 
   Instruction(
-      byte_array bytes,
-      basic_block_ptr parent,
-      std::string decoded,
-      bfd_vma address
-  ) : bytes(bytes),
-      decoded(decoded),
-      parent(parent),
-      address(address) {}
+      bytes_t                 bytes    ,
+      typename
+      bb_t::ptr::weak         parent   ,
+      std::string             decoded  ,
+      bfd_vma                 address
+  ) : bytes                  (bytes   ),
+      parent                 (parent  ),
+      decoded                (decoded ),
+      address                (address ) {}
 
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
-  Instruction(Instruction<BasicBlockT> &&rhs)
-      : bytes(std::move(rhs.bytes)),
-        decoded(std::move(rhs.decoded)),
-        parent(std::move(rhs.parent)),
-        address(std::move(rhs.address)) {}
+  Instruction(
+      self&&              rhs
+  ) : bytes    (std::move(rhs.bytes  )),
+      parent   (std::move(rhs.parent )),
+      decoded  (std::move(rhs.decoded)),
+      address  (std::move(rhs.address)) {}
 
-  Instruction &operator=(Instruction<BasicBlockT> &&rhs) {
-    bytes = std::move(rhs.bytes);
-    decoded = std::move(rhs.decoded);
-    parent = std::move(rhs.parent);
-    address = std::move(rhs.address);
-    return *this;
+  Instruction&                operator=(
+      self&&              rhs
+  ) {
+    bytes     = std::move(rhs.bytes  );
+    parent    = std::move(rhs.parent );
+    decoded   = std::move(rhs.decoded);
+    address   = std::move(rhs.address);
+    return                   *this    ;
   }
 
-  Instruction(const Instruction<BasicBlockT> &rhs)
-      : bytes(rhs.bytes),
-        decoded(rhs.decoded),
-        parent(rhs.parent),
-        address(rhs.address) {}
+  Instruction(
+      const self&         rhs
+  ) : bytes              (rhs.bytes  ),
+      parent             (rhs.parent ),
+      decoded            (rhs.decoded),
+      address            (rhs.address) {}
 
-  Instruction &operator=(const Instruction<BasicBlockT> &rhs) {
-    bytes = rhs.bytes;
-    decoded = rhs.decoded;
-    parent = rhs.parent;
-    address = rhs.address;
-    return *this;
+  Instruction&               operator=(
+      const self&         rhs
+  ) {
+    bytes               = rhs.bytes  ;
+    parent              = rhs.parent ;
+    decoded             = rhs.decoded;
+    address             = rhs.address;
+    return                   *this   ;
   }
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
 
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
-  const byte_array &getBytes() const { return bytes; }
+  const bytes_t&     getBytes()   const { return bytes; }
 
-  const std::string &getDecoded() const { return decoded; }
+  const std::string& getDecoded() const { return decoded; }
 
-  std::shared_ptr<BasicBlockT> getParent() const { return ptr_lock(parent); }
+  bfd_vma            getAddress() const { return address; }
 
-  const bfd_vma &getAddress() const { return address; }
-
-  instruction_pieces parse() const override {
+  piece_t::rx::obs   parse()      const   override {
     return details::split(getDecoded(), parse_regex);
   }
+
+  typename
+  bb_t::ptr::shared  getParent()  const { return ptr_lock(parent); }
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~
 
   // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
-  bool operator==(const Instruction<BasicBlockT> &rhs) const noexcept {
+  bool               operator==  (const self& rhs) const noexcept {
     return rhs.getAddress() == getAddress();
   }
 
-  bool operator!=(const Instruction<BasicBlockT> &rhs) const noexcept {
-    return !(rhs == *this);
+  bool               operator!=  (const self& rhs) const noexcept {
+    return          !(*this == rhs);
   }
   // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~
 
@@ -113,22 +123,22 @@ struct Instruction
   /**
    * Raw data
    */
-  byte_array bytes;
-
-  /**
-   * Decoded data in human readable representation (intel-syntax assembly language)
-   */
-  std::string decoded;
+  bytes_t                     bytes;
 
   /**
    * Basic block to which instruction belongs
    */
-  basic_block_weak parent;
+  typename bb_t::ptr::weak    parent;
+
+  /**
+   * Decoded data in human readable representation (intel-syntax assembly language)
+   */
+  std::string                 decoded;
 
   /**
    * Address relative to file
    */
-  bfd_vma address;
+  bfd_vma                     address;
   // ~~~~~~~~~~~~~~ Fields ~~~~~~~~~~~~~~
 };
 
@@ -141,8 +151,8 @@ namespace details {
  * @return observable of parsed pieces
  */
 auto split(
-    const std::string &str,
-    const pcrecpp::RE &parse_regex
+    const std::string& str,
+    const pcrecpp::RE& parse_regex
 ) {
   return rxcpp::sources::create<std::string>(
       [&] (rxcpp::subscriber<std::string> s) {

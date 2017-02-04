@@ -10,23 +10,28 @@
 namespace llvm {
 
 struct CmpInstruction
-    : public Instruction,
-      virtual public llvm::VisitableBase,
-      public Serializable {
+    : public BinaryOperator {
   enum types_e {
-    // greater than
-        GT, GE,
-    // lesser than
-        LT, LE,
-    // unsigned greater than
-        UGT, UGE,
-    // unsigned lesser than
-        ULT, ULE,
-    // (not) equal
-        EQ, NE,
+        // greater than     greater or equal
+        GT,                 GE,
+        // lesser than      lesser or equal
+        LT,                 LE,
+        // unsigned GT      unsigned GE
+        UGT,                UGE,
+        // unsigned LT      unsigned LE
+        ULT,                ULE,
+        // equal            not equal
+        EQ,                 NE,
   };
 
-  void accept(VisitorBase &visitor) override {
+  // FIXME: remove this
+  static const std::map<
+      std::string,               types_e
+  >   comparition_jumps;
+
+  void accept(
+      VisitorBase&               visitor
+  )   const                      override {
     visitor.visit(this);
   }
 
@@ -39,123 +44,38 @@ struct CmpInstruction
    * @param assembly
    */
   CmpInstruction(
-      const std::shared_ptr<symbol_table::VisitableBase> &result,
-      const std::shared_ptr<symbol_table::VisitableBase> &lhs,
-      types_e op,
-      const std::shared_ptr<symbol_table::VisitableBase> &rhs,
-      const instruction_type &assembly
-  ) : Instruction({assembly}), Serializable(fetchSignature(
-      result, lhs, op, rhs
-  )), result(result), lhs(lhs), op(op), rhs(rhs) {}
+      const sym_t::ptr::shared&  result,
+      const sym_t::ptr::shared&  lhs,
+      types_e                    op,
+      const sym_t::ptr::shared&  rhs,
+      a_ir_t::c_info  ::ref      assembly
+  ) : Serializable(        fetch_name(
+      result,         lhs,       op,     rhs
+  )), BinaryOperator(           {assembly},
+                                 result,
+                                 lhs, "cmp", rhs) {}
 
  private:
-  std::string fetchSignature(
-      const std::shared_ptr<symbol_table::VisitableBase> &result,
-      const std::shared_ptr<symbol_table::VisitableBase> &lhs,
-      types_e op,
-      const std::shared_ptr<symbol_table::VisitableBase> &rhs
-  ) const;
-
-  const std::shared_ptr<symbol_table::VisitableBase> &result;
-  const std::shared_ptr<symbol_table::VisitableBase> &lhs;
-  types_e op;
-  const std::shared_ptr<symbol_table::VisitableBase> &rhs;
+  static inline
+  std::string              fetch_name(
+      const sym_t::ptr::shared&  result,
+      const sym_t::ptr::shared&  lhs,
+      types_e                    op,
+      const sym_t::ptr::shared&  rhs
+  );
 };
 
-struct ICmpInstruction final
-    : public CmpInstruction,
-      virtual public llvm::VisitableBase {
-  const static std::map<std::string, types_e> comparition_jumps;
+struct CompareFactory
+    : public LLVMFactory {
+  using symbol_type =            symbol_table::VisitableBase;
+  using symbol_ptr  =            std::shared_ptr<symbol_type>;
 
-  void accept(VisitorBase &visitor) override {
-    visitor.visit(this);
-  }
-
-  /**
-   *
-   * @param lhs is left hand size of int compare operation
-   * @param op is compare operation
-   * @param rhs is right hand size of int compare operation
-   * @param parent is reference to the asm instruction from
-   *        which this has been derived
-   * @tparam lhsIntegralT param should be deduced
-   * @tparam rhsIntegralT param should be deduced
-   */
-  template<
-      typename lhsIntegralT, typename rhsIntegralT
-  >
-  ICmpInstruction(
-      const std::shared_ptr<symbol_table::Variable> &result,
-      const std::shared_ptr<symbol_table::SizedSymbol<lhsIntegralT>> &lhs,
-      types_e op,
-      const std::shared_ptr<symbol_table::SizedSymbol<rhsIntegralT>> &rhs,
-      const instruction_type &parent
-  ) : CmpInstruction(
-      result, lhs, op, rhs, parent
-  ) {}
+  void                           operator()(
+      a_ir_t::c_info::ref        instruction,
+      sym_table_t::ptr::shared   symboL_table,
+      ir_t::rx::shared_subs      subscriber
+  )   const                      override;
 };
-
-struct FCmpInstruction final
-    : public CmpInstruction,
-      virtual public llvm::VisitableBase {
-
-  void accept(VisitorBase &visitor) override {
-    visitor.visit(this);
-  }
-
-  /**
-   *
-   * @param lhs is left hand size of float compare operation
-   * @param op is compare operation
-   * @param rhs is right hand size of float compare operation
-   * @param parent is reference to the asm instruction from
-   *        which this has been derived
-   * @tparam lhsFloatT param should be deduced
-   * @tparam rhsFloatT param should be deduced
-   */
-  template<
-      typename lhsFloatT, typename rhsFloatT
-  >
-  FCmpInstruction(
-      const std::shared_ptr<symbol_table::Variable> &result,
-      const std::shared_ptr<symbol_table::SizedSymbol<lhsFloatT>> &lhs,
-      types_e op,
-      const std::shared_ptr<symbol_table::SizedSymbol<rhsFloatT>> &rhs,
-      const instruction_type &parent
-  ) : CmpInstruction(
-      result, lhs, op, rhs, parent
-  ) {}
-};
-
-
-struct CompareFactory : public IFactoryBase {
-  using symbol_type = symbol_table::VisitableBase;
-  using symbol_ptr = std::shared_ptr<symbol_type>;
-
-  /**
-   * @param mapper reference to parent mapper
-   */
-  CompareFactory(const mapper_ptr &mapper);
-
-  /**
-   * @return pointer to the lastly compared symbol
-   */
-  symbol_ptr get_last_symbol() const { return last_symbol; }
-
-  /**
-   * @return pointer to the result symbol of comparition
-   */
-  symbol_ptr get_result_symbol() const { return result; }
-
-  next_factory_ptr operator()(
-      const ExecutableFile::instruction_type &instruction,
-      const mapper_type *base
-  ) const override;
-
- private:
-  symbol_ptr last_symbol;
-  symbol_ptr result;
-};
-}
+}  // namespace llvm
 
 #endif //BEFA_CMP_HPP

@@ -12,6 +12,11 @@
 
 bool ExecutableFile::bfd_was_init = false;
 
+
+using symbol_type = ExecutableFile::sym_t::info::type;
+using section_type = ExecutableFile::sec_t::info::type;
+
+
 // ~~~~~~~~~~~ ExecutableFile implementation ~~~~~~~~~~~
 ExecutableFile ExecutableFile::open(
     std::string path,
@@ -55,12 +60,12 @@ ExecutableFile ExecutableFile::open(
   return std::move(ExecutableFile(fd));
 }
 
-std::vector<std::weak_ptr<ExecutableFile::symbol_type>>
-ExecutableFile::getSymbolTable() {
+ExecutableFile::sym_t::vector::weak ExecutableFile::getSymbolTable() {
+
   if (symbol_buffer.empty())
     for_each(fetchSymbolTable(), [&](auto &sym_ite) {
       auto &sym = *sym_ite;
-      ExecutableFile::symbol_type *existing_sym = nullptr;
+      symbol_type *existing_sym = nullptr;
       if (!contains_if(symbol_buffer, [&](auto &shared_s) {
         existing_sym = shared_s.get();
         return shared_s->getAddress() == bfd_asymbol_value(sym);
@@ -69,7 +74,7 @@ ExecutableFile::getSymbolTable() {
         // Firstly find section in section_buffer that symbol is pointing to
         auto sec_ite = std::find_if(
             section_buffer.begin(), section_buffer.end(),
-            [&sym](std::shared_ptr<section_type> &sec) {
+            [&sym](sec_t::ptr::shared &sec) {
               return sec->getOrigin() == sym->section;
             }
         );
@@ -99,7 +104,7 @@ ExecutableFile::getSymbolTable() {
     symbols_sorted = true;
   }
 
-  return map(symbol_buffer,
+  return ::map(symbol_buffer,
              [](auto &shared_s) { return std::weak_ptr<symbol_type>(shared_s); });
 }
 
@@ -126,7 +131,7 @@ ExecutableFile::ExecutableFile(ExecutableFile &&rhs)
       is_valid(std::move(rhs.is_valid)),
       sections_sorted(std::move(rhs.sections_sorted)),
       symbols_sorted(std::move(rhs.symbols_sorted)) {
-  // so reference into basic_block_subject will not be forgotten
+  // so ref into basic_block_subject will not be forgotten
 }
 
 ExecutableFile &ExecutableFile::operator=(ExecutableFile &&rhs) {
@@ -141,7 +146,7 @@ ExecutableFile &ExecutableFile::operator=(ExecutableFile &&rhs) {
   return *this;
 }
 
-std::vector<std::weak_ptr<ExecutableFile::section_type>> ExecutableFile::getSections() {
+ExecutableFile::sec_t::vector::weak ExecutableFile::getSections() {
   // append missing sections into section buffer
   for_each(fetchSections(), [&](auto &sec_ite) {
     auto sec = *sec_ite;

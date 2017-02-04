@@ -12,10 +12,7 @@
     ExecutableFile file;                              \
   };
 
-using subject_type = rxcpp::subjects::subject<ExecutableFile::instruction_type>;
-using subscriber_base = rxcpp::subscriber<
-    ExecutableFile::instruction_type
->;
+using ir_t = ExecutableFile::inst_t;
 
 auto create_mapper(
     rxcpp::composite_subscription subscription,
@@ -24,7 +21,7 @@ auto create_mapper(
     size_t seq_index
 ) {
   return [=, &instr_sequence](
-      const ExecutableFile::instruction_type &instr
+      ir_t::c_info::ref instr
   ) mutable -> bool {
     // stop iteration
     if (seq_index >= instr_sequence.size() ||
@@ -47,8 +44,6 @@ CREATE_TEST_FIXTURE(
 )
 
 TEST_F(SimpleFixture, SimpleTest) {
-  typedef ExecutableFile::instruction_type i_type;
-
   const std::vector<std::string> instr_sequence{
       "push",
       "push",
@@ -64,18 +59,19 @@ TEST_F(SimpleFixture, SimpleTest) {
 
   int seq_found = 0;
   auto assembly$ = file.disassembly();
-  assembly$.subscribe([&](const i_type &instr) {
+  assembly$.subscribe([&](ir_t::c_info::ref instr) {
     if (instr_sequence[0] == instr.getName()) {
       auto subscription = rxcpp::composite_subscription();
       subscription = assembly$.map(
-          create_mapper(
-              subscription,
-              instr_sequence,
-              1
-          )
-      ).subscribe([&seq_found] (bool result) {
-        if (result) ++seq_found;
-      });
+                                  create_mapper(
+                                      subscription,
+                                      instr_sequence,
+                                      1
+                                  )
+                              )
+                              .subscribe([&seq_found](bool result) {
+                                if (result) ++seq_found;
+                              });
     }
   });
 
@@ -92,8 +88,6 @@ CREATE_TEST_FIXTURE(
 )
 
 TEST_F(GlobalFunctionFixture, GlobalFunctionTest) {
-  typedef ExecutableFile::instruction_type i_type;
-
   const std::vector<std::string> instr_sequence{
       "push",
       "inc",
@@ -102,22 +96,27 @@ TEST_F(GlobalFunctionFixture, GlobalFunctionTest) {
 
   int seq_found = 0;
 
-  auto global_function$ = file.disassembly().filter([&](i_type instr) {
-    return *ptr_lock(instr.getParent()->getParent()) == "global_function";
-  });
+  auto global_function$ = file
+      .disassembly()
+      .filter([&](ir_t::c_info::ref instr) {
+        return *ptr_lock(
+            instr.getParent()
+                 ->getParent()
+        ) == "global_function";
+      });
 
-  global_function$.subscribe([&](i_type instr) {
+  global_function$.subscribe([&](ir_t::c_info::ref instr) {
     if (instr_sequence[0] == instr.getName()) {
       auto subscription = rxcpp::composite_subscription();
-      subscription = global_function$.map(
-          create_mapper(
+      subscription = global_function$
+          .map(create_mapper(
               subscription,
               instr_sequence,
               1
-          )
-      ).subscribe([&seq_found] (bool result) {
-        if (result) ++seq_found;
-      });
+          ))
+          .subscribe([&seq_found](bool result) {
+            if (result) ++seq_found;
+          });
     }
   });
 

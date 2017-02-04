@@ -30,7 +30,7 @@ class JumpInstruction
       const std::vector<instruction_ptr> &assembly
   ) : TerminatorInstruction(assembly) {}
 
-  void accept(VisitorBase &visitor) override {
+  void accept(VisitorBase &visitor) const override {
     visitor.visit(this);
   }
 };
@@ -46,7 +46,7 @@ class BranchInstruction
       const std::vector<instruction_ptr> &assembly
   ) : TerminatorInstruction(assembly) {}
 
-  void accept(VisitorBase &visitor) override {
+  void accept(VisitorBase &visitor) const override {
     visitor.visit(this);
   }
 };

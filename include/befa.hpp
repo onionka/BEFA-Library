@@ -11,6 +11,7 @@
 #undef GCC_VERSION
 #include <rxcpp/rx.hpp>
 
+#include "befa/utils/types.hpp"
 #include "befa/assembly/instruction.hpp"
 #include "befa/assembly/basic_block.hpp"
 #include "befa/assembly/symbol.hpp"
@@ -20,7 +21,7 @@ namespace llvm {
 /**
  * defined in @see befa/llvm/instruction.hpp
  */
-struct InstructionMapperBase;
+struct InstructionMapper;
 }
 
 /**
@@ -66,21 +67,41 @@ class disassembler_impl {
   std::vector<asymbol *> &fetchSymbolTable();
 };
 
-class ExecutableFile : private disassembler_impl {
- public:
-  // ~~~~~ Executable file hierarchy
-  using section_type = befa::Section;
-  using symbol_type = befa::Symbol<section_type>;
-  using basic_block_type = befa::BasicBlock<symbol_type>;
-  using instruction_type = befa::Instruction<basic_block_type>;
-  using symbol_map_type = instruction_type::symbol_map;
-  using assembly_subj_t = rxcpp::subjects::subject<instruction_type>;
-  using assembly_o_t = assembly_subj_t::observable_type;
-  // ~~~~~ Executable file hierarchy
+namespace type_tags = types::tags;
+namespace type_traits = types::traits;
 
-  // ~~~~~ LLVM types
-  using llvm_mapper_t = llvm::InstructionMapperBase;
-  // ~~~~~ LLVM types
+class ExecutableFile
+    : private disassembler_impl {
+ public:
+  // ~~~~~ Traits
+  using sec_t = type_traits::container<
+      befa::Section
+  >;
+
+  using sym_t = type_traits::container<
+      befa::Symbol<sec_t::info::type>
+  >;
+
+  using bb_t = type_traits::container<
+      befa::BasicBlock<sym_t::info::type>
+  >;
+
+  using inst_t = type_traits::container<
+      befa::Instruction<bb_t::info::type>
+  >;
+
+  using mapper_t = type_traits::container<
+      llvm::InstructionMapper
+  >;
+
+  using var_t = type_traits::container<
+      symbol_table::VisitableBase
+  >;
+
+  using map_t = type_traits::container<
+      typename var_t::map<std::string>::shared
+  >;
+  // ~~~~~ Traits
 
   /**
    * Opens a file to be disassebled (creates instance of this)
@@ -120,7 +141,9 @@ class ExecutableFile : private disassembler_impl {
    *
    * @return assembly instruction stream (observable)
    */
-  assembly_o_t disassembly() { return assembly_subject.get_observable(); }
+  inst_t::rx::obs disassembly() const {
+    return assembly_subject.get_observable();
+  }
 
   /**
    * Executes disassembler
@@ -133,9 +156,7 @@ class ExecutableFile : private disassembler_impl {
    *
    * @return table of name of symbol and its visitable
    */
-  std::map<
-      bfd_vma, std::shared_ptr<symbol_table::VisitableBase>
-  > generate_table();
+  var_t::map<bfd_vma>::shared generate_table();
 
   /**
    *
@@ -148,40 +169,40 @@ class ExecutableFile : private disassembler_impl {
    *  (use it max once)
    * @return
    */
-  std::vector<std::weak_ptr<symbol_type>> getSymbolTable();
+  sym_t::vector::weak getSymbolTable();
 
   /**
    * Generates sections
    *  (use it max once)
    * @return
    */
-  std::vector<std::weak_ptr<section_type>> getSections();
+  sec_t::vector::weak getSections();
 
  private:
   /**
    * Subject of instructions (see reactive programming)
    */
-  rxcpp::subjects::subject<instruction_type> assembly_subject;
+  inst_t::rx::subj assembly_subject;
 
   /**
    * Subject of llvm instructions (see reactive programming)
    */
-  std::shared_ptr<llvm_mapper_t> llvm_mapper;
+  mapper_t::ptr::shared llvm_mapper;
 
   /**
    * Here are stored shared pointers at sections
    */
-  std::vector<std::shared_ptr<section_type>> section_buffer;
+  sec_t::vector::shared section_buffer;
 
   /**
    * Here are stored shared pointers at sections
    */
-  std::vector<std::shared_ptr<symbol_type>> symbol_buffer;
+  sym_t::vector::shared symbol_buffer;
 
   /**
    * Here are stored shared pointers at sections
    */
-  std::vector<std::shared_ptr<basic_block_type>> basic_block_buffer;
+  bb_t::vector::shared basic_block_buffer;
 
   /**
    * If this instance has valid file descriptor

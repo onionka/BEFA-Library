@@ -9,10 +9,59 @@
 
 #include <regex>
 #include <cassert>
+#include "rxcpp/rx.hpp"
 
 #include "backward.hpp"
 // bfd.hpp and backward.hpp defines the same macro
 #undef GCC_VERSION
+
+
+namespace details {
+template<typename ValT, typename SrcT>
+ValT fetch_result(rxcpp::observable<ValT, SrcT> o$) {
+
+  ValT result = "";
+  o$.subscribe([&result](ValT str) { result = str; });
+  return result;
+}
+}  // namespace details
+
+namespace std {
+template<typename T>
+inline string to_string(vector<T> vec) {
+  int index = 0;
+
+  return details::fetch_result(
+      rxcpp::sources::iterate(vec)
+          .map([&index](const T &val) {
+            return std::to_string(index++) + ": " + to_string(val);
+          })
+          .reduce(std::string("["), [](std::string acc, std::string val) {
+            return acc + (acc != "[" ? ", " : "") + val;
+          })
+          .map([](std::string res) {
+            return res + "]";
+          })
+  );
+}
+
+template<typename T, typename KeyT>
+inline string to_string(map<T, KeyT> _map) {
+  using pair_t = typename map<T, KeyT>::value_type;
+
+  int index = 0;
+  return details::fetch_result(
+      rxcpp::sources::iterate(_map)
+          .map([&index](const pair_t &val) {
+            return to_string(val.first) + ": " + to_string(val.second);
+          })
+          .reduce(string("{"), [](string acc, string val) {
+            return acc + (acc != "{" ? ", " : "") + val;
+          })
+          .map([](string res) { return res + "}"; })
+  );
+}
+}  // namespace std
 
 /**
  * Simple macro for assertion via exception

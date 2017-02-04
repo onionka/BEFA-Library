@@ -57,7 +57,8 @@ struct VisitorBase<T> {
 
 /** base for all visitors */
 template<typename T, typename ...Ts>
-struct VisitorBase<T, Ts...> : public VisitorBase<Ts...> {
+struct VisitorBase<T, Ts...>
+    : public VisitorBase<Ts...> {
   /** promote the function(s) from the base class */
   using VisitorBase<Ts...>::visit;
 
@@ -93,13 +94,15 @@ struct parse_visitor<retT(*)(paramT)> {
 template<typename ...Ts>
 struct VisitableBase {
   /** Accepts visitor (calls appropriate function to this instruction type) */
-  virtual void accept(VisitorBase<Ts...> &) = 0;
+  virtual void accept(VisitorBase<Ts...> &) const = 0;
 
   /**
+   * @brief Quick apply of lambda function on certain visitable
+   * @tparam FunctionT is a lambda function type
+   * @param visitor is a lambda object
+   * @return visitable for chain calling
    *
-   * @tparam FunctionT
-   * @param visitor
-   * @return
+   * TODO: const version
    */
   template<typename FunctionT>
   VisitableBase<Ts...> &operator>>(FunctionT &&visitor) {
@@ -109,7 +112,8 @@ struct VisitableBase {
             decltype(&lambda_type::operator())
         >::type
     >::param_type;
-    LambdaVisitor <FunctionT, param_type> lambda(visitor);
+
+    LambdaVisitor <FunctionT, remove_all_t<param_type>> lambda(visitor);
     this->accept(lambda);
     return *this;
   }
@@ -122,7 +126,8 @@ struct VisitableBase {
    * @tparam _T type that lambda accepts as parameter
    */
   template<typename LambdaT, typename _T>
-  struct LambdaVisitor : public VisitorBase<Ts...> {
+  struct LambdaVisitor
+      : public VisitorBase<Ts...> {
     LambdaVisitor(LambdaT &lambda) : lambda(lambda) {}
 
     using VisitorBase<Ts...>::visit;
@@ -135,28 +140,41 @@ struct VisitableBase {
 
 /** Base class for all visitable objects (pre-implemented accept method) */
 template<typename Derived, typename ...Ts>
-struct VisitableImpl : public virtual VisitableBase<Ts...> {
+struct VisitableImpl
+    : public virtual VisitableBase<Ts...> {
   /** Accepts visitor (calls appropriate function to this instruction type) */
-  void accept(VisitorBase<Ts...> &visitor) override {
+  void accept(VisitorBase<Ts...> &visitor) const override {
     visitor.visit(static_cast<const Derived *>(this));
   }
 };
 
-// Learn 'is_pointer' function new pointer types: shared and weak
-// added possibility to remove pointer from shared_ptr and unique_ptr
+// Learn 'is_pointer' function new ptr types: shared and weak
+// added possibility to remove ptr from shared_ptr and unique_ptr
 namespace std {
 template<typename _Tp>
-struct is_pointer<std::shared_ptr<_Tp>> : std::true_type {};
+struct is_pointer<std::shared_ptr<_Tp>>
+    : std::true_type {
+};
 template<typename _Tp>
-struct is_pointer<std::shared_ptr<_Tp> &> : std::true_type {};
+struct is_pointer<std::shared_ptr<_Tp> &>
+    : std::true_type {
+};
 template<typename _Tp>
-struct is_pointer<const std::shared_ptr<_Tp> &> : std::true_type {};
+struct is_pointer<const std::shared_ptr<_Tp> &>
+    : std::true_type {
+};
 template<typename _Tp>
-struct is_pointer<std::weak_ptr<_Tp>> : std::true_type {};
+struct is_pointer<std::weak_ptr<_Tp>>
+    : std::true_type {
+};
 template<typename _Tp>
-struct is_pointer<std::weak_ptr<_Tp> &> : std::true_type {};
+struct is_pointer<std::weak_ptr<_Tp> &>
+    : std::true_type {
+};
 template<typename _Tp>
-struct is_pointer<const std::weak_ptr<_Tp> &> : std::true_type {};
+struct is_pointer<const std::weak_ptr<_Tp> &>
+    : std::true_type {
+};
 template<typename _Tp>
 struct remove_pointer<std::shared_ptr<_Tp>> { using type = _Tp; };
 template<typename _Tp>
@@ -173,42 +191,33 @@ struct remove_pointer<const std::unique_ptr<_Tp> &> { using type = _Tp; };
 
 namespace details {
 
+template<typename T, bool is_pointer>
+struct dereference;
+
 template<typename T>
-struct decay_ptr_impl {
-  constexpr static auto &decay(T ptr) {
+struct dereference<T, true> {
+  using NoRefT = std::remove_reference_t<T>;
+  using DecayT = decltype(*(NoRefT) nullptr) &;
+
+  constexpr static DecayT _do(T &ptr) {
     assert_ex(
         (bool) ptr,
         std::string("nullptr dereference of type '")
             + typeid(decltype(*ptr)).name() + "'!"
     );
     return *ptr;
-  };
+  }
 };
 
 template<typename T>
-struct decay_nothing {
-  constexpr static T decay(T &&ptr) {
-    return std::forward<T &>(ptr);
-  };
+struct dereference<T, false> {
+  constexpr static T &_do(T &ptr) {
+    return ptr;
+  }
 };
 
 template<typename T>
-using decay_ptr_base = std::conditional_t<
-    std::is_pointer<T>::value,
-    decay_ptr_impl<T>,
-    decay_nothing<T>
->;
-
-/**
- * Implements method that can turn pointer to reference
- * or just pass the reference (no overhead if macro NASSERT_EX == 1)
- *
- * @tparam T is type
- */
-template<typename T>
-struct decay_ptr : decay_ptr_base<T> {
-  using decay_ptr_base<T>::decay;
-};
+using dereference_t = dereference<T, std::is_pointer<T>::value>;
 }  // namespace details
 
 /**
@@ -222,9 +231,13 @@ void invoke_accept(
     Visitable &&visitable,
     Visitor &&visitor
 ) {
-  details::decay_ptr<Visitable>::decay(
-      std::forward<Visitable>(visitable)
-  ).accept(details::decay_ptr<Visitor &>::decay(
+  static_assert(
+      !std::is_const<Visitor>::value,
+      "Visitor has to be const"
+  );
+  details::dereference_t<Visitable>::_do(
+      visitable
+  ).accept(details::dereference_t<Visitor>::_do(
       visitor
   ));
 }

@@ -7,7 +7,7 @@
 #include <memory>
 
 #include <befa/utils/visitor.hpp>
-#include <befa/assembly/asm_arg_parser.hpp>
+#include <befa/assembly/instruction_parser.hpp>
 #include <befa/assembly/instruction.hpp>
 #include <befa/llvm/call.hpp>
 #include <befa/llvm/cmp.hpp>
@@ -16,38 +16,18 @@
 namespace {
 struct dummy_parent {};
 
+using Instruction = ExecutableFile::inst_t::info::type;
+using Symbol = ExecutableFile::sym_t::info::type;
+using SymbolTableMap = ExecutableFile::map_t::info::type;
+
 struct InstructionTemplate
-    : public ExecutableFile::instruction_type {
+    : public Instruction {
   InstructionTemplate(const string &decoded)
-      : ExecutableFile::instruction_type({}, nullptr, decoded, 0x666) {}
+      : Instruction({}, bb_t::ptr::weak(), decoded, 0x666) {}
 };
 
-template<typename LambdaT>
-struct TestVisitor : public Generalizer<
-    llvm::InstructionTraits,
-    // Class that generalize derivation classes
-    llvm::Instruction,
-    // Derivations ...
-    llvm::CallInstruction
-> {
-
-  TestVisitor(LambdaT &&check)
-      : check(std::forward<LambdaT>(check)) {}
-
-  void generalized_visitor(
-      const llvm::Instruction *ptr
-  ) override { check(ptr); }
-
- private:
-  LambdaT check;
-};
-
-template<typename LambdaT>
-TestVisitor<LambdaT> create_TestVisitor(LambdaT &&func) {
-  return TestVisitor<LambdaT>(std::forward<LambdaT>(func));
-}
-
-struct DummySymbol : public ExecutableFile::symbol_type {
+struct DummySymbol
+    : public Symbol {
   DummySymbol(std::string name, bfd_vma address)
       : Symbol(nullptr, nullptr), name(name), address(address) {}
 
@@ -66,91 +46,135 @@ struct DummySymbol : public ExecutableFile::symbol_type {
 
 void test_single_instruction(
     std::vector<std::string> signatures,
-    ExecutableFile::symbol_map_type symbol_map,
+    SymbolTableMap symbol_map,
     std::string compare
 ) {
   // instruction created from signature only (dummy)
   auto instruction_stream = rxcpp::sources::iterate(signatures)
-      .map([](std::string signature) {
+      // Don't care about copy-loss cast, InstructionTemplate doesn't have data
+      .map([](std::string signature) -> ExecutableFile::inst_t::info::type {
         return InstructionTemplate(signature);
       });
 
   // to create llvm instruction we need factory
   auto symbol_table =
-      std::make_shared<ExecutableFile::symbol_map_type>(symbol_map);
+      std::make_shared<llvm::SymTable>(std::shared_ptr<SymbolTableMap>(
+          &symbol_map, [](void *) {}
+      ));
 
-  // subject of instruction stream (via this you can send instructions)
-  rxcpp::subjects::subject<ExecutableFile::instruction_type> i_subj;
+  // subj of instruction stream (via this you can send instructions)
+  rxcpp::subjects::subject<Instruction> i_subj;
 
-  // create mapper (contains observable - as_observable())
+  // create mapper (contains obs - as_observable())
   std::shared_ptr<llvm::InstructionMapper> mapper
       = std::make_shared<llvm::InstructionMapper>(symbol_table);
 
   // append Call factory
   mapper->register_factory(
-      std::make_shared<llvm::CallFactory>(mapper)
+      std::make_shared<llvm::CallFactory>()
   );
-
+  mapper->register_factory(
+      std::make_shared<llvm::CompareFactory>()
+  );
+  bool reduced = false;
   // hook instruction mapper into instruction stream
-  mapper->subscribe_on(i_subj.get_observable());
+  auto sym_table_subsc = mapper
+      ->reduce_instr(i_subj.get_observable())
+      .subscribe([&reduced](
+          llvm::InstructionMapper::sym_table_t::ptr::shared ptr
+      ) { reduced = true; });
 
   // send instruction
-  instruction_stream.subscribe(
-      [&](const ExecutableFile::instruction_type &simple_i) {
-        bool tested = false;
-        bool received = false;
-        // hook to stream of translated instructions
-        mapper
-            // get observable from mapper
-            ->observable()
+  instruction_stream.subscribe([&](const Instruction &simple_i) {
+    // hook to stream of translated instructions
+    auto subscription = mapper
+        // get obs from mapper
+        ->observable()
+            // subscribe for newly generated instructions
+        .subscribe([&](const std::shared_ptr<llvm::VisitableBase> &i) {
+          // retrieve type of instruction
+          invoke_accept(i, llvm::SerializableVisitorL([&](
+              const llvm::Serializable *instr
+          ) -> void { EXPECT_EQ(compare, instr->getSignature()); }));
+        });
 
-                // subscribe for newly generated instructions
-            .subscribe([&](
-                const std::shared_ptr<llvm::VisitableBase> &i
-            ) {
-              received = true;
-              // retrieve type of instruction
-              invoke_accept(i, create_TestVisitor([&](
-                  const llvm::Instruction *instr
-              ) -> void {
-                ASSERT_EQ(
-                    instr->getAssembly()[0].getDecoded(),
-                    simple_i.getDecoded()
-                );
-                ASSERT_FALSE(tested);
-                tested = true;
-              }));
-            });
+    auto subscriber = i_subj.get_subscriber();
+    subscriber.on_next(simple_i);
+    i_subj.get_observable()
+          .subscribe([&reduced](const auto &) {
+            EXPECT_TRUE(reduced);
+          });
+    subscriber.on_completed();
+  });
 
-        ASSERT_FALSE(received);
-        ASSERT_FALSE(tested);
-
-        i_subj.get_subscriber().on_next(simple_i);
-
-        ASSERT_TRUE(received && "not received");
-        ASSERT_TRUE(tested && "not visited");
-      }
-  );
+//  mapper->reduce_instr(instruction_stream)
+//        .subscribe([](llvm::InstructionMapper::sym_table_t::ptr::shared ptr) {
+//
+//        });
 }
+
+SymbolTableMap concat(SymbolTableMap a, SymbolTableMap b) {
+  a.insert(b.cbegin(), b.cend());
+  return std::move(a);
+}
+
+
 
 TEST(DecompilerTest, CallTest) {
   test_single_instruction(
+      // asm instructions
       {"call    400800"},
-      {
-          {0x400800,
-           std::make_shared<symbol_table::Function>(
-               std::make_shared<DummySymbol>(
-                   "printf",
-                   0x400800
+      // symbol table
+      concat(
+          {
+              {"400800",
+               std::make_shared<symbol_table::Function>(
+                   std::make_shared<DummySymbol>(
+                       "printf",
+                       0x400800
+                   )
                )
-           )
-          }
-      },
+              }
+          },
+          ::map(symbol_table::registers, [](
+              std::pair<std::string, symbol_table::VisitableBase *> _reg
+          ) {
+            return std::make_pair(_reg.first, std::shared_ptr<
+                symbol_table::VisitableBase
+            >(
+                _reg.second,
+                symbol_table::register_deleter
+            ));
+          }, SymbolTableMap())
+      ),
+  // guessed result
       "call @printf()"
   );
 }
 
 TEST(DecompilerTest, CmpTest) {
+  test_single_instruction(
+      // asm instructions
+      {"cmp    eax, ebx"},
+      { // symbol table
+          {"0",
+           std::make_shared<
+               symbol_table::Register<
+                   symbol_table::types::DWORD
+               >
+           >("_eax")
+          },
+          {"1",
+           std::make_shared<
+               symbol_table::Register<
+                   symbol_table::types::DWORD
+               >
+           >("_ebx")
+          }
+      },
+      // guessed result
+      "call @printf()"
+  );
 
 }
 }  // namespace

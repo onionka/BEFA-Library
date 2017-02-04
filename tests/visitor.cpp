@@ -143,7 +143,7 @@ struct V_AA : virtual visitable_base, V_A {
     return name;
   }
 
-  void accept(visitor_base &visitor) override {
+  void accept(visitor_base &visitor) const override {
     visitor.visit(static_cast<const V_AA *>(this));
   }
 };
@@ -155,7 +155,7 @@ struct V_AB : virtual visitable_base, V_A {
     return name;
   }
 
-  void accept(visitor_base &visitor) override {
+  void accept(visitor_base &visitor) const override {
     visitor.visit(this);
   }
 };
@@ -167,7 +167,7 @@ struct V_ABA : virtual visitable_base, V_AB {
     return name;
   }
 
-  void accept(visitor_base &visitor) override {
+  void accept(visitor_base &visitor) const override {
     visitor.visit(this);
   }
 };
