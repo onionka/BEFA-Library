@@ -176,9 +176,13 @@ ExecutableFile::sec_t::vector::weak ExecutableFile::getSections() {
 }
 
 std::map<
-    bfd_vma, std::shared_ptr<symbol_table::VisitableBase>
+    bfd_vma,
+    std::shared_ptr<symbol_table::VisitableBase>
 > ExecutableFile::generate_table() {
-  std::map<bfd_vma, std::shared_ptr<symbol_table::VisitableBase>> result;
+  std::map<
+      bfd_vma,
+      std::shared_ptr<symbol_table::VisitableBase>
+  > result;
   for (auto &symbol : getSymbolTable()) {
     auto symbol_l = ptr_lock(symbol);
     result.insert(std::make_pair<

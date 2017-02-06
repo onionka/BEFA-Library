@@ -55,8 +55,7 @@ symbol_table::                  types:: ZMM
  * @return size of type, but in bits, not bytes
  */
 template<typename T>
-constexpr size_t                bit_sizeof(
-)   noexcept {
+constexpr size_t                bit_sizeof() noexcept {
   return sizeof(T) * 8;
 }
 
@@ -336,41 +335,6 @@ using VisitableBase      = VisitorTraits::    visitable_base;
 using VisitorBase        = VisitorTraits::    visitor_base;
 
 /**
- * For internal variables - non-assembly
- */
-struct Variable
-    : virtual public       VisitableBase {
-  void accept(
-      VisitorBase&         base
-  )  const                 override {
-    base.visit(this);
-  }
-
-  struct                   Define;
-  struct                   Use;
-};
-
-struct Variable::          Define
-    : public               Variable,
-      virtual public       VisitableBase {
-  void accept(
-      VisitorBase&         base
-  )   const                override {
-    base.visit(this);
-  }
-};
-
-struct Variable::          Use
-    : public               Variable,
-      virtual public       VisitableBase {
-  void accept(
-      VisitorBase&         base
-  )   const                override {
-    base.visit(this);
-  }
-};
-
-/**
  * Base class for all Assembly Symbols
  */
 struct Symbol
@@ -405,6 +369,70 @@ struct Symbol
   bfd_vma address;
 };
 
+
+/**
+ * For internal variables - non-assembly
+ */
+struct Variable
+    : virtual public       VisitableBase
+    , virtual public       Symbol {
+  Variable(
+      std::string          name
+  ) : Symbol              (name) {}
+
+  void accept(
+      VisitorBase&         base
+  )  const                 override {
+    base.visit(this);
+  }
+
+  struct                   Define;
+  struct                   Use;
+
+ protected:
+  Variable() : Symbol("") {}
+ private:
+  std::string              name;
+};
+
+struct Variable::          Define
+    : public               Variable,
+      virtual public       VisitableBase {
+  Define(
+      std::shared_ptr<Variable> ref
+  ) : Symbol              (ref->getName())
+    , ref                 (ref)    { }
+
+  void accept(
+      VisitorBase&         base
+  )   const                override {
+    base.visit(this);
+  }
+
+ private:
+  std::shared_ptr<Variable> ref;
+};
+
+struct Variable::          Use
+    : public               Variable,
+      virtual public       VisitableBase {
+  Use(
+      std::shared_ptr<Variable> ref
+  ) : Symbol              (ref->getName())
+    , ref                 (ref)    { }
+
+  void accept(
+      VisitorBase&         base
+  )   const                override {
+    base.visit(this);
+  }
+
+ private:
+  std::shared_ptr<Variable> ref;
+
+};
+
+
 /**
  * Static symbols in symbol table
  */
@@ -423,11 +451,18 @@ constexpr auto register_deleter = [](const VisitableBase *) throw() {};
  */
 template<typename SizeT>
 struct SizedSymbol
-    : private types::type_trait<SizeT>,
-      virtual public VisitableBase {
+    :         private types::type_trait<SizeT>,
+      virtual public         Symbol,
+      virtual public         VisitableBase {
   using size_trait = types::type_trait<SizeT>;
-  const std::string type_name = types::type_trait<SizeT>::name;
-  const size_t type_size = types::type_trait<SizeT>::size;
+
+  SizedSymbol(
+      const std::string &name,
+      bfd_vma address = (bfd_vma) -1
+  ) : Symbol(name, address) {}
+
+ protected:
+  SizedSymbol() : Symbol("", (bfd_vma) -1) {}
 
   void accept(VisitorBase &base) const override {
     base.visit(this);
@@ -482,12 +517,20 @@ struct Temporary
   using symbol_ptr = std::shared_ptr<VisitableBase>;
 
   Temporary(symbol_ptr lhs, std::string op, symbol_ptr rhs)
-      : Symbol(fetchName(op, rhs, lhs)),
+      : Symbol(fetchName(rhs, op, lhs)),
         lhs(lhs), op(op), rhs(rhs) {}
 
   Temporary(std::string op, symbol_ptr rhs)
-      : Symbol(fetchName(op, rhs)),
+      : Symbol(fetchName(rhs, op)),
         lhs(nullptr), op(op), rhs(rhs) {}
+
+  /**
+   * @brief As a result of smknd of operation
+   * @param rhs
+   */
+  Temporary(symbol_ptr rhs)
+      : Symbol(fetchName(rhs)),
+        lhs(nullptr), op(""), rhs(rhs) {}
 
   void accept(VisitorBase &base) const override {
     base.visit(this);
@@ -508,12 +551,16 @@ struct Temporary
   // ~~~~~ Getters
 
  protected:
+  Temporary()
+      : Symbol(""),
+        lhs(nullptr), op(""), rhs(nullptr) {}
+
   /**
    * So we could add <TYPE> to variables
    */
   virtual std::string fetchName(
-      const std::string &op,
       const symbol_ptr &rhs,
+      const std::string &op = "",
       const symbol_ptr &lhs = nullptr
   ) const;
 
@@ -531,9 +578,9 @@ template<typename SizeT>
 struct SizedTemporary
     : public SizedSymbol<SizeT>,
       public Temporary,
-      virtual public VisitableBase,
-      virtual public Symbol {
-  using size_trait = typename SizedSymbol<SizeT>::size_trait;
+      virtual public VisitableBase {
+  using symbol_base = SizedSymbol<SizeT>;
+  using size_trait = typename symbol_base::size_trait;
 
   using symbol_ptr = typename Temporary::symbol_ptr;
 
@@ -541,14 +588,23 @@ struct SizedTemporary
       const symbol_ptr &lhs,
       const std::string &op,
       const symbol_ptr &rhs
-  ) : Symbol(fetchName(op, rhs, lhs)),
-      Temporary(lhs, op, rhs) {}
+  ) : Symbol(fetchName(rhs, op, lhs))
+    , Temporary(lhs, op, rhs) {}
 
   SizedTemporary(
       const std::string &op,
       const symbol_ptr &rhs
-  ) : Symbol(fetchName(op, rhs)),
-      Temporary(op, rhs) {}
+  ) : Symbol(fetchName(rhs, op))
+    , Temporary(op, rhs) {}
+
+  SizedTemporary(
+      const symbol_ptr &rhs
+  ) : Symbol(fetchName(rhs))
+    , Temporary(rhs) {}
+
+  SizedTemporary(
+      std::string temp
+  ) : Symbol(temp) {}
 
   void accept(VisitorBase &base) const override {
     base.visit(this);
@@ -556,12 +612,12 @@ struct SizedTemporary
 
  protected:
   std::string fetchName(
-      const std::string &op,
       const symbol_ptr &rhs,
+      const std::string &op = nullptr,
       const symbol_ptr &lhs = nullptr
   ) const override {
     return "((" + std::string(size_trait::name) + ")"
-        + Temporary::fetchName(op, rhs, lhs) + ")";
+        + Temporary::fetchName(rhs, op, lhs) + ")";
   }
 };
 
@@ -577,10 +633,7 @@ struct RegisterBase
     base.visit(this);
   }
 
- private:
-  template<typename SizeT>
-  friend class Register;
-
+ protected:
   RegisterBase() : Symbol("") {}
 };
 
@@ -589,13 +642,14 @@ struct RegisterBase
  */
 template<typename size>
 struct Register
-    : public RegisterBase,
-      public SizedSymbol<size>,
-      virtual public VisitableBase,
-      virtual public Symbol {
-  using size_trait = typename SizedSymbol<size>::size_trait;
+    : public RegisterBase
+    , public SizedSymbol<size>
+    , virtual public VisitableBase {
+  using symbol_base = SizedSymbol<size>;
+  using size_trait = typename symbol_base::size_trait;
 
-  Register(std::string name) : Symbol(fetch_name(name)) {}
+  Register(std::string name)
+      : Symbol(fetch_name(name)) {}
 
   void accept(VisitorBase &base) const override {
     base.visit(this);
@@ -611,13 +665,13 @@ struct Register
  * If instruction is a call, this is address that is being jumped to
  */
 struct Function
-    : virtual public VisitableBase,
-      public Symbol {
+    : virtual public VisitableBase
+    , public Symbol {
   using asm_symbol_type = befa::Symbol<befa::Section>;
   using asm_symbol_ptr = std::shared_ptr<asm_symbol_type>;
 
   Function(const asm_symbol_ptr &callee)
-      : Symbol(fetchName(callee)), asm_symbol(callee) {}
+      : Symbol(fetchName(callee), callee->getAddress()), asm_symbol(callee) {}
 
   asm_symbol_ptr getAsmSymbol() const { return asm_symbol; }
 
@@ -637,8 +691,8 @@ struct Function
  * This is most probably a number
  */
 struct Immidiate
-    : virtual public VisitableBase,
-      public Symbol {
+    : virtual public VisitableBase
+    , public Symbol {
   Immidiate(std::string value)
       : Symbol(value), value(value) {}
 
@@ -658,9 +712,10 @@ struct Immidiate
 struct instruction_parser {
   /** AKA string */
   using piece_t = types::traits::container<std::string>;
+  using address_t = types::traits::container<bfd_vma>;
   using sym_t = types::traits::container<symbol_table::VisitableBase>;
   using sym_map_t = types::traits::container<
-      typename sym_t::map<std::string>::shared
+      typename sym_t::map<address_t::type>::shared
   >;
 
   /**
@@ -669,7 +724,7 @@ struct instruction_parser {
    * @return vector of parameters
    */
   sym_t::rx::shared_obs getArgs(
-      sym_map_t::c_ptr::shared functions = nullptr
+      sym_map_t::c::ref functions = {}
   ) const throw(std::runtime_error);
 
   /**
@@ -705,7 +760,7 @@ struct instruction_parser {
    */
   sym_t::ptr::shared handle_expression(
       piece_t::type expr,
-      sym_map_t::c_ptr::shared functions = nullptr
+      sym_map_t::c::ref functions
   ) const throw(std::runtime_error);
 
   /**
@@ -715,7 +770,8 @@ struct instruction_parser {
    * @return Immidiate object
    */
   sym_t::ptr::shared create_imm(
-      piece_t::type value
+      piece_t::type value,
+      sym_map_t::c::ref functions
   ) const throw();
 
   /**
@@ -729,7 +785,8 @@ struct instruction_parser {
   sym_t::ptr::shared create_operation(
       piece_t::type lhs,
       piece_t::type op,
-      piece_t::type rhs
+      piece_t::type rhs,
+      sym_map_t::c::ref functions
   ) const throw(std::runtime_error);
 
   /**
@@ -741,7 +798,8 @@ struct instruction_parser {
    */
   sym_t::ptr::shared create_dereference(
       piece_t::type size,
-      piece_t::type expr
+      piece_t::type expr,
+      sym_map_t::c::ref functions
   ) const throw(std::runtime_error);
 };
 

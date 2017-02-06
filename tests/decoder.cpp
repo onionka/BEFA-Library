@@ -114,6 +114,10 @@ struct DummySymbol
     : public Symbol {
   DummySymbol() : Symbol(nullptr, std::make_shared<befa::Section>(nullptr)) {}
 
+  bfd_vma getAddress() const override {
+    return 0x666;
+  }
+
   string getName() const override {
     return "number_of_the_beast";
   }
@@ -122,14 +126,12 @@ struct DummySymbol
 TEST(DecoderTest, TestFunctionFeed) {
   auto dummy_function = std::make_shared<DummySymbol>();
   InstructionTemplate simple_instr("call    0x666");
-  ExecutableFile::map_t::info::type sym_table{
-      std::make_pair("666", std::make_shared<symbol_table::Function>(
+  instruction_parser::sym_map_t::info::type sym_table{
+      std::make_pair(0x666, std::make_shared<symbol_table::Function>(
           dummy_function
       ))
   };
-  auto args = simple_instr.getArgs(std::shared_ptr<decltype(sym_table)>(
-      &sym_table, [](void *) {}
-  ));
+  auto args = simple_instr.getArgs(sym_table);
   args.count()
       .subscribe([](size_t size) { ASSERT_EQ(1, size); });
   args.element_at(0)

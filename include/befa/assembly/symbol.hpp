@@ -16,8 +16,7 @@ struct Symbol {
    * @param origin
    */
   Symbol(const asymbol *origin, const std::shared_ptr<SectionT> &parent)
-      : origin(
-      origin), parent(parent) {}
+      : origin(origin), parent(parent) {}
 
   // ~~~~~~~~~~~~~~ Conversions ~~~~~~~~~~~~~~
   Symbol(Symbol<SectionT> &&rhs)
@@ -62,7 +61,7 @@ struct Symbol {
 
   const std::weak_ptr<SectionT> &getParent() const { return parent; }
 
-  virtual bfd_vma getAddress() const { return bfd_asymbol_value(origin); }
+  virtual bfd_vma getAddress() const { return origin ? bfd_asymbol_value(origin) : (bfd_vma)-1; }
 
   bfd_vma getDistance(const std::weak_ptr<Symbol> &rhs) const {
     return ptr_lock(rhs)->getAddress() - getAddress();
@@ -73,7 +72,9 @@ struct Symbol {
         - (getAddress() - ptr_lock(getParent())->getAddress(fd));
   }
 
-  flagword getFlags() const { return getOrigin()->flags; }
+  flagword getFlags() const {
+    return getOrigin()->flags;
+  }
 
   bool hasFlags(const flagword &flag) const {
     return getFlags() & flag ||
@@ -85,10 +86,10 @@ struct Symbol {
   }
 
   // ~~~~~~~~~~~~~~ Aliases ~~~~~~~~~~~~~~
-  std::vector<Symbol> getAliases() const {
+  std::vector<std::shared_ptr<Symbol>> getAliases() const {
     return ::map(
         aliases, [&](const auto &alias)
-        { return Symbol<SectionT>(alias, ptr_lock(parent)); }
+        { return std::make_shared<Symbol<SectionT>>(alias, ptr_lock(parent)); }
     );
   }
   // ~~~~~~~~~~~~~~ Getters ~~~~~~~~~~~~~~

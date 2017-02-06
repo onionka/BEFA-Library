@@ -15,7 +15,7 @@ SET(LLVM_HEADERS
         ${PROJECT_SOURCE_DIR}/include/befa.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/llvm/instruction.hpp
         ${PROJECT_SOURCE_DIR}/include/befa/llvm/call.hpp
-        ../include/befa/llvm/cmp.hpp ../include/befa/llvm/jmp.hpp)
+        ../include/befa/llvm/cmp.hpp ../include/befa/llvm/jmp.hpp ../include/befa/llvm/unary_instruction.hpp ../include/befa/llvm/binary_operation.hpp ../include/befa/llvm/assignment.hpp)
 
 SET(LLVM_SOURCES
         ${PROJECT_SOURCE_DIR}/src/llvm/decompiler.cpp)

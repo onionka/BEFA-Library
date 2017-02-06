@@ -52,7 +52,7 @@ struct LambdaGeneralizer;
 template<typename T>
 struct VisitorBase<T> {
   /** visits base instruction (no fucking way) */
-  virtual void visit(const T *) {}
+  virtual void visit(const T *) { }
 };
 
 /** base for all visitors */
@@ -120,8 +120,7 @@ struct VisitableBase {
 
  private:
   /**
-   * Adapts lambdas into visitor
-   *
+   * @brief Adapts lambdas into visitor
    * @tparam LambdaT class of lambda
    * @tparam _T type that lambda accepts as parameter
    */
@@ -197,9 +196,11 @@ struct dereference;
 template<typename T>
 struct dereference<T, true> {
   using NoRefT = std::remove_reference_t<T>;
-  using DecayT = decltype(*(NoRefT) nullptr) &;
+  using DerefT = decltype(*(NoRefT) nullptr);
+  using DerefRefT = DerefT&;
 
-  constexpr static DecayT _do(T &ptr) {
+  constexpr static inline auto _do(T &ptr)
+      -> DerefRefT {
     assert_ex(
         (bool) ptr,
         std::string("nullptr dereference of type '")
@@ -211,7 +212,7 @@ struct dereference<T, true> {
 
 template<typename T>
 struct dereference<T, false> {
-  constexpr static T &_do(T &ptr) {
+  constexpr static inline T &_do(T &ptr) {
     return ptr;
   }
 };
@@ -346,7 +347,7 @@ struct Generalizer<visitable_traits, BaseT, T, Ts...>
    * Implementation of visit for each of derivations
    */
   void visit(const T *visitable) override {
-    this->generalized_visitor((const BaseT *) (visitable));
+    this->generalized_visitor(static_cast<const BaseT *>(visitable));
   }
 };
 

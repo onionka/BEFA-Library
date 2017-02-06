@@ -288,29 +288,27 @@ std::string get_name
 }
 
 std::string Temporary::fetchName
-    (const std::string &op, const symbol_ptr &rhs, const symbol_ptr &lhs)
+    (const symbol_ptr &rhs, const std::string &op, const symbol_ptr &lhs)
 const {
-  std::string
-      lhs_name = get_name(lhs),
-      rhs_name = get_name(rhs);
+  std::string lhs_name = get_name(lhs),
+              rhs_name = get_name(rhs);
 
   // if it is unary () should be used
-  if (lhs_name == "")
+  if (lhs_name == "" && op != "")
     rhs_name = "(" + rhs_name + ")";
   return lhs_name + op + rhs_name;
 }
 }  // namespace symbol_table
 
 
-static auto empty_functions = std::make_shared<instruction_parser::sym_map_t::type>();
+static auto empty_functions = instruction_parser::sym_map_t::type();
 
-instruction_parser::sym_t::rx::shared_obs instruction_parser::getArgs
-    (instruction_parser::sym_map_t::c_ptr::shared functions)
+instruction_parser::sym_t::rx::shared_obs instruction_parser:: getArgs
+    (instruction_parser::sym_map_t::c::ref functions)
 const throw(std::runtime_error) {
-  if (!functions) functions = empty_functions;
   return parse()
       .skip(1)
-      .map([=](
+      .map([&](
           const std::string &arg
       ) -> sym_t::ptr::shared {
         return handle_expression(arg, functions);
@@ -327,7 +325,7 @@ const throw(std::runtime_error) {
 }
 
 instruction_parser::sym_t::ptr::shared    instruction_parser::create_dereference
-    (std::string size, std::string expr)
+    (std::string size, std::string expr, sym_map_t::c::ref functions)
 const throw(std::runtime_error) {
   using namespace symbol_table::types;
 
@@ -339,7 +337,7 @@ const throw(std::runtime_error) {
 
 #define IMPLEMENT_TYPE_HANDLER(type) do { \
   if (size == type::size_trait::name) { \
-    if (auto rhs = handle_expression(expr)) { \
+    if (auto rhs = handle_expression(expr, functions)) { \
       return std::make_shared<type>("*", rhs); \
     } \
   } \
@@ -359,10 +357,10 @@ const throw(std::runtime_error) {
 }
 
 instruction_parser::sym_t::ptr::shared    instruction_parser::create_operation
-    (std::string lhs, std::string op, std::string rhs)
+    (std::string lhs, std::string op, std::string rhs, sym_map_t::c::ref functions)
 const throw(std::runtime_error) {
-  if (auto lhs_expr = handle_expression(lhs))
-    if (auto rhs_expr = handle_expression(rhs))
+  if (auto lhs_expr = handle_expression(lhs, functions))
+    if (auto rhs_expr = handle_expression(rhs, functions))
       return std::make_shared<symbol_table::Temporary>(
           lhs_expr, op, rhs_expr
       );
@@ -370,22 +368,34 @@ const throw(std::runtime_error) {
 }
 
 instruction_parser::sym_t::ptr::shared    instruction_parser::create_imm
-    (std::string value)
+    (std::string value, sym_map_t::c::ref functions)
 const throw() {
   return std::make_shared<symbol_table::Immidiate>(value);
 }
 
+/**
+ * @brief Converts string to virtual memory address (aka from hex to number)
+ * @param input is raw text like 0x000008 or just plain 42
+ * @return input at number (not hexa string)
+ */
+bfd_vma str_to_vma(std::string input) {
+  std::stringstream ss;
+  bfd_vma result;
+  static_cast<std::stringstream &>(
+      ss << std::hex << input
+  ) >> std::hex >> result;
+  return result;
+}
+
 instruction_parser::sym_t::ptr::shared    instruction_parser::handle_expression
-    (std::string expr, sym_map_t::c_ptr::shared functions)
+    (std::string expr, sym_map_t::c::ref functions)
 const throw(std::runtime_error) {
   std::smatch result;
-  if (!functions) functions = empty_functions;
-
   { // if (possible) parameter is function
     if (std::regex_match(expr, result, address)) {
       // find function by address
-      auto func_symbol = functions->find(result.str(1));
-      if (func_symbol != functions->cend()) {
+      auto func_symbol = functions.find(str_to_vma(result.str(1)));
+      if (func_symbol != functions.cend()) {
         return func_symbol->second;
       }
     }
@@ -403,7 +413,7 @@ const throw(std::runtime_error) {
 
   { // is it value?
     if (std::regex_match(expr, result, number)) {
-      return create_imm(result.str(1));
+      return create_imm(result.str(1), functions);
     }
   }
 
@@ -415,20 +425,20 @@ const throw(std::runtime_error) {
   { // it is dereference?
     if (std::regex_match(expr, result, dereference)) {
       return create_dereference(
-          result.str(1), result.str(2)
+          result.str(1), result.str(2), functions
       );
     }
   }
 
   { // is it multiplication operation?
     if (std::regex_match(expr, result, multiplication)) {
-      return create_operation(result.str(1), result.str(2), result.str(3));
+      return create_operation(result.str(1), result.str(2), result.str(3), functions);
     }
   }
 
   { // is it add or subtract operation?
     if (std::regex_match(expr, result, add_or_substract)) {
-      return create_operation(result.str(1), result.str(2), result.str(3));
+      return create_operation(result.str(1), result.str(2), result.str(3), functions);
     }
   }
 

@@ -17,7 +17,7 @@ struct Section {
 
   size_t getSize(ATTRIBUTE_UNUSED bfd *fd) const { return bfd_section_size(fd, getOrigin()); }
 
-  bfd_vma getAddress(ATTRIBUTE_UNUSED bfd *fd) const { return bfd_get_section_vma(fd, getOrigin()); }
+  bfd_vma getAddress(ATTRIBUTE_UNUSED bfd *fd=nullptr) const { return bfd_get_section_vma(fd, getOrigin()); }
 
 
   // ~~~~~~~~~~~~~~ Operators ~~~~~~~~~~~~~~

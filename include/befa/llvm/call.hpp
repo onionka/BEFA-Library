@@ -6,6 +6,7 @@
 #define BEFA_LLVM_UNARY_HPP
 
 #include "instruction.hpp"
+#include "unary_instruction.hpp"
 #include "../../befa.hpp"
 
 namespace llvm {
@@ -19,6 +20,8 @@ class CallInstruction
 
  public:
 
+  static const operator_t::type an_operator;
+
   /**
    * @brief Represents call instruction from LLVM IR
    * @param assembly is real representation
@@ -27,31 +30,17 @@ class CallInstruction
    */
   CallInstruction(
       const a_vec_t&       assembly,
-      sym_t::ptr::shared   call_target,
-      sym_t::ptr::shared   result
+      sym_t::ptr::shared   result,
+      sym_t::ptr::shared   call_target
   );
+
+  std::string            toString() const override;
 
   void                     accept(
       VisitorBase&         visitor
   )   const                override {
     visitor.visit(this);
   }
-
- private:
-  /**
-   * @brief Gets signatures of result and target
-   *        and creates signature of calling (params TBD)
-   * @param result ptr to result symbol
-   * @param target ptr to target (this is method probably) symbol
-   * @return string version of this (passed to Serializable backend)
-   *
-   * FIXME: add parameters of call LLVM IR
-   */
-  static inline
-  std::string              fetch_name(
-      sym_t::ptr::shared   result,
-      sym_t::ptr::shared   call_target
-  );
 };
 
 struct CallFactory

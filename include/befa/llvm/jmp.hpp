@@ -11,44 +11,75 @@
 namespace llvm {
 
 struct TerminatorInstruction
-    : public Instruction,
-      public Serializable,
+    : virtual public Serializable,
       virtual public VisitableBase {
-  TerminatorInstruction(
-      const std::vector<instruction_type> &assembly
-  ) : Instruction(assembly), Serializable("") {}
+  void accept(VisitorBase &visitor) const override {
+    visitor.visit(this);
+  }
+
+  std::string toString() const override {
+    return "Terminator pica";
+  }
 };
 
 /**
  * Unconditional branch instruction
  */
 class JumpInstruction
-    : public TerminatorInstruction,
+    :         public Instruction,
+              public TerminatorInstruction,
       virtual public VisitableBase {
  public:
+  using TerminatorInstruction::toString;
+
   JumpInstruction(
-      const std::vector<instruction_ptr> &assembly
-  ) : TerminatorInstruction(assembly) {}
+      a_ir_t::vector::value assembly
+  ) : assembly(assembly) {}
+
+  a_ir_t::vector::value getAssembly() const override {
+      return assembly;
+  }
 
   void accept(VisitorBase &visitor) const override {
     visitor.visit(this);
   }
+
+  std::string toString() const override {
+    return "Terminator pica";
+  }
+
+ private:
+  a_ir_t::vector::value assembly;
 };
 
 /**
  * Conditional branch instruction
  */
 class BranchInstruction
-    : public TerminatorInstruction,
+    :         public Instruction,
+              public TerminatorInstruction,
       virtual public VisitableBase {
  public:
+  using TerminatorInstruction::toString;
+
   BranchInstruction(
-      const std::vector<instruction_ptr> &assembly
-  ) : TerminatorInstruction(assembly) {}
+      a_ir_t::vector::value assembly
+  ) : assembly(assembly) {}
+
+  a_ir_t::vector::value getAssembly() const override {
+    return assembly;
+  }
 
   void accept(VisitorBase &visitor) const override {
     visitor.visit(this);
   }
+
+  std::string toString() const override {
+    return "Terminator pica";
+  }
+
+ private:
+  a_ir_t::vector::value assembly;
 };
 }  // namespace llvm
 

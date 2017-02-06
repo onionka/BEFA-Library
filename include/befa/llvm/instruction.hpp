@@ -55,13 +55,13 @@ struct Assignment;
 
 struct UnaryInstruction;
 
-struct BinaryOperator;
+struct BinaryOperation;
 
-struct Defines;
+struct Definer;
 
-struct Uses;
+struct User;
 
-struct Operator;
+struct Operation;
 // ~~~~~ Instruction declarations ~~~~~
 
 // ~~~~~ Endpoint classes
@@ -71,33 +71,34 @@ struct Operator;
 #define LLVM_TERMINATOR_LIST \
     LLVM_BRANCH_LIST
 
-#define LLVM_OPERATOR_LIST \
-    UnaryInstruction,BinaryOperator
+#define LLVM_OPERATION_LIST \
+    UnaryInstruction, BinaryOperation
 
 #define LLVM_ASSIGNMENT_LIST \
-    LLVM_OPERATOR_LIST
+    LLVM_OPERATION_LIST
 // ~~~~~ Endpoint classes
 
 /**
  * @brief Mid-level base classes (or endpoint)
  */
 #define LLVM_INSTRUCTION_LIST \
-    CallInstruction, CmpInstruction,   TerminatorInstruction, LLVM_TERMINATOR_LIST, \
-    Assignment,      Operator,                                LLVM_OPERATOR_LIST
+    CallInstruction, CmpInstruction,                          LLVM_TERMINATOR_LIST,  \
+                                                              LLVM_OPERATION_LIST
 
 /**
  * @brief The lowest level of the bases
  */
 #define LLVM_VISITABLES \
-    Instruction,     Serializable,     Defines,               LLVM_INSTRUCTION_LIST, \
-    Uses
+    Instruction,     Serializable,     Definer,               LLVM_INSTRUCTION_LIST, \
+    User,            Assignment,       Operation,                                    \
+    TerminatorInstruction
 
 // ~~~~~ Generalize lambda-visitors
 using                DefinesVisitorL =                        LambdaGeneralizer<
-    visitable_traits<LLVM_VISITABLES>, Defines,               LLVM_INSTRUCTION_LIST
+    visitable_traits<LLVM_VISITABLES>, Definer,               LLVM_INSTRUCTION_LIST
 >;
 using                UsesVisitorL =                           LambdaGeneralizer<
-    visitable_traits<LLVM_VISITABLES>, Uses,                  LLVM_INSTRUCTION_LIST
+    visitable_traits<LLVM_VISITABLES>, User,                  LLVM_INSTRUCTION_LIST
 >;
 using                BranchVisitorL =                         LambdaGeneralizer<
     visitable_traits<LLVM_VISITABLES>, TerminatorInstruction, LLVM_BRANCH_LIST
@@ -106,11 +107,11 @@ using                AssignmentVisitorL =                     LambdaGeneralizer<
     visitable_traits<LLVM_VISITABLES>,
                                        Assignment,            LLVM_ASSIGNMENT_LIST
 >;
-using                OperatorVisitorL =                       LambdaGeneralizer<
+using                OperationVisitorL =                      LambdaGeneralizer<
     visitable_traits<LLVM_VISITABLES>,
-                                       Operator,              LLVM_OPERATOR_LIST
+                                       Operation,             LLVM_OPERATION_LIST
 >;
-using                VisitorL =                         LambdaGeneralizer<
+using                VisitorL =                               LambdaGeneralizer<
     visitable_traits<LLVM_VISITABLES>, TerminatorInstruction, LLVM_TERMINATOR_LIST
 >;
 using                InstructionVisitorL =                    LambdaGeneralizer<
@@ -118,14 +119,14 @@ using                InstructionVisitorL =                    LambdaGeneralizer<
 >;
 using                SerializableVisitorL =                   LambdaGeneralizer<
     visitable_traits<LLVM_VISITABLES>, Serializable,          LLVM_INSTRUCTION_LIST,
-    Serializable
+    Serializable,                      Instruction
 >;
 // ~~~~~ Generalize lambda-visitors
 
 // ~~~~~ Generalize visitor base classes
 using                BranchVisitor =                 typename BranchVisitorL      ::Base;
 using                AssignmentVisitor =             typename AssignmentVisitorL  ::Base;
-using                OperatorVisitor =               typename OperatorVisitorL    ::Base;
+using                OperationVisitor =              typename OperationVisitorL   ::Base;
 using                InstructionVisitor =            typename InstructionVisitorL ::Base;
 using                SerializableVisitor =           typename SerializableVisitorL::Base;
 using                DefinesVisitor =                typename DefinesVisitorL     ::Base;
@@ -176,73 +177,57 @@ using sym_map =  types::traits ::container <
 // ~~~~~ LLVM ir aliases
 }  // namespace traits
 
+/**
+ * @brief Derived classes can be tranformed into string
+ * @details
+ * Transformation can be done by applying toString()
+ *
+ * this is just string holder
+ * @see toString
+ */
 struct Serializable
     : virtual public             VisitableBase {
-  Serializable(
-      std::string                signature
-  ) : signature                 (signature) {}
-
-  const std::string&          getSignature() const {
-      return                     signature;
-  }
+  /**
+   * @return the same value, as this object was constructed
+   */
+  virtual std::string          toString() const = 0;
 
   void                           accept(
       VisitorBase&               visitor
   )   const                      override {
     visitor.visit(this);
   }
-
- private:
-  std::string                    signature;
 };
 
 /**
- * @brief Container that contains references to the symbols
- *        they can be iterated via rxcpp
+ * @brief derived classes are value holders
+ * @details Container that contains references to the symbols
+ *          they can be iterated via rxcpp
+ * @see http://llvm.org/doxygen/classllvm_1_1Value.html
  */
-struct SymbolContainer {
- private:
+struct Value {
   using sym_t =          traits::symbol;
   using sym_table_t =    traits::sym_table;
 
- public:
-  template<typename...           ArgsT>
-  SymbolContainer(
-      ArgsT&&...                 symbols
-  ) : symbols                  ({
-             std::forward<ArgsT>(symbols)...
-  }) {}
-
-  SymbolContainer(
-      sym_t::vector::shared      symbols
-  ) : symbols                   (symbols) {}
-
-  SymbolContainer(
-      sym_t::ptr::shared         symbols
-  ) : symbols                  ({symbols}) {}
-
   auto                           iterate() const ->
   decltype(rxcpp::sources      ::iterate(sym_t::vector::shared())) {
-    return rxcpp::sources      ::iterate(symbols);
+    return rxcpp::sources      ::iterate(getSymbols());
   }
 
- private:
-  sym_t::vector::shared          symbols;
+ protected:
+  virtual
+  sym_t::vector::shared       getSymbols() const = 0;
 };
 
 /**
- * @brief Contains pointers to the symbols
- *        that are used in this instruction
+ * @brief Derived classes are defining symbols
+ * @details Contains pointers to the symbols
+ *          that are used in this instruction
  */
-struct Defines
+struct Definer
     : virtual public             VisitableBase,
-              private            SymbolContainer {
-  template<typename...           ArgsT>
-  Defines(
-      ArgsT&&...                 symbols
-  ) : SymbolContainer(
-             std::forward<ArgsT>(symbols)...
-  ) {}
+              private            Value {
+  using Value::sym_t;
 
   void                           accept(
       VisitorBase&               base
@@ -250,25 +235,37 @@ struct Defines
     base.visit(this);
   }
 
-  auto                           defines() const ->
-  decltype(SymbolContainer::     iterate()) {
-    return SymbolContainer::     iterate();
+  /**
+   * @return rxcpp::Observable of symbols
+   */
+  auto                           defines()        const ->
+  decltype(               Value::iterate()) {
+    return                Value::iterate();
+  }
+
+  /**
+   * @details Requirement for instructions that are creating
+   *          new symbol
+   * @return vector of defined symbols
+   */
+  virtual sym_t::vector::shared  getDefinitions() const = 0;
+
+ protected:
+  virtual sym_t::vector::shared  getSymbols()     const {
+    return getDefinitions();
   }
 };
 
 /**
- * @brief Contains pointers to the symbols
- *        that are used in this instruction
+ * @brief Derived classes are value users
+ * @details Contains pointers to the symbols
+ *          that are used in this instruction
+ * @see http://llvm.org/doxygen/classllvm_1_1User.html
  */
-struct Uses
+struct User
     : virtual public             VisitableBase,
-              private            SymbolContainer {
-  template<typename...           ArgsT>
-  Uses(
-      ArgsT&&...                 symbols
-  ) : SymbolContainer(
-             std::forward<ArgsT>(symbols)...
-  ) {}
+              private            Value {
+  using Value::sym_t;
 
   void                           accept(
       VisitorBase&               base
@@ -276,9 +273,24 @@ struct Uses
     base.visit(this);
   }
 
+  /**
+   * @return rxcpp::Observable of symbols
+   */
   auto                           uses() const ->
-  decltype(SymbolContainer::     iterate()) {
-    return SymbolContainer::     iterate();
+  decltype(            Value::iterate()) {
+    return             Value::iterate();
+  }
+
+  /**
+   * @details Requirement for instructions that are creating
+   *          new symbol
+   * @return vector of defined symbols
+   */
+  virtual sym_t::vector::shared  getUsedSymbols() const = 0;
+
+ protected:
+  virtual sym_t::vector::shared  getSymbols()     const {
+    return getUsedSymbols();
   }
 };
 
@@ -293,28 +305,25 @@ struct Instruction
 
   using sym_t =                  traits::          symbol;
   using sym_table_t =            traits::          sym_table;
+  using ir_t =                   traits::          ir;
   using a_ir_t =                 traits::          a_ir;
   using a_bb_t =                 traits::          a_bb;
   using a_sym_t =                traits::          a_sym;
   using a_sec_t =                traits::          a_sec;
   using a_vec_t =                a_ir_t::vector::  value;
 
-
-  Instruction(
-      const a_vec_t&             assembly
-  ) : Serializable   (fetch_name(assembly)),
-      assembly                  (assembly) {}
-
-  const a_ir_t::vector::value&getAssembly()        const {
-    return assembly;
-  }
+  /**
+   * @brief Requires at leat one assembly instruction
+   */
+  virtual
+  a_ir_t::vector::value       getAssembly()        const = 0;
 
   a_bb_t::ptr::shared         getParent()          const {
-    return assembly[0].getParent();
+    return getAssembly()[0].getParent();
   }
 
   bfd_vma                     getAddress()         const {
-    return assembly[0].getAddress();
+    return getAssembly()[0].getAddress();
   }
 
   void                           accept(
@@ -323,7 +332,11 @@ struct Instruction
     visitor.visit(this);
   }
 
- protected:
+  std::string                  toString()          const override {
+    return fetch_name        (getAssembly());
+  }
+
+ private:
   static inline
   std::string              fetch_name(
       a_ir_t::vector::value      assembly
@@ -334,59 +347,24 @@ struct Instruction
     }
     return result + "}\n";
   }
-
-  /**
-   * Almost always this will be only one instruction
-   * (but occasionally multiple)
-   */
-  a_ir_t::vector::value          assembly;
 };
 
 /**
- * @brief Represents assignment (ie. mov eax, ebx or result of smkind of operation)
+ * @brief Requirement for instruction that uses operations
+ *        - this only creates requirement for
+ *           - virtual bases User, Definer
+ *           - getOperator
  */
-struct Assignment
-    : public                     Instruction,
-      virtual public             Defines
-    , virtual public             Uses {
-  using sym_t = Instruction::sym_t;
+struct Operation
+    :   virtual public            Definer
+    ,   virtual public            User
+    ,   virtual public            VisitableBase {
+  using operator_t              = types::traits::container <std::string>;
 
-  Assignment(
-      const a_vec_t&             assembly,
-      sym_t::ptr::shared         target,
-      sym_t::ptr::shared         source
-  );
-
-  static inline
-  std::string              fetch_name(
-      sym_t::ptr::shared         target,
-      sym_t::ptr::shared         source
-  );
-
-  void                           accept(
-      VisitorBase&               base
-  )   const                      override {
-    base.visit(this);
-  }
-};
-
-/**
- * @brief Just an operator container
- */
-struct Operator
-    : virtual public             VisitableBase {
-  using operator_t             = types::traits::container <std::string>;
-
-  Operator(
-      operator_t::type           _operator
-  ) : _operator                 (_operator) {}
-
-  operator_t::type             getOperator() const {
-    return                     _operator;
-  }
+  virtual operator_t::type     getOperator() const = 0;
 
   operator_t::type              toString()   const {
-    return                       _operator;
+    return                     getOperator();
   }
 
   void                            accept(
@@ -394,105 +372,6 @@ struct Operator
   )   const                       override {
     base.visit(this);
   }
-
- private:
-  operator_t::type               _operator;
-};
-
-/**
- * @brief Represents instructions that works only with one
- *        operand
- */
-struct UnaryInstruction
-    :         public              Assignment,
-              public              Operator,
-      virtual public              Defines,
-      virtual public              Uses {
-
-  /**
-   * @brief ie. dereference, call, ...
-   * @param assembly
-   * @param target
-   * @param _operator
-   * @param operand
-   */
-  UnaryInstruction(
-      const a_vec_t&             assembly,
-      sym_t::ptr::shared         target,
-      operator_t::type          _operator,
-      sym_t::ptr::shared         operand
-  );
-
-  void                          accept(
-      VisitorBase&              base
-  )   const                     override {
-    base.visit(this);
-  }
-
-  static inline
-  sym_t::ptr::shared      create_result(
-      operator_t::type          _operator,
-      sym_t::ptr::shared         operand
-  );
-
-  static inline
-  std::string              fetch_name(
-      sym_t::ptr::shared         target,
-      operator_t::type          _operator,
-      sym_t::ptr::shared         operand
-  );
-//
-//  template<
-//      typename                 SizeT
-//  >
-//  sym_t::ptr::shared       create_result(
-//      operator_t ::type         _operator,
-//      sym_t::ptr::shared         operand
-//  ) {
-//    return std::make_shared<
-//        symbol_table::SizedTemporary<SizeT>
-//    >(_operator, operand);
-//  }
-};
-
-
-/**
- * @brief Another virtual base class that adds binary operation behaviour to the instruction
- */
-struct BinaryOperator
-    : public                     Assignment,
-      public                     Operator {
-  using bin_op_t               = types::traits::container <std::string>;
-  using inst_vect_t            = Instruction::             a_vec_t;
-
-  BinaryOperator(
-      const inst_vect_t&         assembly,
-      sym_t::ptr::shared         target,
-      sym_t::ptr::shared         lhs,
-      bin_op_t::type             bin_op,
-      sym_t::ptr::shared         rhs
-  );
-
-  void                           accept(
-      VisitorBase&               base
-  )   const                      override {
-    base.visit(this);
-  }
-
-  static sym_t::ptr::shared      createResult(
-         sym_t::ptr::shared      rhs,
-         bin_op_t::type          bin_op,
-         sym_t::ptr::shared      lhs
- );
-
- protected:
-  static inline
-  std::string              fetch_name(
-      sym_t::ptr::shared         target,
-      sym_t::ptr::shared         lhs,
-      bin_op_t::type             bin_op,
-      sym_t::ptr::shared         rhs
-  );
 };
 
 /**
@@ -568,10 +447,10 @@ struct SymTable {
   )   const;
 
   /**
-   *
-   * @return const pointer to map (Read Only)
+   * @return RO map with bfd_vma instead of string
    */
-  sym_map_t::ptr::shared         to_map() const;
+  instruction_parser::sym_map_t
+  ::type                      to_map() const;
 
   // ~~~~~ Mutable operations (can be used as an accumulator in rxcpp reduce)
   template<
@@ -597,15 +476,31 @@ struct SymTable {
     return symbol;
   }
 
+  sym_t::ptr::shared             add_symbol(
+      sym_t::ptr::shared         symbol
+  ) {
+    std::string name;
+    invoke_accept(symbol, symbol_table::SymbolVisitorL(
+        [&name] (const symbol_table::Symbol *sym) {
+          name = sym->getAddress();
+        }
+    ));
+    assert_ex(
+        symbol_table->emplace(std::make_pair(name, symbol)).second,
+        "Failed to insert symbol into symbol table"
+    );
+    return symbol;
+  }
+
   template<
       typename                   T,
       typename...                ArgsT
   >
   sym_t::ptr::shared             get_or_create(
-      std::string                address,
+      std::string                name,
       ArgsT&&...                 args
   ) {
-    auto ite = symbol_table->find(address);
+    auto ite = symbol_table->find(name);
     if (ite != symbol_table->end())
       return ite->second;
     return add_symbol<T>(std::forward<ArgsT>(args)...);
@@ -674,6 +569,17 @@ struct InstructionMapper {
   void register_factory(
       fact_t::ptr::shared        ptr
   );
+
+  template<
+      typename...                ArgsT
+  >
+  void register_factories(
+      ArgsT &&...                ptrs
+  ) {
+    std::vector<int>{
+      (register_factory(std::forward<ArgsT>(ptrs)), 1)...
+    };
+  }
 
   /**
    * Removes factory from a list of factories by value

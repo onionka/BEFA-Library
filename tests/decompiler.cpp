@@ -9,8 +9,17 @@
 #include <befa/utils/visitor.hpp>
 #include <befa/assembly/instruction_parser.hpp>
 #include <befa/assembly/instruction.hpp>
+
+// requirement classes
+#include <befa/llvm/assignment.hpp>
+#include <befa/llvm/unary_instruction.hpp>
+#include <befa/llvm/jmp.hpp>
+#include <befa/llvm/binary_operation.hpp>
+
+// endpoint classes
 #include <befa/llvm/call.hpp>
 #include <befa/llvm/cmp.hpp>
+
 #include <befa.hpp>
 
 namespace {
@@ -47,7 +56,7 @@ struct DummySymbol
 void test_single_instruction(
     std::vector<std::string> signatures,
     SymbolTableMap symbol_map,
-    std::string compare
+    std::vector<std::string> compares
 ) {
   // instruction created from signature only (dummy)
   auto instruction_stream = rxcpp::sources::iterate(signatures)
@@ -70,10 +79,8 @@ void test_single_instruction(
       = std::make_shared<llvm::InstructionMapper>(symbol_table);
 
   // append Call factory
-  mapper->register_factory(
-      std::make_shared<llvm::CallFactory>()
-  );
-  mapper->register_factory(
+  mapper->register_factories(
+      std::make_shared<llvm::CallFactory>(),
       std::make_shared<llvm::CompareFactory>()
   );
   bool reduced = false;
@@ -86,6 +93,7 @@ void test_single_instruction(
 
   // send instruction
   instruction_stream.subscribe([&](const Instruction &simple_i) {
+    int counter = 0;
     // hook to stream of translated instructions
     auto subscription = mapper
         // get obs from mapper
@@ -95,7 +103,10 @@ void test_single_instruction(
           // retrieve type of instruction
           invoke_accept(i, llvm::SerializableVisitorL([&](
               const llvm::Serializable *instr
-          ) -> void { EXPECT_EQ(compare, instr->getSignature()); }));
+          ) -> void {
+            ASSERT_LT(counter, compares.size());
+            EXPECT_STREQ(compares[counter++].c_str(), instr->toString().c_str());
+          }));
         });
 
     auto subscriber = i_subj.get_subscriber();
@@ -118,16 +129,24 @@ SymbolTableMap concat(SymbolTableMap a, SymbolTableMap b) {
   return std::move(a);
 }
 
-
-
 TEST(DecompilerTest, CallTest) {
+  static auto _symbol_table = ::map(symbol_table::registers, [](
+      std::pair<std::string, symbol_table::VisitableBase *> _reg
+  ) {
+    return std::make_pair(
+        _reg.first,
+        std::shared_ptr<symbol_table::VisitableBase>(
+            _reg.second,
+            symbol_table::register_deleter
+        ));
+  }, SymbolTableMap());
   test_single_instruction(
       // asm instructions
-      {"call    400800"},
+      {"call    0x400800"},
       // symbol table
       concat(
           {
-              {"400800",
+              {"printf",
                std::make_shared<symbol_table::Function>(
                    std::make_shared<DummySymbol>(
                        "printf",
@@ -136,46 +155,35 @@ TEST(DecompilerTest, CallTest) {
                )
               }
           },
-          ::map(symbol_table::registers, [](
-              std::pair<std::string, symbol_table::VisitableBase *> _reg
-          ) {
-            return std::make_pair(_reg.first, std::shared_ptr<
-                symbol_table::VisitableBase
-            >(
-                _reg.second,
-                symbol_table::register_deleter
-            ));
-          }, SymbolTableMap())
+          _symbol_table
       ),
   // guessed result
-      "call @printf()"
+      {"ResultOfTheCall = call @printf()"}
   );
 }
 
 TEST(DecompilerTest, CmpTest) {
+  static auto _symbol_table = ::map(symbol_table::registers, [](
+      std::pair<std::string, symbol_table::VisitableBase *> _reg
+  ) {
+    return std::make_pair(
+        _reg.first,
+        std::shared_ptr<symbol_table::VisitableBase>(
+            _reg.second,
+            symbol_table::register_deleter
+        ));
+  }, SymbolTableMap());
   test_single_instruction(
       // asm instructions
-      {"cmp    eax, ebx"},
-      { // symbol table
-          {"0",
-           std::make_shared<
-               symbol_table::Register<
-                   symbol_table::types::DWORD
-               >
-           >("_eax")
-          },
-          {"1",
-           std::make_shared<
-               symbol_table::Register<
-                   symbol_table::types::DWORD
-               >
-           >("_ebx")
-          }
+      {
+          "cmp    eax, ebx",
+          "test   eax, ebx"
       },
+      _symbol_table,
       // guessed result
-      "call @printf()"
+      {"((BIT)_zf) = icmp eq ((DWORD)_eax), ((DWORD)_ebx)",
+       "((BIT)_cf) = icmp lt ((DWORD)_eax), ((DWORD)_ebx)"}
   );
-
 }
 }  // namespace
 
