@@ -415,8 +415,8 @@ struct SymTable {
    * Create mapper with symbol table
    */
   SymTable(
-      sym_map_t::ptr::shared     symbol_table
-  ) : symbol_table              (symbol_table) {}
+      sym_map_t::ptr::shared     symbol_map
+  ) : symbol_map                (symbol_map) {}
 
   /**
    * Finds symbol by its address
@@ -453,6 +453,10 @@ struct SymTable {
   ::type                      to_map() const;
 
   // ~~~~~ Mutable operations (can be used as an accumulator in rxcpp reduce)
+  sym_t::ptr::shared             add_symbol(
+      sym_t::ptr::shared         symbol
+  );
+
   template<
       typename                   T,
       typename...                ArgsT
@@ -460,36 +464,9 @@ struct SymTable {
   sym_t::ptr::shared             add_symbol(
       ArgsT&&...                 args
   ) {
-    sym_t::ptr::shared symbol = std::make_shared<T>(
+    return add_symbol(std::make_shared<T>(
         std::forward<ArgsT>(args)...
-    );
-    std::string name;
-    invoke_accept(symbol, symbol_table::SymbolVisitorL(
-        [&name] (const symbol_table::Symbol *sym) {
-          name = sym->getAddress();
-        }
     ));
-    assert_ex(
-        symbol_table->emplace(std::make_pair(name, symbol)).second,
-        "Failed to insert symbol into symbol table"
-    );
-    return symbol;
-  }
-
-  sym_t::ptr::shared             add_symbol(
-      sym_t::ptr::shared         symbol
-  ) {
-    std::string name;
-    invoke_accept(symbol, symbol_table::SymbolVisitorL(
-        [&name] (const symbol_table::Symbol *sym) {
-          name = sym->getAddress();
-        }
-    ));
-    assert_ex(
-        symbol_table->emplace(std::make_pair(name, symbol)).second,
-        "Failed to insert symbol into symbol table"
-    );
-    return symbol;
   }
 
   template<
@@ -500,8 +477,8 @@ struct SymTable {
       std::string                name,
       ArgsT&&...                 args
   ) {
-    auto ite = symbol_table->find(name);
-    if (ite != symbol_table->end())
+    auto ite = symbol_map->find(name);
+    if (ite != symbol_map->end())
       return ite->second;
     return add_symbol<T>(std::forward<ArgsT>(args)...);
   }
@@ -511,7 +488,7 @@ struct SymTable {
   /**
    * Mapper-scoped symbol table
    */
-  sym_map_t::ptr::shared         symbol_table;
+  sym_map_t::ptr::shared         symbol_map;
 };
 
 /**

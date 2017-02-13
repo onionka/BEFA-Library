@@ -83,7 +83,7 @@ TEST(DecoderTest, TestDereference) {
   args.count()
       .subscribe([](size_t size) { ASSERT_EQ(2, size); });
   args.element_at(0)
-      .subscribe(create_check_fn("((DWORD)*(((DWORD)_eax)*0x8+0x666))"));
+      .subscribe(create_check_fn("((DWORD)*((((DWORD)_eax)) * ((0x8) + (0x666))))"));
   args.element_at(1)
       .subscribe(create_check_fn("((DWORD)_ebx)"));
 }
@@ -94,7 +94,7 @@ TEST(DecoderTest, TestXMM) {
   args.count()
       .subscribe([](size_t size) { ASSERT_EQ(2, size); });
   args.element_at(0)
-      .subscribe(create_check_fn("((XMMWORD)*(((DWORD)_eax)*0x8+0x666))"));
+      .subscribe(create_check_fn("((XMMWORD)*((((DWORD)_eax)) * ((0x8) + (0x666))))"));
   args.element_at(1)
       .subscribe(create_check_fn("((DWORD)_ebx)"));
 }
@@ -134,7 +134,7 @@ TEST(DecoderTest, TestFunctionFeed) {
   auto args = simple_instr.getArgs(sym_table);
   args.count()
       .subscribe([](size_t size) { ASSERT_EQ(1, size); });
-  args.element_at(0)
+  args.first()
       .subscribe(create_check_fn("@number_of_the_beast"));
 }
 }

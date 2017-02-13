@@ -271,6 +271,8 @@ symbol_table::            Temporary                                      , \
 symbol_table::            RegisterBase                                   , \
 symbol_table::            Function                                       , \
 symbol_table::            Immidiate                                      , \
+symbol_table::            Symbol                                         , \
+symbol_table::            Variable                                         , \
                           ASM_SIZED_LIST                                 , \
                           ASM_SIZED_SYMBOL_LIST
 
@@ -278,8 +280,6 @@ symbol_table::            Immidiate                                      , \
  * List of all visitable classes
  */
 #define ASM_VISITABLE_LIST \
-  symbol_table::Variable, \
-  symbol_table::Symbol, \
   ASM_SYMBOLS_LIST
 
 // ~~~~~ Lambda Visitors

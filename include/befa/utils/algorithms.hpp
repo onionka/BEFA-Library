@@ -43,7 +43,9 @@ template<
     typename           _IterableT,
     typename           _PredT,
 #define NULL_OBJ(cls)   (*(cls *) nullptr)
-    typename           _OutputT = std::vector<decltype(NULL_OBJ(_PredT)(*NULL_OBJ(_IterableT).begin()))>
+    typename           _OutputT = std::vector<
+        decltype(std::invoke(NULL_OBJ(_PredT), *NULL_OBJ(_IterableT).begin()))
+    >
 #undef NULL_OBJ
 >
 _OutputT                map(

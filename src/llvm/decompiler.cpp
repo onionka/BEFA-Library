@@ -28,7 +28,7 @@ void ExecutableFile::runDecompiler() {
 namespace llvm {
 
 // ~~~~~ Mappers
-const std::map<std::string, CmpInstruction::types_e>
+std::map<std::string, CmpInstruction::types_e>
     CmpInstruction::str_to_jmp{
     {"ja", GT},
     {"jg", GT},
@@ -53,30 +53,39 @@ const std::map<std::string, CmpInstruction::types_e>
     {"je", EQ},
     {"jne", NE},
 };
-const std::map<CmpInstruction::types_e, std::string>
-    CmpInstruction::jmp_to_str{
-    {GT, "ja"},
-    {GT, "jg"},
-    {GT, "jnbe"},
-    {GT, "jnle"},
+std::map<CmpInstruction::types_e, std::vector<std::string>>
+    CmpInstruction::jumps{
+    {GT, {
+        "ja",
+        "jg",
+        "jnbe",
+        "jnle",
+    }},
 
-    {GE, "jae"},
-    {GE, "jge"},
-    {GE, "jnb"},
-    {GE, "jnl"},
+    {GE, {
+        "jae",
+        "jge",
+        "jnb",
+        "jnl",
+    }},
 
-    {LT, "jb"},
-    {LT, "jl"},
-    {LT, "jnae"},
-    {LT, "jnge"},
+    {LT, {
+        "jb",
+        "jl",
+        "jnae",
+        "jnge",
+    }},
 
-    {LE, "jbe"},
-    {LE, "jle"},
-    {LE, "jna"},
-    {LE, "jng"},
+    {LE, {
+        "jbe",
+        "jle",
+        "jna",
+        "jng",
+    }},
 
-    {EQ, "je"},
-    {NE, "jne"},
+    {EQ, {"je"}},
+
+    {NE, {"jne"}},
 };
 
 InstructionVisitorL create_traversal(
@@ -161,7 +170,7 @@ traits::symbol::ptr::shared SymTable::find_symbol(
       (const symbol_table::Symbol *visitable) {
     result = (visitable->getName().find(name) != std::string::npos);
   });
-  for (auto &sym : *symbol_table) {
+  for (auto &sym : *symbol_map) {
     invoke_accept(sym.second, visitor);
     if (result) return sym.second;
   }
@@ -174,7 +183,7 @@ traits::symbol::ptr::shared SymTable::find_symbol(bfd_vma address) const {
       (const symbol_table::Symbol *visitable) {
     result = (visitable->getAddress() == address);
   });
-  for (auto &sym : *symbol_table) {
+  for (auto &sym : *symbol_map) {
     invoke_accept(sym.second, visitor);
     if (result) return sym.second;
   }
@@ -192,7 +201,7 @@ bfd_vma SymTable::get_address(SymTable::sym_t::ptr::shared sym) const {
 }
 
 instruction_parser::sym_map_t::type SymTable::to_map() const {
-  return ::map(*symbol_table, [](const auto &item) {
+  return ::map(*symbol_map, [](const auto &item) {
     bfd_vma address;
     invoke_accept(item.second, symbol_table::SymbolVisitorL(
         [&address] (auto sym_ptr) {
@@ -200,6 +209,22 @@ instruction_parser::sym_map_t::type SymTable::to_map() const {
         }));
     return std::make_pair(address, item.second);
   }, instruction_parser::sym_map_t::type());
+}
+
+SymTable::sym_t::ptr::shared   SymTable::add_symbol(
+    SymTable::sym_t::ptr::shared         symbol
+) {
+  std::string name;
+  invoke_accept(symbol, symbol_table::SymbolVisitorL(
+      [&name] (const symbol_table::Symbol *sym) {
+        name = sym->getAddress();
+      }
+  ));
+  assert_ex(
+      symbol_map->emplace(std::make_pair(name, symbol)).second,
+      "Failed to insert symbol into symbol table"
+  );
+  return symbol;
 }
 // ~~~~~ Symbol Table
 using sym_t = BinaryOperation::sym_t;
@@ -366,9 +391,9 @@ UnaryInstruction::operator_t::type UnaryInstruction::getOperator() const {
 
 // ~~~~~ Assignment
 std::string Assignment::toString() const {
-    return std::get<0>(details::fetch_name(getAssigner()))
+    return std::get<0>(details::fetch_name(getAssignee()))
     +                                        " = "
-    +      std::get<0>(details::fetch_name(getAssignee()));
+    +      std::get<0>(details::fetch_name(getAssigner()));
 }
 
 // ~~~~~ Assignment
@@ -498,10 +523,6 @@ void CompareFactory::operator()(
 ) const {
   auto name = instruction.getName();
 
-  #define SEND_TEXT(result) \
-  subscriber.on_next( \
-    std::make_shared<llvm::DummyInstruction>(result))
-
   if (name == "cmp") {
     instruction
         .getArgs(symbol_table->to_map())
@@ -545,8 +566,7 @@ void CompareFactory::operator()(
         .subscribe([&](
             std::vector<sym_t::ptr::shared> args
         ) {
-          auto temporary = symbol_table->add_symbol
-              <symbol_table::Temporary>(args[0], "&", args[1]);
+          auto temporary = std::make_shared<symbol_table::Symbol>("Temporary");
           auto zf = symbol_table->find_symbol("_zf");
           auto sf = symbol_table->find_symbol("_sf");
           auto pf = symbol_table->find_symbol("_pf");
@@ -555,6 +575,9 @@ void CompareFactory::operator()(
               "cannot continue without essential registers"
           );
 
+          subscriber.on_next(std::make_shared<llvm::BinaryOperation>(
+              a_ir_t::vector::value{instruction}, temporary, args[0], "AND", args[1]
+          ));
           subscriber.on_next(std::make_shared<llvm::UnaryInstruction>(
               a_ir_t::vector::value{instruction}, sf, "MSB", temporary
           ));
@@ -564,6 +587,7 @@ void CompareFactory::operator()(
                std::make_shared<symbol_table::Immidiate>("0")
           ));
 
+          // get parity flag via BitwiseXNOR - 1 is odd, 0 is even
           subscriber.on_next(std::make_shared<llvm::UnaryInstruction>(
               a_ir_t::vector::value{instruction}, pf, "BitwiseXNOR", temporary
           ));
@@ -571,6 +595,103 @@ void CompareFactory::operator()(
   }
 }
 // ~~~~~ CMP implementation
+
+static std::vector<std::string> jumps = ::map(
+    CmpInstruction::str_to_jmp,
+    [] (const ::std::pair<std::string, CmpInstruction::types_e> &str_jmp) {
+      return str_jmp.first;
+    }
+);
+
+// ~~~~~ JMP implementation
+
+std::string BranchInstruction::toString() const {
+  return std::string("br ")
+      + std::get<0>(details::fetch_name(getCondition()))
+      + ", address " + std::get<0>(details::fetch_name(getTarget()));
+}
+
+void JumpFactory::operator()(
+    a_ir_t::c_info::ref instruction,
+    sym_table_t::ptr::shared symbol_table,
+    ir_t::rx::shared_subs subscriber
+) const {
+  auto name = instruction.getName();
+  auto cf = symbol_table->find_symbol("_cf");
+  auto zf = symbol_table->find_symbol("_zf");
+  auto zero = std::make_shared<symbol_table::Immidiate>("0");
+  auto one = std::make_shared<symbol_table::Immidiate>("1");
+  auto result = std::make_shared<symbol_table::Symbol>("TempResult");
+  bool was_jump = false;
+
+  if (contains(CmpInstruction::jumps[CmpInstruction::GT], name)) {
+    was_jump = true;
+    // CF = 0 and ZF = 0
+    auto temp = std::make_shared<symbol_table::Symbol>("Temp2Result");
+
+    subscriber.on_next(
+        std::make_shared<CmpInstruction>(
+            instruction, result, cf, CmpInstruction::EQ, zero
+        )
+    );
+    subscriber.on_next(
+        std::make_shared<CmpInstruction>(
+            instruction, temp, zf, CmpInstruction::EQ, zero
+        )
+    );
+    subscriber.on_next(
+        std::make_shared<BinaryOperation>(
+            a_ir_t::vector::value{instruction}, result, temp, "AND", result
+        )
+    );
+  } else if (contains(CmpInstruction::jumps[CmpInstruction::LE], name)) {
+    was_jump = true;
+    // CF = 1 or ZF = 1
+    auto temp = std::make_shared
+        <symbol_table::Symbol>("Temp2Result");
+
+    subscriber.on_next(
+        std::make_shared<CmpInstruction>(
+            instruction, result, cf, CmpInstruction::EQ, one
+        )
+    );
+    subscriber.on_next(
+        std::make_shared<CmpInstruction>(
+            instruction, temp, zf, CmpInstruction::EQ, one
+        )
+    );
+    subscriber.on_next(
+        std::make_shared<BinaryOperation>(
+            a_ir_t::vector::value{instruction}, result, temp, "OR", result
+        )
+    );
+  } else if (contains(CmpInstruction::jumps[CmpInstruction::GE], name)) {
+    // CF = 0
+
+  } else if (contains(CmpInstruction::jumps[CmpInstruction::LT], name)) {
+    // CF = 1
+
+  } else if (contains(CmpInstruction::jumps[CmpInstruction::NE], name)) {
+    // ZF = 0
+
+  } else if (contains(CmpInstruction::jumps[CmpInstruction::EQ], name)) {
+    // ZF = 1
+
+  }
+
+  if (was_jump)
+    instruction
+        .getArgs()
+        .first()
+        .subscribe([&] (auto arg) {
+          subscriber.on_next(
+              std::make_shared<BranchInstruction>(
+                  a_ir_t::vector::value{instruction}, result, arg
+              )
+          );
+        });
+}
+// ~~~~~ JMP implementation
 
 }  // namespace llvm
 

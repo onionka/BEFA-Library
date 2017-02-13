@@ -61,39 +61,43 @@ ExecutableFile ExecutableFile::open(
 }
 
 ExecutableFile::sym_t::vector::weak ExecutableFile::getSymbolTable() {
-
-  if (symbol_buffer.empty())
+  if (symbol_buffer.empty()) {
     for_each(fetchSymbolTable(), [&](auto &sym_ite) {
       auto &sym = *sym_ite;
       symbol_type *existing_sym = nullptr;
-      if (!contains_if(symbol_buffer, [&](auto &shared_s) {
-        existing_sym = shared_s.get();
-        return shared_s->getAddress() == bfd_asymbol_value(sym);
-      })) {
+      if (!contains_if(symbol_buffer,
+            [&](auto &shared_s) {
+              existing_sym = shared_s.get();
+              return shared_s->getAddress()
+                  == bfd_asymbol_value(sym);
+            })) {
         // if symbol doesn't exists, create new one
         // Firstly find section in section_buffer that symbol is pointing to
         auto sec_ite = std::find_if(
             section_buffer.begin(), section_buffer.end(),
-            [&sym](sec_t::ptr::shared &sec) {
+            [&sym](auto &sec) {
               return sec->getOrigin() == sym->section;
             }
         );
         // if section has been buffered, just use it
         if (sec_ite != section_buffer.end()) {
-          symbol_buffer.push_back(std::make_shared<symbol_type>(sym, *sec_ite));
+          symbol_buffer.push_back(
+              std::make_shared<symbol_type>(sym, *sec_ite)
+          );
         } else {
           // else create it
-          section_buffer.emplace_back(std::make_shared<section_type>(sym->section));
-          symbol_buffer.push_back(std::make_shared<symbol_type>(sym,
-                                                                section_buffer.back()));
+          section_buffer.emplace_back(
+              std::make_shared<section_type>(sym->section)
+          );
+          symbol_buffer.push_back(
+              std::make_shared<symbol_type>(sym, section_buffer.back())
+          );
         }
       } else {
         existing_sym->addAlias(sym);
       }
     });
 
-  // guard to prevent multi-sort
-  if (!symbols_sorted) {
     // sort section_buffer in descending
     std::sort(symbol_buffer.begin(),
               symbol_buffer.end(),
@@ -101,11 +105,11 @@ ExecutableFile::sym_t::vector::weak ExecutableFile::getSymbolTable() {
                 return bfd_asymbol_value(lsh->getOrigin())
                     < bfd_asymbol_value(rhs->getOrigin());
               });
-    symbols_sorted = true;
-  }
+  }  // if (symbol_buffer.empty())
 
-  return ::map(symbol_buffer,
-             [](auto &shared_s) { return std::weak_ptr<symbol_type>(shared_s); });
+  return ::map(symbol_buffer, [](auto &shared_s) {
+    return std::weak_ptr<symbol_type>(shared_s);
+  });
 }
 
 std::vector<std::string> ExecutableFile::getTargets() {
@@ -179,21 +183,23 @@ std::map<
     bfd_vma,
     std::shared_ptr<symbol_table::VisitableBase>
 > ExecutableFile::generate_table() {
-  std::map<
-      bfd_vma,
-      std::shared_ptr<symbol_table::VisitableBase>
-  > result;
-  for (auto &symbol : getSymbolTable()) {
-    auto symbol_l = ptr_lock(symbol);
-    result.insert(std::make_pair<
-        bfd_vma,
-        std::shared_ptr<symbol_table::VisitableBase>
-    >(
-        symbol_l->getAddress(),
-        std::make_shared<symbol_table::Function>(symbol_l)
-    ));
-  }
-  return result;
+  return ::map(
+      getSymbolTable(), [] (auto &sym) {
+        auto symbol_l = ptr_lock(sym);
+        return std::make_pair<
+            bfd_vma,
+            std::shared_ptr<symbol_table::VisitableBase>
+        >(
+            symbol_l->getAddress(),
+            std::make_shared<symbol_table::Function>(symbol_l)
+        );
+      },
+      // accumulator
+      std::map<
+          bfd_vma,
+          std::shared_ptr<symbol_table::VisitableBase>
+      >()
+  );
 }
 // ~~~~~~~~~~~ ExecutableFile implementation ~~~~~~~~~~~
 

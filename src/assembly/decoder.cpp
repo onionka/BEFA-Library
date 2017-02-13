@@ -296,6 +296,8 @@ const {
   // if it is unary () should be used
   if (lhs_name == "" && op != "")
     rhs_name = "(" + rhs_name + ")";
+  else if (op != "")
+    return "(" + lhs_name + ") " + op + " (" + rhs_name + ")";
   return lhs_name + op + rhs_name;
 }
 }  // namespace symbol_table

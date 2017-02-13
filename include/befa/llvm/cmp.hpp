@@ -14,26 +14,30 @@ struct CmpInstruction
     : public BinaryOperation {
   using Instruction::sym_t;
 
-  enum types_e {
+  enum types_e : uint64_t {
         // greater than     greater or equal
         GT,                 GE,
         // lesser than      lesser or equal
         LT,                 LE,
-        // unsigned GT      unsigned GE
-        UGT,                UGE,
-        // unsigned LT      unsigned LE
-        ULT,                ULE,
         // equal            not equal
         EQ,                 NE,
+
+        // unsigned GT      unsigned GE
+        UGT = GT,           UGE = GE,
+        // unsigned LT      unsigned LE
+        ULT = LT,           ULE = LE,
   };
 
   // FIXME: remove this
-  static const std::map<
+  static
+  std::map<
       std::string,               types_e
   >   str_to_jmp;
-  static const std::map<
-      types_e,              std::string
-  >   jmp_to_str;
+  static
+  std::map<
+      CmpInstruction::types_e,
+      std::vector<std::string>
+  >                              jumps;
 
   void accept(
       VisitorBase&               visitor
